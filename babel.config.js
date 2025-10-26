@@ -5,6 +5,9 @@ module.exports = function(api) {
       'babel-preset-expo',
       '@babel/preset-typescript'
     ],
-    plugins: []
+    plugins: [
+      // other plugins can go here (if you add any later)
+      'react-native-reanimated/plugin' // must be last
+    ],
   };
 };
