@@ -3,13 +3,13 @@
     "name": "PocketWorkx",
     "slug": "pocketworkx",
     "version": "1.0.0",
+    "scheme": "pocketworkx",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "assetBundlePatterns": [
-      "src/assets/*",
-      "assets/fonts/*"
+      "**/*"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -30,12 +30,19 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+       "bundler": "metro"
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow PocketWorkx to scan receipts and documents"
+        }
+      ]
     ]
   }
 }

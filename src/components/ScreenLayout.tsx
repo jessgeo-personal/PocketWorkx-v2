@@ -1,79 +1,73 @@
 // src/components/ScreenLayout.tsx
+import React, { useState } from 'react';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 
-import React, { useState, createContext, useContext } from 'react';
-import { View, StyleSheet, Image, SafeAreaView } from 'react-native';
 import SlidingMenu from './SlidingMenu';
-import FloatingMenuButton from './FloatingMenuButton';
-import { colors, sectionColors } from '../utils/theme';
-import logo from '../assets/logo.png';
+import { Colors } from '../utils/theme';
 
 interface ScreenLayoutProps {
   children: React.ReactNode;
+  showMenuButton?: boolean;
 }
 
-// Section theme configuration
-export const sectionTheme = {
-  netWorth: sectionColors.netWorth,
-  cash: sectionColors.cash,
-  accounts: sectionColors.cash,        // accounts treated same as cash
-  liabilities: sectionColors.liabilities,
-  investments: sectionColors.investments,
-  receivables: sectionColors.investments, // same as investments
-  other: sectionColors.allOthers,
-};
+const ScreenLayout: React.FC<ScreenLayoutProps> = ({ 
+  children, 
+  showMenuButton = true 
+}) => {
+  const [menuVisible, setMenuVisible] = useState(false);
 
-// Create context for section colors
-export const SectionThemeContext = createContext(sectionTheme);
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" backgroundColor={Colors.background.primary} />
+      
+      <View style={styles.content}>
+        {children}
+      </View>
 
-// Custom hook to use section theme
-export const useSectionTheme = () => useContext(SectionThemeContext);
+      {showMenuButton && (
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={() => setMenuVisible(true)}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="menu" size={24} color={Colors.white} />
+        </TouchableOpacity>
+      )}
 
-const ScreenLayout: React.FC<ScreenLayoutProps> = ({ children }) => {
-  const [isMenuVisible, setIsMenuVisible] = useState(false);
-
-  const toggleMenu = () => {
-    setIsMenuVisible(prev => !prev);
-  };
-
-  const closeMenu = () => {
-    setIsMenuVisible(false);
-  };
-
-return (
-    <SectionThemeContext.Provider value={sectionTheme}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Image source={logo} style={styles.logo} resizeMode="contain" />
-        </View>
-
-        <View style={styles.content}>{children}</View>
-
-        <FloatingMenuButton onPress={toggleMenu} isMenuOpen={isMenuVisible} />
-        <SlidingMenu visible={isMenuVisible} onClose={closeMenu} />
-      </SafeAreaView>
-    </SectionThemeContext.Provider>
+      <SlidingMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    height: 120,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surface,
-  },
-  logo: {
-    width: 200,
-    height: 100,
+    backgroundColor: Colors.background.primary,
   },
   content: {
     flex: 1,
+  },
+  menuButton: {
+    position: 'absolute',
+    bottom: 30,
+    left: '50%',
+    transform: [{ translateX: -28 }],
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.grey[600],
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
 });
 
