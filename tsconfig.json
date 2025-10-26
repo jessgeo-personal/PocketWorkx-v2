@@ -1,0 +1,20 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2021",
+    "lib": ["ES2021", "DOM"],
+    "types": ["expo", "react", "react-native"],
+    "baseUrl": ".",
+    "paths": {
+      "@components/*": ["src/components/*"],
+      "@services/*": ["src/services/*"],
+      "@types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"],
+      "@assets/*": ["src/assets/*"],
+      "@app/*": ["src/app/*"]
+    }
+  },
+  "include": ["src", "app.json"],
+  "exclude": ["node_modules"]
+}
