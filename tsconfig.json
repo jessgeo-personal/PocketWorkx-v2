@@ -1,20 +1,28 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "jsx": "react-native",
+    "allowJs": true,
     "strict": true,
-    "target": "ES2021",
-    "lib": ["ES2021", "DOM"],
-    "types": ["expo", "react", "react-native"],
-    "baseUrl": ".",
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["react", "react-native"],
+    "baseUrl": "./",
     "paths": {
       "@components/*": ["src/components/*"],
       "@services/*": ["src/services/*"],
       "@types/*": ["src/types/*"],
-      "@utils/*": ["src/utils/*"],
       "@assets/*": ["src/assets/*"],
-      "@app/*": ["src/app/*"]
+      "@utils/*": ["src/utils/*"]
     }
   },
-  "include": ["src", "app.json"],
-  "exclude": ["node_modules"]
+   "exclude": ["node_modules", "babel.config.js", "metro.config.js", "jest.config.js"],
+   "include": [
+    "src",
+    "src/types"
+  ]
 }
