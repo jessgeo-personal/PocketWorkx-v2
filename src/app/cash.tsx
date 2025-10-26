@@ -644,4 +644,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CashScreen;
+export { CashScreen as default };

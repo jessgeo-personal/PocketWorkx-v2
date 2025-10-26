@@ -327,4 +327,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LiabilitiesScreen;
+export { LiabilitiesScreen as default };

@@ -325,4 +325,4 @@ const styles = StyleSheet.create({
   // Modal styles here...
 });
 
-export default AccountsScreen;
+export { AccountsScreen as default };

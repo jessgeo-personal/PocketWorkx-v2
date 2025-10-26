@@ -126,4 +126,5 @@ const styles = StyleSheet.create({
   emiText: { fontSize: 12, color: '#666666' },
 });
 
-export default LoansScreen;
+export { LoansScreen as default };
+

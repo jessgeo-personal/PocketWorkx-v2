@@ -629,4 +629,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default InvestmentsScreen;
+export { InvestmentsScreen as default };

@@ -128,4 +128,4 @@ const styles = StyleSheet.create({
   dueText: { fontSize: 12, color: '#E74C3C' },
 });
 
-export default CreditCardsScreen;
+export { CreditCardsScreen as default };

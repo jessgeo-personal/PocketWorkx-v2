@@ -451,4 +451,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CryptoScreen;
+export { CryptoScreen as default };
+

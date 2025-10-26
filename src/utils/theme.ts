@@ -257,4 +257,18 @@ export const Theme = {
   layout: Layout,
 };
 
+// Add this at the very end of the existing theme.ts file
+// Legacy compatibility export (CRITICAL FIX)
+export const colors = {
+  primary: Colors.accent,        // Purple buttons
+  secondary: Colors.accent,      
+  background: Colors.background.primary, // Golden yellow
+  surface: Colors.grey[100],
+  textPrimary: Colors.text.primary,
+  textSecondary: Colors.text.secondary,
+  error: Colors.error.main,
+  success: Colors.success.main,
+  warning: Colors.warning.main,
+};
+
 export default Theme;

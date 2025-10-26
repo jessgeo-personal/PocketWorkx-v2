@@ -398,4 +398,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CashflowScreen;
+export { CashflowScreen as default };
+

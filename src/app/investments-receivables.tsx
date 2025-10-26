@@ -365,4 +365,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default InvestmentsReceivablesScreen;
+export { InvestmentsReceivablesScreen as default };

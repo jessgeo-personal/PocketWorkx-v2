@@ -295,4 +295,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LiquidityScreen;
+export { LiquidityScreen as default };
