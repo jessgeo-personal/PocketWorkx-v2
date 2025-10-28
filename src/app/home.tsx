@@ -198,7 +198,7 @@ const HomeScreen: React.FC = () => {
   );
 
   return (
-    <ScreenLayout title="Home">
+    <ScreenLayout>
       <ScrollView 
         style={styles.container} 
         showsVerticalScrollIndicator={false}

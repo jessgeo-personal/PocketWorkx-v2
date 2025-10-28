@@ -1,6 +1,11 @@
 // PocketWorkx Theme System - Exact Mockup Colors & Typography
 import { Platform } from 'react-native';
 
+type RNFontWeight =
+  | 'normal'
+  | 'bold'
+  | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
+  
 export const Colors = {
   // Primary Brand Colors (from mockup)
   primary: '#F7D94C', // Golden yellow background
@@ -137,12 +142,12 @@ export const Typography = {
   
   // Font weights
   fontWeight: {
-    normal: '400',
-    medium: '500',
-    semibold: '600',
-    bold: '700',
-  },
-};
+    normal: 'normal' as RNFontWeight,   // RN literal
+    medium: 500 as RNFontWeight,        // numeric literal (Inter_500)
+    semibold: 600 as RNFontWeight,      // numeric literal (Inter_600)
+    bold: 'bold' as RNFontWeight,       // RN literal
+  } as const,
+} as const;
 
 // Spacing system (16px base grid)
 export const Spacing = {
