@@ -1,5 +1,5 @@
 // src/services/storage/localFileStore.ts
-import * as FileSystem from 'expo-file-system';
+import { File, Directory, Paths } from 'expo-file-system';
 
 type PocketWorkxState = {
   // Add domains as needed; keep them optional to avoid breaking old files
@@ -14,17 +14,19 @@ type PocketWorkxState = {
   _updatedAt?: string; // ISO date
 };
 
-const DATA_DIR = `${FileSystem.documentDirectory}pocketworkx/`;
-const DATA_FILE = `${DATA_DIR}data.json`;
+// Use the new Directory and File classes
+const DATA_DIR = new Directory(Paths.document, 'pocketworkx');
+const DATA_FILE = new File(DATA_DIR, 'data.json');
 
 async function ensureDataFile(): Promise<void> {
   try {
-    const dirInfo = await FileSystem.getInfoAsync(DATA_DIR);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(DATA_DIR, { intermediates: true });
+    // Create directory if it doesn't exist (much simpler now)
+    if (!DATA_DIR.exists) {
+      await DATA_DIR.create();
     }
-    const fileInfo = await FileSystem.getInfoAsync(DATA_FILE);
-    if (!fileInfo.exists) {
+    
+    // Create file with initial data if it doesn't exist
+    if (!DATA_FILE.exists) {
       const initial: PocketWorkxState = {
         cashEntries: [],
         accounts: [],
@@ -35,7 +37,7 @@ async function ensureDataFile(): Promise<void> {
         _version: 1,
         _updatedAt: new Date().toISOString(),
       };
-      await FileSystem.writeAsStringAsync(DATA_FILE, JSON.stringify(initial), { encoding: FileSystem.EncodingType.UTF8 });
+      await DATA_FILE.write(JSON.stringify(initial));
     }
   } catch (e) {
     // Fail safe: if creating fails, throw to surface early in dev
@@ -45,10 +47,12 @@ async function ensureDataFile(): Promise<void> {
 
 export async function getState(): Promise<PocketWorkxState> {
   await ensureDataFile();
-  const content = await FileSystem.readAsStringAsync(DATA_FILE, { encoding: FileSystem.EncodingType.UTF8 });
+  
   try {
+    // Read file content using the new API
+    const content = await DATA_FILE.text();
     return JSON.parse(content) as PocketWorkxState;
-  } catch {
+  } catch (parseError) {
     // If corrupt, re-initialize to a safe default
     const fallback: PocketWorkxState = {
       cashEntries: [],
@@ -60,14 +64,14 @@ export async function getState(): Promise<PocketWorkxState> {
       _version: 1,
       _updatedAt: new Date().toISOString(),
     };
-    await FileSystem.writeAsStringAsync(DATA_FILE, JSON.stringify(fallback), { encoding: FileSystem.EncodingType.UTF8 });
+    DATA_FILE.write(JSON.stringify(fallback));
     return fallback;
   }
 }
 
 export async function setState(next: PocketWorkxState): Promise<void> {
   const stamped = { ...next, _updatedAt: new Date().toISOString() };
-  await FileSystem.writeAsStringAsync(DATA_FILE, JSON.stringify(stamped), { encoding: FileSystem.EncodingType.UTF8 });
+  await DATA_FILE.write(JSON.stringify(stamped));
 }
 
 // Convenience helpers for domain slices (example: cash)
@@ -78,10 +82,42 @@ export async function getCashEntries(): Promise<any[]> {
 
 export async function setCashEntries(entries: any[]): Promise<void> {
   const s = await getState();
-  s.cashEntries = entries;
-  await setState(s);
+  await setState({ ...s, cashEntries: entries });
+}
+
+// Additional helper methods using the new API
+export async function getFileInfo(): Promise<{ size: number; exists: boolean; uri: string }> {
+  return {
+    size: DATA_FILE.size,
+    exists: DATA_FILE.exists,
+    uri: DATA_FILE.uri
+  };
+}
+
+export async function clearAllData(): Promise<void> {
+  if (DATA_FILE.exists) {
+    DATA_FILE.delete();
+  }
+}
+
+export async function backupData(): Promise<File> {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupFile = new File(DATA_DIR, `data-backup-${timestamp}.json`);
+  
+  if (DATA_FILE.exists) {
+    DATA_FILE.copy(backupFile);
+  }
+  
+  return backupFile;
 }
 
 // You can add similar helpers for accounts, loans, etc.
-// export async function getAccounts() {}
-// export async function setAccounts(next: any[]) {}
+// export async function getAccounts(): Promise<any[]> {
+//   const s = await getState();
+//   return s.accounts ?? [];
+// }
+
+// export async function setAccounts(accounts: any[]): Promise<void> {
+//   const s = await getState();
+//   await setState({ ...s, accounts });
+// }
