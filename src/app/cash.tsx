@@ -6,12 +6,12 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  StatusBar,
   Modal,
   TextInput,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -19,8 +19,9 @@ import {
   Money, 
   Currency 
 } from '../types/finance';
-import { formatCompactCurrency } from '../utils/currency';
+import { formatCurrency, formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';
+import { Colors } from '../utils/theme';
 
 const CashScreen: React.FC = () => {
   const [cashEntries, setCashEntries] = useState<CashEntry[]>([
@@ -358,30 +359,25 @@ const CashScreen: React.FC = () => {
 
   return (
     <ScreenLayout>
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar style="dark" backgroundColor={Colors.background.primary} />
         {renderHeader()}
-        
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {renderTotalCard()}
-          {renderQuickActions()}
-          
-          <View style={styles.cashContainer}>
-            <Text style={styles.sectionTitle}>Your Cash Entries</Text>
-            {cashEntries.length > 0 ? (
-              cashEntries.map(renderCashEntry)
-            ) : (
-              <View style={styles.emptyCash}>
-                <MaterialIcons name="account-balance-wallet" size={64} color="#E0E0E0" />
-                <Text style={styles.emptyText}>No cash entries yet</Text>
-                <Text style={styles.emptySubtext}>Add your first cash entry to get started</Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-        
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {renderTotalCard()}
+        {renderQuickActions()}
+      <View style={styles.cashContainer}>
+        <Text style={styles.sectionTitle}>Your Cash Entries</Text>
+          {cashEntries.length > 0 ? (
+          cashEntries.map(renderCashEntry)
+          ) : (
+        <View style={styles.emptyCash}>
+          <MaterialIcons name="account-balance-wallet" size={64} color="#E0E0E0" />
+          <Text style={styles.emptyText}>No cash entries yet</Text>
+          <Text style={styles.emptySubtext}>Add your first cash entry to get started</Text>
+        </View>
+          )}
+        </View>
+      </ScrollView>
         {renderAddCashModal()}
-      </SafeAreaView>
     </ScreenLayout>
   );
 };
@@ -389,17 +385,23 @@ const CashScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background.primary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 24,
