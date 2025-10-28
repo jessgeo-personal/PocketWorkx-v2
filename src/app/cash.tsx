@@ -1,954 +1,647 @@
-// src/app/cash.tsx - Original Format with Enhanced Backend
-import React, { useState, useEffect } from 'react';
+// src/app/cash.tsx - CORRECTED VERSION WITH SCREENLAYOUT
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
-  Pressable,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
   Modal,
   TextInput,
   Alert,
-  FlatList,
-  RefreshControl,
-  Image
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useStorage } from '../services/storage/StorageProvider';
+import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { 
+  CashEntry, 
+  Money, 
+  Currency 
+} from '../types/finance';
+import { formatCompactCurrency } from '../utils/currency';
+import ScreenLayout from '../components/ScreenLayout';
 
-// Enhanced data structure (backend)
-interface CashCategory {
-  id: string;
-  name: string;
-  balance: number;
-  color: string;
-}
-
-interface CashEntry {
-  id: string;
-  description: string;
-  amount: { amount: number; currency: 'INR' };
-  location: string;
-  timestamp: Date;
-}
-
-// PocketWorkx Design System - Imported from Theme
-const Colors = {
-  primary: '#F7D94C',           // Golden yellow background
-  secondary: '#FFF8DC',         // Light cream for cards  
-  surface: '#FFFFFF',           // Pure white for overlays
-  accent: '#8B5CF6',            // Purple for primary buttons
-  accentLight: '#A78BFA',       // Light purple for hover states
-  accentDark: '#7C3AED',        // Dark purple for pressed states
-  success: '#10B981',           // Green for positive values
-  error: '#EF4444',             // Red for negative values/debts
-  warning: '#F59E0B',           // Amber for alerts
-  info: '#3B82F6',              // Blue for information
-  textPrimary: '#1F2937',       // Dark gray for primary text
-  textSecondary: '#6B7280',     // Medium gray for secondary text
-  textLight: '#9CA3AF',         // Light gray for hints/disabled
-  textInverted: '#FFFFFF',      // White text on dark backgrounds
-  gray100: '#F3F4F6',
-  gray200: '#E5E7EB',
-  gray300: '#D1D5DB',
-  gray400: '#9CA3AF',
-  gray500: '#6B7280',
-  gray600: '#4B5563',
-  gray700: '#374151',
-  gray800: '#1F2937',
-  gray900: '#111827',
-} as const;
-
-const Typography = {
-  fontFamily: {
-    regular: 'System',
-    medium: 'System-Medium',
-    semibold: 'System-Semibold',
-    bold: 'System-Bold',
-  },
-  fontSize: {
-    xs: 12,    // Small labels, captions
-    sm: 14,    // Secondary text, body small
-    md: 16,    // Body text, default
-    lg: 18,    // Subheadings
-    xl: 20,    // Page titles
-    '2xl': 24, // Section headers
-    '3xl': 30, // Large amounts
-    '4xl': 36, // Feature amounts
-    '5xl': 48, // Hero display
-  },
-  lineHeight: {
-    tight: 1.2,
-    normal: 1.4,
-    relaxed: 1.6,
-  },
-  fontWeight: {
-    normal: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
-  },
-} as const;
-
-const Spacing = {
-  xs: 4,     // Tiny gaps
-  sm: 8,     // Small spacing
-  md: 16,    // Standard spacing (base unit)
-  lg: 24,    // Large spacing
-  xl: 32,    // Extra large spacing
-  '2xl': 48, // Section spacing
-  '3xl': 64, // Page spacing
-  // Component-specific spacing
-  cardPadding: 16,
-  screenPadding: 20,
-  buttonPadding: 12,
-  inputPadding: 14,
-} as const;
-
-const BorderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-} as const;
-
-// Indian Rupee Formatting (lakhs/crores format)
-const formatIndianCurrency = (amount: number): string => {
-  const isNegative = amount < 0;
-  const absAmount = Math.abs(amount);
-  
-  // Convert to Indian numbering system (lakhs/crores)
-  if (absAmount >= 10000000) { // 1 crore
-    const crores = absAmount / 10000000;
-    return `${isNegative ? '-' : ''}₹${crores.toFixed(2)} Cr`;
-  } else if (absAmount >= 100000) { // 1 lakh  
-    const lakhs = absAmount / 100000;
-    return `${isNegative ? '-' : ''}₹${lakhs.toFixed(2)} L`;
-  } else {
-    return `${isNegative ? '-' : ''}₹${absAmount.toLocaleString('en-IN')}`;
-  }
-};
-
-export default function CashScreen() {
-  const { state, updateCashCategories, updateCashTransactions } = useStorage();
-  
-  // State management
-  const [cashEntries, setCashEntries] = useState<CashEntry[]>([]);
-  const [categories, setCategories] = useState<CashCategory[]>([
-    { id: '1', name: 'Wallet', balance: 0, color: Colors.accent },
-    { id: '2', name: 'Loose Change (Car)', balance: 0, color: Colors.success },
-    { id: '3', name: 'Loose Change (Home)', balance: 0, color: Colors.warning },
-    { id: '4', name: 'Safe', balance: 0, color: Colors.error },
+const CashScreen: React.FC = () => {
+  const [cashEntries, setCashEntries] = useState<CashEntry[]>([
+    {
+      id: '1',
+      description: 'Wallet Cash',
+      amount: { amount: 15500, currency: 'INR' },
+      location: 'Personal Wallet',
+      // Required enhanced fields
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: new Date(),
+        isEncrypted: false,
+      },
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: new Date('2025-10-01'),
+        updatedBy: 'user',
+        updatedAt: new Date(),
+        version: 1,
+        changes: [],
+      },
+      linkedTransactions: [],
+    },
+    {
+      id: '2',
+      description: 'Home Safe',
+      amount: { amount: 45000, currency: 'INR' },
+      location: 'Home - Bedroom Safe',
+      // Required enhanced fields
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: new Date(),
+        isEncrypted: false,
+      },
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: new Date('2025-09-15'),
+        updatedBy: 'user',
+        updatedAt: new Date(),
+        version: 1,
+        changes: [],
+      },
+      linkedTransactions: [],
+    },
+    {
+      id: '3',
+      description: 'Emergency Cash',
+      amount: { amount: 25000, currency: 'INR' },
+      location: 'Car Dashboard',
+      // Required enhanced fields
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: new Date(),
+        isEncrypted: false,
+      },
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: new Date('2025-08-20'),
+        updatedBy: 'user',
+        updatedAt: new Date(),
+        version: 1,
+        changes: [],
+      },
+      linkedTransactions: [],
+    },
+    {
+      id: '4',
+      description: 'Office Petty Cash',
+      amount: { amount: 8000, currency: 'INR' },
+      location: 'Office Desk',
+      // Required enhanced fields
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: new Date(),
+        isEncrypted: false,
+      },
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: new Date('2025-10-03'),
+        updatedBy: 'user',
+        updatedAt: new Date(),
+        version: 1,
+        changes: [],
+      },
+      linkedTransactions: [],
+    },
   ]);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  // Modal states
-  const [addCashModalVisible, setAddCashModalVisible] = useState(false);
-  const [moveCashModalVisible, setMoveCashModalVisible] = useState(false);
-  const [recordExpenseModalVisible, setRecordExpenseModalVisible] = useState(false);
-  const [accountDepositModalVisible, setAccountDepositModalVisible] = useState(false);
-  
-  // Form states
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [location, setLocation] = useState('Wallet');
-  const [fromCategory, setFromCategory] = useState('');
-  const [toCategory, setToCategory] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, [state]);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [newCashDescription, setNewCashDescription] = useState('');
+  const [newCashAmount, setNewCashAmount] = useState('');
+  const [newCashLocation, setNewCashLocation] = useState('');
 
-  const loadData = () => {
-    if (state.cashEntries) {
-      setCashEntries(state.cashEntries);
-      updateCategoryBalances(state.cashEntries);
-    }
+  const totalCash = cashEntries.reduce((sum, entry) => sum + entry.amount.amount, 0);
+
+  const getLocationIcon = (location: string) => {
+    if (location?.toLowerCase().includes('wallet')) return 'account-balance-wallet';
+    if (location?.toLowerCase().includes('home')) return 'home';
+    if (location?.toLowerCase().includes('car')) return 'directions-car';
+    if (location?.toLowerCase().includes('office')) return 'work';
+    if (location?.toLowerCase().includes('safe')) return 'security';
+    return 'place';
   };
 
-  const updateCategoryBalances = (entries: CashEntry[]) => {
-    const updatedCategories = categories.map(cat => ({
-      ...cat,
-      balance: entries
-        .filter(entry => entry.location === cat.name)
-        .reduce((sum, entry) => sum + entry.amount.amount, 0)
-    }));
-    setCategories(updatedCategories);
-  };
-
-  const getTotalCash = (): number => {
-    return categories.reduce((total, cat) => total + cat.balance, 0);
+  const getLocationColor = (location: string) => {
+    if (location?.toLowerCase().includes('wallet')) return '#4CAF50';
+    if (location?.toLowerCase().includes('home')) return '#2196F3';
+    if (location?.toLowerCase().includes('car')) return '#FF9800';
+    if (location?.toLowerCase().includes('office')) return '#9C27B0';
+    if (location?.toLowerCase().includes('safe')) return '#795548';
+    return '#666666';
   };
 
   const handleAddCash = () => {
-    if (!description.trim() || !amount || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Please enter valid description and amount');
+    if (!newCashDescription.trim() || !newCashAmount.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    const amount = parseFloat(newCashAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
 
     const newEntry: CashEntry = {
       id: Date.now().toString(),
-      description: description.trim(),
-      amount: { 
-        amount: parseFloat(amount), 
-        currency: 'INR' 
+      description: newCashDescription.trim(),
+      amount: { amount, currency: 'INR' },
+      location: newCashLocation.trim() || 'Not specified',
+      // Required enhanced fields
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: new Date(),
+        isEncrypted: false,
       },
-      location,
-      timestamp: new Date(),
-    };
-
-    dispatch({ type: 'ADD_CASH_ENTRY', payload: newEntry });
-    resetForm();
-    setAddCashModalVisible(false);
-  };
-
-  const handleMoveCash = () => {
-    if (!amount || parseFloat(amount) <= 0 || !fromCategory || !toCategory) {
-      Alert.alert('Error', 'Please fill all fields with valid values');
-      return;
-    }
-
-    if (fromCategory === toCategory) {
-      Alert.alert('Error', 'Cannot move cash to the same category');
-      return;
-    }
-
-    // Check if source category has sufficient balance
-    const sourceCategory = categories.find(cat => cat.name === fromCategory);
-    if (!sourceCategory || sourceCategory.balance < parseFloat(amount)) {
-      Alert.alert('Error', 'Insufficient cash in source category');
-      return;
-    }
-
-    // For simplicity, create two entries: one negative (from) and one positive (to)
-    const amountValue = parseFloat(amount);
-    
-    const fromEntry: CashEntry = {
-      id: Date.now().toString(),
-      description: `Moved to ${toCategory}`,
-      amount: { amount: -amountValue, currency: 'INR' },
-      location: fromCategory,
-      timestamp: new Date(),
-    };
-
-    const toEntry: CashEntry = {
-      id: (Date.now() + 1).toString(),
-      description: `Received from ${fromCategory}`,
-      amount: { amount: amountValue, currency: 'INR' },
-      location: toCategory,
-      timestamp: new Date(),
-    };
-
-    dispatch({ type: 'ADD_CASH_ENTRY', payload: fromEntry });
-    dispatch({ type: 'ADD_CASH_ENTRY', payload: toEntry });
-    
-    resetForm();
-    setMoveCashModalVisible(false);
-  };
-
-  const handleRecordExpense = () => {
-    if (!description.trim() || !amount || parseFloat(amount) <= 0 || !location) {
-      Alert.alert('Error', 'Please fill all fields with valid values');
-      return;
-    }
-
-    // Check if category has sufficient balance
-    const category = categories.find(cat => cat.name === location);
-    if (!category || category.balance < parseFloat(amount)) {
-      Alert.alert('Error', 'Insufficient cash in selected category');
-      return;
-    }
-
-    const newEntry: CashEntry = {
-      id: Date.now().toString(),
-      description: `Expense: ${description.trim()}`,
-      amount: { 
-        amount: -parseFloat(amount), // Negative for expense
-        currency: 'INR' 
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: new Date(),
+        updatedBy: 'user',
+        updatedAt: new Date(),
+        version: 1,
+        changes: [],
       },
-      location,
-      timestamp: new Date(),
+      linkedTransactions: [],
     };
 
-    dispatch({ type: 'ADD_CASH_ENTRY', payload: newEntry });
-    resetForm();
-    setRecordExpenseModalVisible(false);
+    setCashEntries([...cashEntries, newEntry]);
+    setNewCashDescription('');
+    setNewCashAmount('');
+    setNewCashLocation('');
+    setIsAddModalVisible(false);
   };
 
-  const handleAccountDeposit = () => {
-    // Coming Soon functionality
+  const handleDeleteCash = (id: string) => {
     Alert.alert(
-      'Coming Soon!',
-      'Bank account integration will be available in the next update. You\'ll be able to deposit cash directly to your linked bank accounts.',
-      [{ text: 'Got it', style: 'default' }]
+      'Confirm Delete',
+      'Are you sure you want to remove this cash entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => {
+          setCashEntries(cashEntries.filter(entry => entry.id !== id));
+        }},
+      ]
     );
-    setAccountDepositModalVisible(false);
   };
 
-  const resetForm = () => {
-    setDescription('');
-    setAmount('');
-    setLocation('Wallet');
-    setFromCategory('');
-    setToCategory('');
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
-
-  const renderRecentEntry = ({ item }: { item: CashEntry }) => (
-    <View style={styles.entryItem}>
-      <View style={styles.entryInfo}>
-        <Text style={styles.entryDescription}>{item.description}</Text>
-        <Text style={styles.entryLocation}>{item.location}</Text>
-        <Text style={styles.entryDate}>
-          {new Date(item.timestamp).toLocaleDateString('en-IN')}
-        </Text>
-      </View>
-      <Text style={[
-        styles.entryAmount,
-        { color: item.amount.amount >= 0 ? Colors.success : Colors.error }
-      ]}>
-        {formatIndianCurrency(item.amount.amount)}
-      </Text>
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>Physical Cash</Text>
+      <TouchableOpacity 
+        style={styles.addButton}
+        onPress={() => setIsAddModalVisible(true)}
+      >
+        <MaterialIcons name="add" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
     </View>
   );
 
-  const renderCategoryItem = ({ item }: { item: CashCategory }) => (
-    <View style={[styles.categoryItem, { borderLeftColor: item.color }]}>
-      <View style={styles.categoryInfo}>
-        <Text style={styles.categoryName}>{item.name}</Text>
-        <Text style={styles.categoryBalance}>
-          {formatIndianCurrency(item.balance)}
+  const renderTotalCard = () => (
+    <LinearGradient
+      colors={['#27AE60', '#2ECC71']}
+      style={styles.totalCard}
+    >
+      <Text style={styles.totalLabel}>Total Physical Cash</Text>
+      <Text style={styles.totalAmount}>
+        {formatCompactCurrency(totalCash, 'INR')}
+      </Text>
+      <Text style={styles.entriesCount}>
+        {cashEntries.length} Cash {cashEntries.length === 1 ? 'Entry' : 'Entries'}
+      </Text>
+    </LinearGradient>
+  );
+
+  const renderCashEntry = (entry: CashEntry) => (
+    <TouchableOpacity key={entry.id} style={styles.cashCard}>
+      <View style={styles.cashHeader}>
+        <View style={styles.cashLeft}>
+          <View style={[styles.locationIcon, { backgroundColor: getLocationColor(entry.location || '') }]}>
+            <MaterialIcons 
+              name={getLocationIcon(entry.location || '') as any} 
+              size={24} 
+              color="#FFFFFF" 
+            />
+          </View>
+          <View style={styles.cashDetails}>
+            <Text style={styles.cashDescription}>{entry.description}</Text>
+            <Text style={styles.cashLocation}>{entry.location}</Text>
+            <Text style={styles.cashDate}>
+              Added on {entry.auditTrail.createdAt.toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={() => handleDeleteCash(entry.id)}
+        >
+          <MaterialIcons name="delete" size={20} color="#E74C3C" />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.cashAmount}>
+        <Text style={styles.amountLabel}>Amount</Text>
+        <Text style={styles.amountValue}>
+          {formatCompactCurrency(entry.amount.amount, entry.amount.currency)}
         </Text>
       </View>
+    </TouchableOpacity>
+  );
+
+  const renderQuickActions = () => (
+    <View style={styles.quickActionsContainer}>
+      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <View style={styles.quickActionGrid}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => setIsAddModalVisible(true)}
+        >
+          <MaterialIcons name="add-circle" size={24} color="#27AE60" />
+          <Text style={styles.actionText}>Add Cash</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialIcons name="swap-horiz" size={24} color="#27AE60" />
+          <Text style={styles.actionText}>Move Cash</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialIcons name="receipt" size={24} color="#27AE60" />
+          <Text style={styles.actionText}>Record Expense</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialIcons name="account-balance" size={24} color="#27AE60" />
+          <Text style={styles.actionText}>Deposit to Bank</Text>
+        </TouchableOpacity>
+      </View>
     </View>
+  );
+
+  const renderAddCashModal = () => (
+    <Modal
+      visible={isAddModalVisible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setIsAddModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add Cash Entry</Text>
+            <TouchableOpacity onPress={() => setIsAddModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.modalBody}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Description *</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newCashDescription}
+                onChangeText={setNewCashDescription}
+                placeholder="e.g., Wallet Cash, Home Safe"
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Amount (₹) *</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newCashAmount}
+                onChangeText={setNewCashAmount}
+                placeholder="0"
+                keyboardType="numeric"
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Location</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newCashLocation}
+                onChangeText={setNewCashLocation}
+                placeholder="e.g., Personal Wallet, Home Safe"
+              />
+            </View>
+          </View>
+          
+          <View style={styles.modalFooter}>
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => setIsAddModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.addCashButton}
+              onPress={handleAddCash}
+            >
+              <Text style={styles.addButtonText}>Add Cash</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 
   return (
-    <ScrollView 
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      {/* PocketWorkx App Logo - 200px height */}
-      <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>PocketWorkx App</Text>
-      </View>
-
-      {/* Page Title */}
-      <View style={styles.titleContainer}>
-        <Text style={styles.pageTitle}>Cash Management</Text>
-      </View>
-
-      {/* Total Liquid Cash Card */}
-      <View style={styles.totalCashCard}>
-        <Text style={styles.cardTitle}>Total Liquid Cash</Text>
-        <Text style={styles.totalAmount}>
-          ₹{getTotalCash().toLocaleString('en-IN')}
-        </Text>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+    <ScreenLayout>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        {renderHeader()}
         
-        {/* First Row */}
-        <View style={styles.actionsRow}>
-          <Pressable 
-            style={styles.actionButton}
-            onPress={() => setAddCashModalVisible(true)}
-          >
-            <View style={styles.actionIcon}>
-              <Feather name="plus" size={24} color={Colors.accent} />
-            </View>
-            <Text style={styles.actionText}>Add Cash</Text>
-          </Pressable>
-
-          <Pressable 
-            style={styles.actionButton}
-            onPress={() => setMoveCashModalVisible(true)}
-          >
-            <View style={styles.actionIcon}>
-              <Feather name="arrow-right" size={24} color={Colors.accent} />
-            </View>
-            <Text style={styles.actionText}>Move Cash</Text>
-          </Pressable>
-        </View>
-
-        {/* Second Row */}
-        <View style={styles.actionsRow}>
-          <Pressable 
-            style={styles.actionButton}
-            onPress={() => setRecordExpenseModalVisible(true)}
-          >
-            <View style={styles.actionIcon}>
-              <Feather name="minus" size={24} color={Colors.error} />
-            </View>
-            <Text style={styles.actionText}>Record Expense</Text>
-          </Pressable>
-
-          <Pressable 
-            style={styles.actionButton}
-            onPress={() => setAccountDepositModalVisible(true)}
-          >
-            <View style={styles.actionIcon}>
-              <Feather name="credit-card" size={24} color={Colors.info} />
-            </View>
-            <Text style={styles.actionText}>Account Deposit</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Recent Entries */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Recent Entries</Text>
-        {cashEntries.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No recent entries</Text>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {renderTotalCard()}
+          {renderQuickActions()}
+          
+          <View style={styles.cashContainer}>
+            <Text style={styles.sectionTitle}>Your Cash Entries</Text>
+            {cashEntries.length > 0 ? (
+              cashEntries.map(renderCashEntry)
+            ) : (
+              <View style={styles.emptyCash}>
+                <MaterialIcons name="account-balance-wallet" size={64} color="#E0E0E0" />
+                <Text style={styles.emptyText}>No cash entries yet</Text>
+                <Text style={styles.emptySubtext}>Add your first cash entry to get started</Text>
+              </View>
+            )}
           </View>
-        ) : (
-          <FlatList
-            data={cashEntries
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-              .slice(0, 5) // Show only 5 recent entries
-            }
-            keyExtractor={(item) => item.id}
-            renderItem={renderRecentEntry}
-            scrollEnabled={false}
-          />
-        )}
-      </View>
-
-      {/* Cash Categories */}
-      <View style={styles.sectionContainer}>
-        <Text style={styles.sectionTitle}>Cash Categories</Text>
-        <Text style={styles.sectionSubtitle}>Balance per category</Text>
+        </ScrollView>
         
-        <FlatList
-          data={categories}
-          keyExtractor={(item) => item.id}
-          renderItem={renderCategoryItem}
-          scrollEnabled={false}
-        />
-      </View>
-
-      {/* Add Cash Modal */}
-      <Modal visible={addCashModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Cash</Text>
-            
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter description"
-              value={description}
-              onChangeText={setDescription}
-            />
-
-            <Text style={styles.inputLabel}>Amount (₹)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter amount"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.inputLabel}>Location</Text>
-            <View style={styles.pickerContainer}>
-              {categories.map((cat) => (
-                <Pressable
-                  key={cat.id}
-                  style={[
-                    styles.pickerOption,
-                    location === cat.name && styles.pickerOptionSelected
-                  ]}
-                  onPress={() => setLocation(cat.name)}
-                >
-                  <Text style={[
-                    styles.pickerOptionText,
-                    location === cat.name && styles.pickerOptionTextSelected
-                  ]}>
-                    {cat.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.modalActions}>
-              <Pressable
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  resetForm();
-                  setAddCashModalVisible(false);
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              
-              <Pressable
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleAddCash}
-              >
-                <Text style={styles.confirmButtonText}>Add Cash</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Move Cash Modal */}
-      <Modal visible={moveCashModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Move Cash Between Categories</Text>
-            
-            <Text style={styles.inputLabel}>From Category</Text>
-            <View style={styles.pickerContainer}>
-              {categories.filter(cat => cat.balance > 0).map((cat) => (
-                <Pressable
-                  key={`from-${cat.id}`}
-                  style={[
-                    styles.pickerOption,
-                    fromCategory === cat.name && styles.pickerOptionSelected
-                  ]}
-                  onPress={() => setFromCategory(cat.name)}
-                >
-                  <Text style={[
-                    styles.pickerOptionText,
-                    fromCategory === cat.name && styles.pickerOptionTextSelected
-                  ]}>
-                    {cat.name} ({formatIndianCurrency(cat.balance)})
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.inputLabel}>To Category</Text>
-            <View style={styles.pickerContainer}>
-              {categories.map((cat) => (
-                <Pressable
-                  key={`to-${cat.id}`}
-                  style={[
-                    styles.pickerOption,
-                    toCategory === cat.name && styles.pickerOptionSelected
-                  ]}
-                  onPress={() => setToCategory(cat.name)}
-                >
-                  <Text style={[
-                    styles.pickerOptionText,
-                    toCategory === cat.name && styles.pickerOptionTextSelected
-                  ]}>
-                    {cat.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.inputLabel}>Amount (₹)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter amount to move"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-            />
-
-            <View style={styles.modalActions}>
-              <Pressable
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  resetForm();
-                  setMoveCashModalVisible(false);
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              
-              <Pressable
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleMoveCash}
-              >
-                <Text style={styles.confirmButtonText}>Move Cash</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Record Expense Modal */}
-      <Modal visible={recordExpenseModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Record Expense</Text>
-            
-            <Text style={styles.inputLabel}>Description</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="What was purchased?"
-              value={description}
-              onChangeText={setDescription}
-            />
-
-            <Text style={styles.inputLabel}>Amount (₹)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter amount spent"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.inputLabel}>Cash Category</Text>
-            <View style={styles.pickerContainer}>
-              {categories.filter(cat => cat.balance > 0).map((cat) => (
-                <Pressable
-                  key={`expense-${cat.id}`}
-                  style={[
-                    styles.pickerOption,
-                    location === cat.name && styles.pickerOptionSelected
-                  ]}
-                  onPress={() => setLocation(cat.name)}
-                >
-                  <Text style={[
-                    styles.pickerOptionText,
-                    location === cat.name && styles.pickerOptionTextSelected
-                  ]}>
-                    {cat.name} ({formatIndianCurrency(cat.balance)})
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.modalActions}>
-              <Pressable
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  resetForm();
-                  setRecordExpenseModalVisible(false);
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </Pressable>
-              
-              <Pressable
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleRecordExpense}
-              >
-                <Text style={styles.confirmButtonText}>Record</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Account Deposit Modal (Coming Soon) */}
-      <Modal visible={accountDepositModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Deposit to Bank Account</Text>
-            
-            <View style={styles.comingSoonContainer}>
-              <Feather name="credit-card" size={48} color={Colors.info} />
-              <Text style={styles.comingSoonTitle}>Coming Soon!</Text>
-              <Text style={styles.comingSoonDescription}>
-                Bank account integration will be available in the next update. 
-                You'll be able to deposit cash directly to your linked bank accounts.
-              </Text>
-            </View>
-
-            <View style={styles.modalActions}>
-              <Pressable
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleAccountDeposit}
-              >
-                <Text style={styles.confirmButtonText}>Got it</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Spacer for menu button */}
-      <View style={{ height: 100 }} />
-    </ScrollView>
+        {renderAddCashModal()}
+      </SafeAreaView>
+    </ScreenLayout>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary, // Golden yellow background
+    backgroundColor: '#F8F9FA',
   },
-  logoContainer: {
-    paddingTop: 60, // Status bar padding
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: Spacing.md,
-  },
-  logoText: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-    height: 28, // Approximating 200px height request proportionally
-  },
-  titleContainer: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray200,
-    marginBottom: Spacing.lg,
-  },
-  pageTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-  },
-  totalCashCard: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: Spacing.screenPadding,
-    marginBottom: Spacing.lg,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  addButton: {
+    backgroundColor: '#27AE60',
+    borderRadius: 20,
+    padding: 8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  totalCard: {
+    marginHorizontal: 20,
+    marginVertical: 16,
+    padding: 24,
+    borderRadius: 16,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
   },
-  cardTitle: {
-    fontSize: Typography.fontSize.lg,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
+  totalLabel: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    marginBottom: 8,
   },
   totalAmount: {
-    fontSize: Typography.fontSize['4xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  sectionContainer: {
-    paddingHorizontal: Spacing.screenPadding,
-    marginBottom: Spacing.xl,
+  entriesCount: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.8,
+  },
+  quickActionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray200,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 12,
   },
-  sectionSubtitle: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-  },
-  actionsRow: {
+  quickActionGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
   },
   actionButton: {
-    backgroundColor: Colors.surface,
-    flex: 1,
-    marginHorizontal: Spacing.xs,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    width: '47%',
+    marginBottom: 12,
     elevation: 2,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.gray100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   actionText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.textPrimary,
+    fontSize: 12,
+    color: '#333333',
+    marginTop: 8,
     textAlign: 'center',
   },
-  entryItem: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
+  cashContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 100, // Extra space for floating button
+  },
+  cashCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cashHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  entryInfo: {
+  cashLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     flex: 1,
   },
-  entryDescription: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
-  },
-  entryLocation: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.textSecondary,
-  },
-  entryDate: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.textLight,
-    marginTop: Spacing.xs,
-  },
-  entryAmount: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    marginLeft: Spacing.md,
-  },
-  categoryItem: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  categoryInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  locationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
-  categoryName: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.textPrimary,
+  cashDetails: {
+    flex: 1,
   },
-  categoryBalance: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.accent,
+  cashDescription: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 2,
   },
-  emptyState: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.md,
+  cashLocation: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  cashDate: {
+    fontSize: 12,
+    color: '#999999',
+  },
+  deleteButton: {
+    padding: 4,
+  },
+  cashAmount: {
+    alignItems: 'flex-end',
+  },
+  amountLabel: {
+    fontSize: 12,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  amountValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#27AE60',
+  },
+  emptyCash: {
     alignItems: 'center',
+    paddingVertical: 40,
   },
   emptyText: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.textSecondary,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666666',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999999',
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     width: '90%',
     maxWidth: 400,
+    maxHeight: '80%',
   },
-  modalTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.lg,
-    textAlign: 'center',
-  },
-  inputLabel: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.sm,
-  },
-  input: {
-    backgroundColor: Colors.gray100,
-    padding: Spacing.inputPadding,
-    borderRadius: BorderRadius.md,
-    fontSize: Typography.fontSize.md,
-    marginBottom: Spacing.md,
-    color: Colors.textPrimary,
-  },
-  pickerContainer: {
-    marginBottom: Spacing.md,
-  },
-  pickerOption: {
-    backgroundColor: Colors.gray100,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-  },
-  pickerOptionSelected: {
-    backgroundColor: Colors.accent,
-  },
-  pickerOptionText: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.textPrimary,
-  },
-  pickerOptionTextSelected: {
-    color: Colors.textInverted,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  modalActions: {
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.lg,
-  },
-  modalButton: {
-    paddingVertical: Spacing.buttonPadding,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    flex: 1,
-    marginHorizontal: Spacing.sm,
     alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333333',
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#333333',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
   },
   cancelButton: {
-    backgroundColor: Colors.gray200,
-  },
-  confirmButton: {
-    backgroundColor: Colors.accent,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 12,
   },
   cancelButtonText: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.textPrimary,
+    fontSize: 16,
+    color: '#666666',
   },
-  confirmButtonText: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.textInverted,
+  addCashButton: {
+    backgroundColor: '#27AE60',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  comingSoonContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-  },
-  comingSoonTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  comingSoonDescription: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: Typography.lineHeight.relaxed * Typography.fontSize.md,
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
+
+export default CashScreen;
