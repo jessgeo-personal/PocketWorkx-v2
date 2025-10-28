@@ -31,7 +31,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-       "bundler": "metro"
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",
@@ -42,7 +42,8 @@
         {
           "cameraPermission": "Allow PocketWorkx to scan receipts and documents"
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }
