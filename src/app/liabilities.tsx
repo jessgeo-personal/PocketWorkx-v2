@@ -1,129 +1,229 @@
 // src/app/liabilities.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
-  StatusBar,
+  RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import ScreenLayout from '../components/ScreenLayout';
+import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
+import { formatCurrency } from '../utils/currency';
+
+interface LiabilitiesData {
+  totalLiabilities: number;
+  homeLoans: number;
+  personalLoans: number;
+  creditCards: number;
+  otherDebts: number;
+  debtToIncomeRatio: number;
+  monthlyPayments: number;
+}
+
+interface UpcomingPayment {
+  id: string;
+  name: string;
+  date: Date;
+  amount: number;
+  type: 'loan' | 'credit_card';
+}
 
 const LiabilitiesScreen: React.FC = () => {
-  const liabilitiesData = {
-    totalLiabilities: 7500550,
-    loans: 4225000,
-    creditCards: 252000,
-    mortgages: 3750000,
-    otherDebts: 273550,
+  const router = useRouter();
+  const [liabilitiesData, setLiabilitiesData] = useState<LiabilitiesData>({
+    totalLiabilities: 12332550,
+    homeLoans: 8500000,
+    personalLoans: 3225000,
+    creditCards: 252550,
+    otherDebts: 355000,
     debtToIncomeRatio: 0.28,
-    monthlyPayments: 66500,
+    monthlyPayments: 166500,
+  });
+  const [upcomingPayments, setUpcomingPayments] = useState<UpcomingPayment[]>([
+    {
+      id: '1',
+      name: 'ICICI Home Loan 3235',
+      date: new Date('2025-10-10'),
+      amount: 122000,
+      type: 'loan',
+    },
+    {
+      id: '2',
+      name: 'Federal Credit Card 3266',
+      date: new Date('2025-10-23'),
+      amount: 29556,
+      type: 'credit_card',
+    },
+  ]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate data refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
   };
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>Liabilities</Text>
-      <MaterialIcons name="remove-circle" size={24} color="#E74C3C" />
+  const renderLiabilitiesOverview = () => (
+    <View style={styles.overviewCard}>
+      <View style={styles.overviewHeader}>
+        <Feather name="alert-triangle" size={24} color={Colors.error.main} />
+        <Text style={styles.overviewTitle}>Total Liabilities</Text>
+      </View>
+      <Text style={[styles.overviewAmount, { color: Colors.error.main }]}>
+        {formatCurrency(liabilitiesData.totalLiabilities, 'INR')}
+      </Text>
+      <Text style={styles.overviewSubtext}>
+        Monthly payments: {formatCurrency(liabilitiesData.monthlyPayments, 'INR')}
+      </Text>
     </View>
   );
 
-  const renderLiabilitiesOverview = () => (
-    <LinearGradient
-      colors={['#E74C3C', '#C0392B']}
-      style={styles.overviewCard}
-    >
-      <Text style={styles.overviewLabel}>Total Liabilities</Text>
-      <Text style={styles.overviewAmount}>₹{(liabilitiesData.totalLiabilities / 100000).toFixed(2)} L</Text>
-      <Text style={styles.overviewSubtext}>Monthly payments: ₹{(liabilitiesData.monthlyPayments / 1000).toFixed(0)}K</Text>
-    </LinearGradient>
-  );
-
   const renderLiabilitiesBreakdown = () => (
-    <View style={styles.breakdownContainer}>
+    <View style={styles.section}>
       <Text style={styles.sectionTitle}>Liabilities Breakdown</Text>
       
-      <TouchableOpacity style={styles.breakdownItem}>
-        <View style={styles.breakdownLeft}>
-          <MaterialIcons name="home" size={24} color="#4CAF50" />
-          <View style={styles.breakdownDetails}>
-            <Text style={styles.breakdownLabel}>Home Loans</Text>
-            <Text style={styles.breakdownSubtext}>Mortgage & property loans</Text>
+      <View style={styles.breakdownCard}>
+        <TouchableOpacity 
+          style={styles.breakdownItem}
+          onPress={() => router.push('/loans')}
+        >
+          <View style={styles.breakdownLeft}>
+            <Feather name="home" size={20} color={Colors.info.main} />
+            <View style={styles.breakdownDetails}>
+              <Text style={styles.breakdownLabel}>Home Loans</Text>
+              <Text style={styles.breakdownSubtext}>Mortgage & property loans</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.breakdownRight}>
-          <Text style={styles.breakdownAmount}>₹{(liabilitiesData.mortgages / 100000).toFixed(2)} L</Text>
-          <MaterialIcons name="chevron-right" size={20} color="#666" />
-        </View>
-      </TouchableOpacity>
+          <View style={styles.breakdownRight}>
+            <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
+              {formatCurrency(liabilitiesData.homeLoans, 'INR')}
+            </Text>
+            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
+          </View>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.breakdownItem}>
-        <View style={styles.breakdownLeft}>
-          <MaterialIcons name="trending-down" size={24} color="#FF9800" />
-          <View style={styles.breakdownDetails}>
-            <Text style={styles.breakdownLabel}>Personal Loans</Text>
-            <Text style={styles.breakdownSubtext}>Car, personal & business loans</Text>
-          </View>
-        </View>
-        <View style={styles.breakdownRight}>
-          <Text style={styles.breakdownAmount}>₹{(liabilitiesData.loans / 100000).toFixed(2)} L</Text>
-          <MaterialIcons name="chevron-right" size={20} color="#666" />
-        </View>
-      </TouchableOpacity>
+        <View style={styles.separator} />
 
-      <TouchableOpacity style={styles.breakdownItem}>
-        <View style={styles.breakdownLeft}>
-          <MaterialIcons name="credit-card" size={24} color="#9C27B0" />
-          <View style={styles.breakdownDetails}>
-            <Text style={styles.breakdownLabel}>Credit Cards</Text>
-            <Text style={styles.breakdownSubtext}>Outstanding balances</Text>
+        <TouchableOpacity 
+          style={styles.breakdownItem}
+          onPress={() => router.push('/loans')}
+        >
+          <View style={styles.breakdownLeft}>
+            <Feather name="trending-down" size={20} color={Colors.warning.main} />
+            <View style={styles.breakdownDetails}>
+              <Text style={styles.breakdownLabel}>Personal Loans</Text>
+              <Text style={styles.breakdownSubtext}>Car, personal & business loans</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.breakdownRight}>
-          <Text style={styles.breakdownAmount}>₹{(liabilitiesData.creditCards / 1000).toFixed(0)}K</Text>
-          <MaterialIcons name="chevron-right" size={20} color="#666" />
-        </View>
-      </TouchableOpacity>
+          <View style={styles.breakdownRight}>
+            <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
+              {formatCurrency(liabilitiesData.personalLoans, 'INR')}
+            </Text>
+            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
+          </View>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.breakdownItem}>
-        <View style={styles.breakdownLeft}>
-          <MaterialIcons name="more-horiz" size={24} color="#607D8B" />
-          <View style={styles.breakdownDetails}>
-            <Text style={styles.breakdownLabel}>Other Debts</Text>
-            <Text style={styles.breakdownSubtext}>Miscellaneous liabilities</Text>
+        <View style={styles.separator} />
+
+        <TouchableOpacity 
+          style={styles.breakdownItem}
+          onPress={() => router.push('/credit-cards')}
+        >
+          <View style={styles.breakdownLeft}>
+            <Feather name="credit-card" size={20} color={Colors.accent} />
+            <View style={styles.breakdownDetails}>
+              <Text style={styles.breakdownLabel}>Credit Cards</Text>
+              <Text style={styles.breakdownSubtext}>Outstanding balances</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.breakdownRight}>
-          <Text style={styles.breakdownAmount}>₹{(liabilitiesData.otherDebts / 1000).toFixed(0)}K</Text>
-          <MaterialIcons name="chevron-right" size={20} color="#666" />
-        </View>
-      </TouchableOpacity>
+          <View style={styles.breakdownRight}>
+            <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
+              {formatCurrency(liabilitiesData.creditCards, 'INR')}
+            </Text>
+            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.separator} />
+
+        <TouchableOpacity style={styles.breakdownItem}>
+          <View style={styles.breakdownLeft}>
+            <Feather name="more-horizontal" size={20} color={Colors.text.secondary} />
+            <View style={styles.breakdownDetails}>
+              <Text style={styles.breakdownLabel}>Other Debts</Text>
+              <Text style={styles.breakdownSubtext}>Miscellaneous liabilities</Text>
+            </View>
+          </View>
+          <View style={styles.breakdownRight}>
+            <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
+              {formatCurrency(liabilitiesData.otherDebts, 'INR')}
+            </Text>
+            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
+          </View>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderUpcomingPayments = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Upcoming Payments</Text>
+      
+      <View style={styles.paymentsCard}>
+        {upcomingPayments.map((payment) => (
+          <View key={payment.id} style={styles.paymentItem}>
+            <View style={styles.paymentLeft}>
+              <Text style={styles.paymentName}>{payment.name}</Text>
+              <Text style={styles.paymentDate}>
+                {payment.date.toLocaleDateString('en-IN', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </Text>
+            </View>
+            <Text style={[styles.paymentAmount, { color: Colors.error.main }]}>
+              {formatCurrency(payment.amount, 'INR')}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 
   const renderDebtMetrics = () => (
-    <View style={styles.metricsContainer}>
+    <View style={styles.section}>
       <Text style={styles.sectionTitle}>Debt Analysis</Text>
       
       <View style={styles.metricsGrid}>
         <View style={styles.metricCard}>
-          <Text style={styles.metricValue}>{(liabilitiesData.debtToIncomeRatio * 100).toFixed(1)}%</Text>
+          <Text style={[styles.metricValue, { color: Colors.error.main }]}>
+            {(liabilitiesData.debtToIncomeRatio * 100).toFixed(1)}%
+          </Text>
           <Text style={styles.metricLabel}>Debt-to-Income</Text>
-          <Text style={[styles.metricStatus, { color: '#27AE60' }]}>Healthy</Text>
+          <Text style={[styles.metricStatus, { color: Colors.success.main }]}>Healthy</Text>
         </View>
         
         <View style={styles.metricCard}>
-          <Text style={styles.metricValue}>₹{(liabilitiesData.monthlyPayments / 1000).toFixed(0)}K</Text>
+          <Text style={[styles.metricValue, { color: Colors.error.main }]}>
+            {formatCurrency(liabilitiesData.monthlyPayments, 'INR')}
+          </Text>
           <Text style={styles.metricLabel}>Monthly Payments</Text>
-          <Text style={styles.metricStatus}>{((liabilitiesData.monthlyPayments / 245000) * 100).toFixed(0)}% of income</Text>
+          <Text style={styles.metricStatus}>
+            {((liabilitiesData.monthlyPayments / 245000) * 100).toFixed(0)}% of income
+          </Text>
         </View>
       </View>
 
       <View style={styles.recommendationCard}>
-        <MaterialIcons name="trending-up" size={20} color="#27AE60" />
+        <Feather name="trending-up" size={20} color={Colors.success.main} />
         <View style={styles.recommendationText}>
           <Text style={styles.recommendationTitle}>Good Debt Management</Text>
           <Text style={styles.recommendationDescription}>
@@ -135,17 +235,20 @@ const LiabilitiesScreen: React.FC = () => {
   );
 
   return (
-    <ScreenLayout>
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        {renderHeader()}
-        
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {renderLiabilitiesOverview()}
-          {renderLiabilitiesBreakdown()}
-          {renderDebtMetrics()}
-        </ScrollView>
-      </SafeAreaView>
+    <ScreenLayout title="Liabilities">
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {renderLiabilitiesOverview()}
+        {renderLiabilitiesBreakdown()}
+        {renderUpcomingPayments()}
+        {renderDebtMetrics()}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </ScreenLayout>
   );
 };
@@ -153,83 +256,56 @@ const LiabilitiesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  scrollView: {
-    flex: 1,
   },
   overviewCard: {
-    marginHorizontal: 20,
-    marginVertical: 16,
-    padding: 24,
-    borderRadius: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    backgroundColor: Colors.background.card,
+    marginHorizontal: Spacing.base,
+    marginVertical: Spacing.base,
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.md,
   },
-  overviewLabel: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    marginBottom: 8,
+  overviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  overviewTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginLeft: Spacing.sm,
   },
   overviewAmount: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    fontSize: Typography.fontSize['4xl'],
+    fontWeight: Typography.fontWeight.bold,
+    marginBottom: Spacing.sm,
   },
   overviewSubtext: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    opacity: 0.8,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
   },
-  breakdownContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+  section: {
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 16,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.base,
+  },
+  breakdownCard: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.base,
+    ...Shadows.md,
   },
   breakdownItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    paddingVertical: Spacing.md,
   },
   breakdownLeft: {
     flexDirection: 'row',
@@ -237,94 +313,121 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   breakdownDetails: {
-    marginLeft: 12,
+    marginLeft: Spacing.md,
     flex: 1,
   },
   breakdownLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
     marginBottom: 2,
   },
   breakdownSubtext: {
-    fontSize: 12,
-    color: '#666666',
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
   },
   breakdownRight: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   breakdownAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#E74C3C',
-    marginRight: 8,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
+    marginRight: Spacing.sm,
   },
-  metricsContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 100,
+  separator: {
+    height: 1,
+    backgroundColor: Colors.border.light,
+    marginVertical: Spacing.sm,
+  },
+  paymentsCard: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.base,
+    ...Shadows.base,
+  },
+  paymentItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  paymentLeft: {
+    flex: 1,
+  },
+  paymentName: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  paymentDate: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+  },
+  paymentAmount: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.bold,
   },
   metricsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: Spacing.lg,
   },
   metricCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 12,
+    backgroundColor: Colors.background.card,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
     width: '48%',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Shadows.md,
   },
   metricValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#E74C3C',
-    marginBottom: 8,
+    fontSize: Typography.fontSize['2xl'] + 4,
+    fontWeight: Typography.fontWeight.bold,
+    marginBottom: Spacing.sm,
   },
   metricLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
   },
   metricStatus: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '500',
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    fontWeight: Typography.fontWeight.medium,
     textAlign: 'center',
   },
   recommendationCard: {
     flexDirection: 'row',
-    backgroundColor: '#E8F5E8',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: Colors.success.light,
+    padding: Spacing.base,
+    borderRadius: BorderRadius.md,
     borderLeftWidth: 4,
-    borderLeftColor: '#27AE60',
+    borderLeftColor: Colors.success.main,
   },
   recommendationText: {
-    marginLeft: 12,
+    marginLeft: Spacing.md,
     flex: 1,
   },
   recommendationTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1B5E20',
-    marginBottom: 4,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.success.dark,
+    marginBottom: Spacing.xs,
   },
   recommendationDescription: {
-    fontSize: 12,
-    color: '#2E7D32',
-    lineHeight: 16,
+    fontSize: Typography.fontSize.xs,
+    color: Colors.success.dark,
+    lineHeight: Typography.lineHeight.xs,
+  },
+  bottomSpacing: {
+    height: 100, // Space for bottom menu
   },
 });
 
-export { LiabilitiesScreen as default };
+export default LiabilitiesScreen;
