@@ -1,5 +1,11 @@
 import React from 'react';
 import { Stack } from 'expo-router';
+import { StorageProvider } from '../services/storage/StorageProvider';
+
 export default function RootLayout() {
-return <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />;
+  return (
+    <StorageProvider>
+      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }} />
+    </StorageProvider>
+  );
 }
