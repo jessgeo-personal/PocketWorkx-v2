@@ -7,12 +7,16 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
+
+// Import the logo image
+const LogoImage = require('../assets/logo.png');
 
 interface DashboardData {
   liquidCash: number;
@@ -72,8 +76,17 @@ const HomeScreen: React.FC = () => {
 
   const renderWelcomeHeader = () => (
     <View style={styles.welcomeHeader}>
-      <Text style={styles.welcomeText}>Welcome Back, {dashboardData.userName}</Text>
-      <Text style={styles.emailText}>{dashboardData.userEmail}</Text>
+      <View style={styles.logoContainer}>
+        <Image 
+          source={LogoImage} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      <View style={styles.welcomeTextContainer}>
+        <Text style={styles.welcomeText}>Welcome Back, {dashboardData.userName}</Text>
+        <Text style={styles.emailText}>{dashboardData.userEmail}</Text>
+      </View>
     </View>
   );
 
@@ -222,8 +235,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcomeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.lg,
+    backgroundColor: Colors.background.card,
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.base,
+    borderRadius: BorderRadius.xl,
+    ...Shadows.base,
+  },
+  logoContainer: {
+    marginRight: Spacing.base,
+  },
+  logo: {
+    width: 60,
+    height: 60,
+  },
+  welcomeTextContainer: {
+    flex: 1,
   },
   welcomeText: {
     fontSize: Typography.fontSize.xl,
@@ -239,6 +269,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.card,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.xl,
+    marginTop: Spacing.lg,
     padding: Spacing.xl,
     borderRadius: BorderRadius.xl,
     alignItems: 'center',
