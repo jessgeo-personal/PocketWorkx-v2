@@ -130,7 +130,7 @@ const formatIndianCurrency = (amount: number): string => {
 };
 
 export default function CashScreen() {
-  const { state, dispatch } = useStorage();
+  const { state, updateCashCategories, updateCashTransactions } = useStorage();
   
   // State management
   const [cashEntries, setCashEntries] = useState<CashEntry[]>([]);
