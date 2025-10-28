@@ -2,14 +2,37 @@
 import { File, Directory, Paths } from 'expo-file-system';
 
 type PocketWorkxState = {
-  // Add domains as needed; keep them optional to avoid breaking old files
+  // legacy and other domains
   cashEntries?: any[];
   accounts?: any[];
   loans?: any[];
   creditCards?: any[];
   investments?: any[];
   receivables?: any[];
-  // meta for migrations
+
+  // new cash domain (used by StorageProvider and cash.tsx)
+  cashCategories?: Array<{
+    id: string;
+    name: string;
+    balance: number;
+    color?: string;
+    isDefault: boolean;
+  }>;
+  cashTransactions?: Array<{
+    id: string;
+    type: 'credit' | 'debit' | 'transfer';
+    amount: number;
+    category?: string;
+    fromCategory?: string;
+    toCategory?: string;
+    description: string;
+    // Persist as string in file; StorageProvider converts to Date in memory
+    timestamp?: string | Date;
+    receiptPhoto?: string;
+    notes?: string;
+  }>;
+
+  // meta
   _version?: number;
   _updatedAt?: string; // ISO date
 };
@@ -27,17 +50,20 @@ async function ensureDataFile(): Promise<void> {
     
     // Create file with initial data if it doesn't exist
     if (!DATA_FILE.exists) {
-      const initial: PocketWorkxState = {
-        cashEntries: [],
-        accounts: [],
-        loans: [],
-        creditCards: [],
-        investments: [],
-        receivables: [],
-        _version: 1,
-        _updatedAt: new Date().toISOString(),
-      };
-      await DATA_FILE.write(JSON.stringify(initial));
+        const initial: PocketWorkxState = {
+            cashEntries: [],
+            accounts: [],
+            loans: [],
+            creditCards: [],
+            investments: [],
+            receivables: [],
+            // new fields
+            cashCategories: [],         // ensure present in file
+            cashTransactions: [],       // ensure present in file
+            _version: 1,
+            _updatedAt: new Date().toISOString(),
+        };
+        await DATA_FILE.write(JSON.stringify(initial));
     }
   } catch (e) {
     // Fail safe: if creating fails, throw to surface early in dev
@@ -55,17 +81,20 @@ export async function getState(): Promise<PocketWorkxState> {
   } catch (parseError) {
     // If corrupt, re-initialize to a safe default
     const fallback: PocketWorkxState = {
-      cashEntries: [],
-      accounts: [],
-      loans: [],
-      creditCards: [],
-      investments: [],
-      receivables: [],
-      _version: 1,
-      _updatedAt: new Date().toISOString(),
+        cashEntries: [],
+        accounts: [],
+        loans: [],
+        creditCards: [],
+        investments: [],
+        receivables: [],
+        cashCategories: [],       // include
+        cashTransactions: [],     // include
+        _version: 1,
+        _updatedAt: new Date().toISOString(),
     };
-    DATA_FILE.write(JSON.stringify(fallback));
+    await DATA_FILE.write(JSON.stringify(fallback)); // add await
     return fallback;
+
   }
 }
 

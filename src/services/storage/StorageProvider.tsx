@@ -71,10 +71,15 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ...s,
         cashCategories: s.cashCategories ?? [],
         cashTransactions: (s.cashTransactions as any[] | undefined)?.map((t) => ({
-          ...t,
-          // Convert timestamp strings back to Date if necessary
-          timestamp: t.timestamp instanceof Date ? t.timestamp : new Date(t.timestamp),
+            ...t,
+            // Ensure timestamp is always a Date, never undefined
+            timestamp: t.timestamp instanceof Date 
+                ? t.timestamp 
+                : t.timestamp 
+                    ? new Date(t.timestamp) 
+                    : new Date(), // fallback to current date if missing
         })) ?? [],
+
       };
 
       setLocal(withDefaults);
