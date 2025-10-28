@@ -64,7 +64,7 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     {
       title: 'Analytics',
       items: [
-        { id: '8', title: 'Dashboard', route: '/dashboard', icon: 'dashboard', color: colors.secondary },
+        { id: '8', title: 'Dashboard', route: '/home', icon: 'dashboard', color: colors.secondary },
         { id: '9', title: 'Trends', route: '/trends', icon: 'show-chart', color: colors.primary },
         { id: '15', title: 'Cashflow', route: '/cashflow', icon: 'swap-horiz', color: colors.secondary },
       ],

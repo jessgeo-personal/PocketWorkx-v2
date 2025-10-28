@@ -235,7 +235,7 @@ const LiabilitiesScreen: React.FC = () => {
   );
 
   return (
-    <ScreenLayout title="Liabilities">
+    <ScreenLayout>
       <ScrollView 
         style={styles.container} 
         showsVerticalScrollIndicator={false}

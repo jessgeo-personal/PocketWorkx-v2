@@ -180,7 +180,7 @@ const CashScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>Physical Cash</Text>
+      <Text style={styles.headerTitle}>Cash</Text>
       <TouchableOpacity style={styles.addButton} onPress={() => setIsAddModalVisible(true)}>
         <MaterialIcons name="add" size={24} color="#FFFFFF" />
       </TouchableOpacity>
@@ -189,7 +189,7 @@ const CashScreen: React.FC = () => {
 
   const renderTotalCard = () => (
     <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
-      <Text style={styles.totalLabel}>Total Physical Cash</Text>
+      <Text style={styles.totalLabel}>Total Liquid Cash</Text>
       <Text style={styles.totalAmount}>{formatCompactCurrency(totalCash, 'INR')}</Text>
       <Text style={styles.entriesCount}>
         {cashEntries.length} Cash {cashEntries.length === 1 ? 'Entry' : 'Entries'}
