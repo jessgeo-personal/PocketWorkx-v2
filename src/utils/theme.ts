@@ -5,7 +5,7 @@ type RNFontWeight =
   | 'normal'
   | 'bold'
   | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
-  
+
 export const Colors = {
   // Primary Brand Colors (from mockup)
   primary: '#F7D94C', // Golden yellow background
@@ -32,7 +32,7 @@ export const Colors = {
   
   // Text Colors
   text: {
-    primary: '#111827', // grey-900
+    primary: '#545454', // grey-900
     secondary: '#6B7280', // grey-500
     tertiary: '#9CA3AF', // grey-400
     light: '#FFFFFF',
@@ -41,7 +41,7 @@ export const Colors = {
   
   // Background Colors
   background: {
-    primary: '#F7D94C', // Main golden background
+    primary: '#ffd21f', // Main golden background
     secondary: '#FFFFFF',
     tertiary: '#F9FAFB',
     card: '#FFFFFF',

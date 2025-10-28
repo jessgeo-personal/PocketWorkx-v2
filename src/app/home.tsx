@@ -74,21 +74,33 @@ const HomeScreen: React.FC = () => {
     }, 2000);
   };
 
+  //const renderLogoHeader = () => (
+  //  <View style={styles.logoHeader}>
+  //    <Image 
+  //      source={LogoImage} 
+  //      style={styles.logoLarge}
+  //      resizeMode="contain"
+  //    />
+  //  </View>
+  //);
+
   const renderWelcomeHeader = () => (
-    <View style={styles.welcomeHeader}>
-      <View style={styles.logoContainer}>
+    <View style={styles.headerContainer}>
+      <View style={styles.logoPositioned}>
         <Image 
           source={LogoImage} 
-          style={styles.logo}
+          style={styles.logoLarge}
           resizeMode="contain"
         />
       </View>
-      <View style={styles.welcomeTextContainer}>
+      <View style={styles.welcomeHeader}>
         <Text style={styles.welcomeText}>Welcome Back, {dashboardData.userName}</Text>
         <Text style={styles.emailText}>{dashboardData.userEmail}</Text>
       </View>
     </View>
   );
+
+
 
   const renderPrimaryBalance = () => (
     <View style={styles.primaryBalanceCard}>
@@ -234,27 +246,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  welcomeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  
+  headerContainer: {
     paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.lg,
+    paddingTop: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  logoPositioned: {
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  logoLarge: {
+    width: 400,
+    height: 250,
+  },
+  welcomeHeader: {
     backgroundColor: Colors.background.card,
-    marginHorizontal: Spacing.base,
-    marginTop: Spacing.base,
+    padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
     ...Shadows.base,
   },
-  logoContainer: {
-    marginRight: Spacing.base,
-  },
-  logo: {
-    width: 60,
-    height: 60,
-  },
-  welcomeTextContainer: {
-    flex: 1,
-  },
+
   welcomeText: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
@@ -269,7 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.card,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.xl,
-    marginTop: Spacing.lg,
+    marginTop: 0,
     padding: Spacing.xl,
     borderRadius: BorderRadius.xl,
     alignItems: 'center',
