@@ -1,4 +1,4 @@
-// src/app/cash.tsx - CORRECTED VERSION WITH SCREENLAYOUT
+// src/app/cash.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -10,15 +10,10 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  CashEntry, 
-  Money, 
-  Currency 
-} from '../types/finance';
+import { CashEntry } from '../types/finance';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
@@ -30,7 +25,6 @@ const CashScreen: React.FC = () => {
       description: 'Wallet Cash',
       amount: { amount: 15500, currency: 'INR' },
       location: 'Personal Wallet',
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -52,7 +46,6 @@ const CashScreen: React.FC = () => {
       description: 'Home Safe',
       amount: { amount: 45000, currency: 'INR' },
       location: 'Home - Bedroom Safe',
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -74,7 +67,6 @@ const CashScreen: React.FC = () => {
       description: 'Emergency Cash',
       amount: { amount: 25000, currency: 'INR' },
       location: 'Car Dashboard',
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -96,7 +88,6 @@ const CashScreen: React.FC = () => {
       description: 'Office Petty Cash',
       amount: { amount: 8000, currency: 'INR' },
       location: 'Office Desk',
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -123,20 +114,22 @@ const CashScreen: React.FC = () => {
   const totalCash = cashEntries.reduce((sum, entry) => sum + entry.amount.amount, 0);
 
   const getLocationIcon = (location: string) => {
-    if (location?.toLowerCase().includes('wallet')) return 'account-balance-wallet';
-    if (location?.toLowerCase().includes('home')) return 'home';
-    if (location?.toLowerCase().includes('car')) return 'directions-car';
-    if (location?.toLowerCase().includes('office')) return 'work';
-    if (location?.toLowerCase().includes('safe')) return 'security';
+    const l = location?.toLowerCase() || '';
+    if (l.includes('wallet')) return 'account-balance-wallet';
+    if (l.includes('home')) return 'home';
+    if (l.includes('car')) return 'directions-car';
+    if (l.includes('office')) return 'work';
+    if (l.includes('safe')) return 'security';
     return 'place';
   };
 
   const getLocationColor = (location: string) => {
-    if (location?.toLowerCase().includes('wallet')) return '#4CAF50';
-    if (location?.toLowerCase().includes('home')) return '#2196F3';
-    if (location?.toLowerCase().includes('car')) return '#FF9800';
-    if (location?.toLowerCase().includes('office')) return '#9C27B0';
-    if (location?.toLowerCase().includes('safe')) return '#795548';
+    const l = location?.toLowerCase() || '';
+    if (l.includes('wallet')) return '#4CAF50';
+    if (l.includes('home')) return '#2196F3';
+    if (l.includes('car')) return '#FF9800';
+    if (l.includes('office')) return '#9C27B0';
+    if (l.includes('safe')) return '#795548';
     return '#666666';
   };
 
@@ -145,19 +138,16 @@ const CashScreen: React.FC = () => {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
-
     const amount = parseFloat(newCashAmount);
     if (isNaN(amount) || amount <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-
     const newEntry: CashEntry = {
       id: Date.now().toString(),
       description: newCashDescription.trim(),
       amount: { amount, currency: 'INR' },
       location: newCashLocation.trim() || 'Not specified',
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -174,8 +164,7 @@ const CashScreen: React.FC = () => {
       },
       linkedTransactions: [],
     };
-
-    setCashEntries([...cashEntries, newEntry]);
+    setCashEntries(prev => [...prev, newEntry]);
     setNewCashDescription('');
     setNewCashAmount('');
     setNewCashLocation('');
@@ -183,39 +172,25 @@ const CashScreen: React.FC = () => {
   };
 
   const handleDeleteCash = (id: string) => {
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to remove this cash entry?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {
-          setCashEntries(cashEntries.filter(entry => entry.id !== id));
-        }},
-      ]
-    );
+    Alert.alert('Confirm Delete', 'Are you sure you want to remove this cash entry?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => setCashEntries(prev => prev.filter(e => e.id !== id)) },
+    ]);
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Physical Cash</Text>
-      <TouchableOpacity 
-        style={styles.addButton}
-        onPress={() => setIsAddModalVisible(true)}
-      >
+      <TouchableOpacity style={styles.addButton} onPress={() => setIsAddModalVisible(true)}>
         <MaterialIcons name="add" size={24} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
 
   const renderTotalCard = () => (
-    <LinearGradient
-      colors={['#27AE60', '#2ECC71']}
-      style={styles.totalCard}
-    >
+    <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
       <Text style={styles.totalLabel}>Total Physical Cash</Text>
-      <Text style={styles.totalAmount}>
-        {formatCompactCurrency(totalCash, 'INR')}
-      </Text>
+      <Text style={styles.totalAmount}>{formatCompactCurrency(totalCash, 'INR')}</Text>
       <Text style={styles.entriesCount}>
         {cashEntries.length} Cash {cashEntries.length === 1 ? 'Entry' : 'Entries'}
       </Text>
@@ -227,33 +202,21 @@ const CashScreen: React.FC = () => {
       <View style={styles.cashHeader}>
         <View style={styles.cashLeft}>
           <View style={[styles.locationIcon, { backgroundColor: getLocationColor(entry.location || '') }]}>
-            <MaterialIcons 
-              name={getLocationIcon(entry.location || '') as any} 
-              size={24} 
-              color="#FFFFFF" 
-            />
+            <MaterialIcons name={getLocationIcon(entry.location || '') as any} size={24} color="#FFFFFF" />
           </View>
           <View style={styles.cashDetails}>
             <Text style={styles.cashDescription}>{entry.description}</Text>
             <Text style={styles.cashLocation}>{entry.location}</Text>
-            <Text style={styles.cashDate}>
-              Added on {entry.auditTrail.createdAt.toLocaleDateString()}
-            </Text>
+            <Text style={styles.cashDate}>Added on {entry.auditTrail.createdAt.toLocaleDateString()}</Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.deleteButton}
-          onPress={() => handleDeleteCash(entry.id)}
-        >
+        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCash(entry.id)}>
           <MaterialIcons name="delete" size={20} color="#E74C3C" />
         </TouchableOpacity>
       </View>
-      
       <View style={styles.cashAmount}>
         <Text style={styles.amountLabel}>Amount</Text>
-        <Text style={styles.amountValue}>
-          {formatCompactCurrency(entry.amount.amount, entry.amount.currency)}
-        </Text>
+        <Text style={styles.amountValue}>{formatCompactCurrency(entry.amount.amount, entry.amount.currency)}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -262,24 +225,18 @@ const CashScreen: React.FC = () => {
     <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionGrid}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => setIsAddModalVisible(true)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddModalVisible(true)}>
           <MaterialIcons name="add-circle" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Add Cash</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="swap-horiz" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Move Cash</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="receipt" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Record Expense</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="account-balance" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Deposit to Bank</Text>
@@ -289,12 +246,7 @@ const CashScreen: React.FC = () => {
   );
 
   const renderAddCashModal = () => (
-    <Modal
-      visible={isAddModalVisible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setIsAddModalVisible(false)}
-    >
+    <Modal visible={isAddModalVisible} animationType="slide" transparent onRequestClose={() => setIsAddModalVisible(false)}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
@@ -303,52 +255,25 @@ const CashScreen: React.FC = () => {
               <MaterialIcons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </View>
-          
           <View style={styles.modalBody}>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Description *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newCashDescription}
-                onChangeText={setNewCashDescription}
-                placeholder="e.g., Wallet Cash, Home Safe"
-              />
+              <TextInput style={styles.textInput} value={newCashDescription} onChangeText={setNewCashDescription} placeholder="e.g., Wallet Cash, Home Safe" />
             </View>
-            
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Amount (₹) *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newCashAmount}
-                onChangeText={setNewCashAmount}
-                placeholder="0"
-                keyboardType="numeric"
-              />
+              <TextInput style={styles.textInput} value={newCashAmount} onChangeText={setNewCashAmount} placeholder="0" keyboardType="numeric" />
             </View>
-            
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Location</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newCashLocation}
-                onChangeText={setNewCashLocation}
-                placeholder="e.g., Personal Wallet, Home Safe"
-              />
+              <TextInput style={styles.textInput} value={newCashLocation} onChangeText={setNewCashLocation} placeholder="e.g., Personal Wallet, Home Safe" />
             </View>
           </View>
-          
           <View style={styles.modalFooter}>
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              onPress={() => setIsAddModalVisible(false)}
-            >
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.addCashButton}
-              onPress={handleAddCash}
-            >
+            <TouchableOpacity style={styles.addCashButton} onPress={handleAddCash}>
               <Text style={styles.addButtonText}>Add Cash</Text>
             </TouchableOpacity>
           </View>
@@ -360,24 +285,22 @@ const CashScreen: React.FC = () => {
   return (
     <ScreenLayout>
       <StatusBar style="dark" backgroundColor={Colors.background.primary} />
-        {renderHeader()}
+      {renderHeader()}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderTotalCard()}
         {renderQuickActions()}
-      <View style={styles.cashContainer}>
-        <Text style={styles.sectionTitle}>Your Cash Entries</Text>
-          {cashEntries.length > 0 ? (
-          cashEntries.map(renderCashEntry)
-          ) : (
-        <View style={styles.emptyCash}>
-          <MaterialIcons name="account-balance-wallet" size={64} color="#E0E0E0" />
-          <Text style={styles.emptyText}>No cash entries yet</Text>
-          <Text style={styles.emptySubtext}>Add your first cash entry to get started</Text>
-        </View>
+        <View style={styles.cashContainer}>
+          <Text style={styles.sectionTitle}>Your Cash Entries</Text>
+          {cashEntries.length > 0 ? cashEntries.map(renderCashEntry) : (
+            <View style={styles.emptyCash}>
+              <MaterialIcons name="account-balance-wallet" size={64} color="#E0E0E0" />
+              <Text style={styles.emptyText}>No cash entries yet</Text>
+              <Text style={styles.emptySubtext}>Add your first cash entry to get started</Text>
+            </View>
           )}
         </View>
       </ScrollView>
-        {renderAddCashModal()}
+      {renderAddCashModal()}
     </ScreenLayout>
   );
 };
@@ -406,10 +329,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
   },
   addButton: {
-    backgroundColor: '#27AE60',
+    backgroundColor: Colors.accent,
     borderRadius: 20,
     padding: 8,
   },
@@ -417,16 +340,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   totalCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginVertical: 16,
     padding: 24,
     borderRadius: 16,
     elevation: 4,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
@@ -448,13 +368,13 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   quickActionsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
     marginBottom: 12,
   },
   quickActionGrid: {
@@ -464,41 +384,35 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.secondary,
     padding: 16,
     borderRadius: 12,
     width: '47%',
     marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   actionText: {
     fontSize: 12,
-    color: '#333333',
+    color: Colors.text.primary,
     marginTop: 8,
     textAlign: 'center',
   },
   cashContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 100, // Extra space for floating button
+    paddingHorizontal: 16,
+    marginBottom: 100,
   },
   cashCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.secondary,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -527,17 +441,17 @@ const styles = StyleSheet.create({
   cashDescription: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
     marginBottom: 2,
   },
   cashLocation: {
     fontSize: 14,
-    color: '#666666',
+    color: Colors.text.secondary,
     marginBottom: 4,
   },
   cashDate: {
     fontSize: 12,
-    color: '#999999',
+    color: Colors.text.tertiary,
   },
   deleteButton: {
     padding: 4,
@@ -547,7 +461,7 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 12,
-    color: '#666666',
+    color: Colors.text.secondary,
     marginBottom: 4,
   },
   amountValue: {
@@ -562,23 +476,23 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#666666',
+    color: Colors.text.secondary,
     marginTop: 16,
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999999',
+    color: Colors.text.tertiary,
     textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: Colors.background.modal,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.secondary,
     borderRadius: 16,
     width: '90%',
     maxWidth: 400,
@@ -589,13 +503,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border.main,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
   },
   modalBody: {
     padding: 20,
@@ -606,23 +520,23 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#333333',
+    color: Colors.text.primary,
     marginBottom: 8,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.border.main,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#333333',
+    color: Colors.text.primary,
   },
   modalFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border.main,
   },
   cancelButton: {
     paddingHorizontal: 16,
@@ -631,10 +545,10 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 16,
-    color: '#666666',
+    color: Colors.text.secondary,
   },
   addCashButton: {
-    backgroundColor: '#27AE60',
+    backgroundColor: Colors.accent,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -642,7 +556,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.white,
   },
 });
 

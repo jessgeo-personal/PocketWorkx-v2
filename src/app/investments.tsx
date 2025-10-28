@@ -1,4 +1,4 @@
-// src/app/(tabs)/investments.tsx
+// src/app/investments.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -6,18 +6,14 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  Investment, 
-  Money, 
-  RealEstateAsset 
-} from '../types/finance';
-import { formatCompactCurrency } from '../utils/currency';
+import { Investment } from '../types/finance';
+import { formatCurrency, formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';
+import { Colors } from '../utils/theme';
 
 const InvestmentsScreen: React.FC = () => {
   const [investments, setInvestments] = useState<Investment[]>([
@@ -35,7 +31,6 @@ const InvestmentsScreen: React.FC = () => {
       category: 'equity',
       riskLevel: 'medium',
       isActive: true,
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -66,7 +61,6 @@ const InvestmentsScreen: React.FC = () => {
       category: 'equity',
       riskLevel: 'medium',
       isActive: true,
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -98,7 +92,6 @@ const InvestmentsScreen: React.FC = () => {
       category: 'debt',
       riskLevel: 'low',
       isActive: true,
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -124,12 +117,11 @@ const InvestmentsScreen: React.FC = () => {
       unitPrice: { amount: 6245, currency: 'INR' },
       currentValue: { amount: 96798, currency: 'INR' },
       investedAmount: { amount: 85000, currency: 'INR' },
-      weight: 15.5, // in grams
+      weight: 15.5,
       broker: 'Paytm Gold',
       category: 'commodity',
       riskLevel: 'medium',
       isActive: true,
-      // Required enhanced fields
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -148,14 +140,8 @@ const InvestmentsScreen: React.FC = () => {
     },
   ]);
 
-  const totalCurrentValue = investments
-    .filter(inv => inv.isActive)
-    .reduce((sum, inv) => sum + inv.currentValue.amount, 0);
-
-  const totalInvestedAmount = investments
-    .filter(inv => inv.isActive)
-    .reduce((sum, inv) => sum + inv.investedAmount.amount, 0);
-
+  const totalCurrentValue = investments.filter(i => i.isActive).reduce((s, i) => s + i.currentValue.amount, 0);
+  const totalInvestedAmount = investments.filter(i => i.isActive).reduce((s, i) => s + i.investedAmount.amount, 0);
   const totalGains = totalCurrentValue - totalInvestedAmount;
   const gainPercentage = totalInvestedAmount > 0 ? (totalGains / totalInvestedAmount) * 100 : 0;
 
@@ -170,11 +156,11 @@ const InvestmentsScreen: React.FC = () => {
       real_estate: 'home',
       sip: 'schedule',
     };
-    return icons[type as keyof typeof icons] || 'attach-money';
+    return (icons as any)[type] || 'attach-money';
   };
 
   const getInvestmentColor = (type: string) => {
-    const colors = {
+    const map = {
       stocks: '#2196F3',
       mutual_funds: '#FF9800',
       fixed_deposit: '#4CAF50',
@@ -184,42 +170,33 @@ const InvestmentsScreen: React.FC = () => {
       real_estate: '#795548',
       sip: '#00BCD4',
     };
-    return colors[type as keyof typeof colors] || '#666666';
+    return (map as any)[type] || '#666666';
   };
 
   const getRiskColor = (risk: string) => {
-    const colors = {
-      low: '#4CAF50',
-      medium: '#FF9800',
-      high: '#F44336',
-    };
-    return colors[risk as keyof typeof colors] || '#666666';
+    const map = { low: '#4CAF50', medium: '#FF9800', high: '#F44336' };
+    return (map as any)[risk] || '#666666';
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Investments</Text>
       <TouchableOpacity style={styles.addButton}>
-        <MaterialIcons name="add" size={24} color="#FFFFFF" />
+        <MaterialIcons name="add" size={24} color={Colors.white} />
       </TouchableOpacity>
     </View>
   );
 
   const renderSummaryCards = () => (
     <View style={styles.summaryContainer}>
-      <LinearGradient
-        colors={['#FF6B35', '#FF8E35']}
-        style={styles.summaryCard}
-      >
+      <LinearGradient colors={['#FF6B35', '#FF8E35']} style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>Total Portfolio Value</Text>
-        <Text style={styles.summaryAmount}>
-          {formatCompactCurrency(totalCurrentValue, 'INR')}
-        </Text>
+        <Text style={styles.summaryAmount}>{formatCompactCurrency(totalCurrentValue, 'INR')}</Text>
         <Text style={styles.summarySubtext}>
           Invested: {formatCompactCurrency(totalInvestedAmount, 'INR')}
         </Text>
       </LinearGradient>
-      
+
       <View style={[styles.gainsCard, totalGains >= 0 ? styles.gainPositive : styles.gainNegative]}>
         <Text style={styles.gainsLabel}>Total {totalGains >= 0 ? 'Gains' : 'Loss'}</Text>
         <Text style={styles.gainsAmount}>
@@ -232,32 +209,25 @@ const InvestmentsScreen: React.FC = () => {
     </View>
   );
 
-  const renderInvestmentCard = (investment: Investment) => {
-    const gains = investment.currentValue.amount - investment.investedAmount.amount;
-    const gainPercent = investment.investedAmount.amount > 0 ? 
-      (gains / investment.investedAmount.amount) * 100 : 0;
+  const renderInvestmentCard = (inv: Investment) => {
+    const gains = inv.currentValue.amount - inv.investedAmount.amount;
+    const gainPercent = inv.investedAmount.amount > 0 ? (gains / inv.investedAmount.amount) * 100 : 0;
 
     return (
-      <TouchableOpacity key={investment.id} style={styles.investmentCard}>
+      <TouchableOpacity key={inv.id} style={styles.investmentCard}>
         <View style={styles.investmentHeader}>
           <View style={styles.investmentLeft}>
-            <View style={[styles.investmentIcon, { backgroundColor: getInvestmentColor(investment.type) }]}>
-              <MaterialIcons 
-                name={getInvestmentIcon(investment.type) as any} 
-                size={24} 
-                color="#FFFFFF" 
-              />
+            <View style={[styles.investmentIcon, { backgroundColor: getInvestmentColor(inv.type) }]}>
+              <MaterialIcons name={getInvestmentIcon(inv.type) as any} size={24} color={Colors.white} />
             </View>
             <View style={styles.investmentDetails}>
-              <Text style={styles.investmentName}>{investment.name}</Text>
-              <Text style={styles.investmentDescription}>{investment.description}</Text>
+              <Text style={styles.investmentName}>{inv.name}</Text>
+              <Text style={styles.investmentDescription}>{inv.description}</Text>
               <View style={styles.investmentMeta}>
-                <View style={[styles.riskBadge, { backgroundColor: getRiskColor(investment.riskLevel) }]}>
-                  <Text style={styles.riskText}>{investment.riskLevel.toUpperCase()}</Text>
+                <View style={[styles.riskBadge, { backgroundColor: getRiskColor(inv.riskLevel) }]}>
+                  <Text style={styles.riskText}>{inv.riskLevel.toUpperCase()}</Text>
                 </View>
-                {investment.broker && (
-                  <Text style={styles.brokerText}>via {investment.broker}</Text>
-                )}
+                {inv.broker ? <Text style={styles.brokerText}>via {inv.broker}</Text> : null}
               </View>
             </View>
           </View>
@@ -265,23 +235,21 @@ const InvestmentsScreen: React.FC = () => {
             <MaterialIcons name="more-vert" size={20} color="#666" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.investmentValues}>
           <View style={styles.valueRow}>
             <View style={styles.valueItem}>
               <Text style={styles.valueLabel}>Current Value</Text>
               <Text style={styles.currentValue}>
-                {formatCompactCurrency(investment.currentValue.amount, investment.currentValue.currency)}
+                {formatCompactCurrency(inv.currentValue.amount, inv.currentValue.currency)}
               </Text>
             </View>
-            
             <View style={styles.valueItem}>
               <Text style={styles.valueLabel}>Invested</Text>
               <Text style={styles.investedValue}>
-                {formatCompactCurrency(investment.investedAmount.amount, investment.investedAmount.currency)}
+                {formatCompactCurrency(inv.investedAmount.amount, inv.investedAmount.currency)}
               </Text>
             </View>
-            
             <View style={styles.valueItem}>
               <Text style={styles.valueLabel}>Returns</Text>
               <Text style={[styles.returnsValue, gains >= 0 ? styles.positiveReturn : styles.negativeReturn]}>
@@ -290,35 +258,35 @@ const InvestmentsScreen: React.FC = () => {
             </View>
           </View>
         </View>
-        
-        {investment.type === 'stocks' && (
+
+        {inv.type === 'stocks' && (
           <View style={styles.additionalInfo}>
             <Text style={styles.additionalText}>
-              {investment.quantity} shares @ ₹{investment.unitPrice.amount.toFixed(2)}
+              {inv.quantity} shares @ {formatCurrency(inv.unitPrice.amount, 'INR')}
             </Text>
           </View>
         )}
-        
-        {investment.type === 'mutual_funds' && (
+
+        {inv.type === 'mutual_funds' && (
           <View style={styles.additionalInfo}>
             <Text style={styles.additionalText}>
-              {investment.quantity.toFixed(2)} units @ ₹{investment.unitPrice.amount.toFixed(2)}
+              {inv.quantity.toFixed(2)} units @ {formatCurrency(inv.unitPrice.amount, 'INR')}
             </Text>
           </View>
         )}
-        
-        {investment.type === 'fixed_deposit' && investment.maturityDate && (
+
+        {inv.type === 'fixed_deposit' && inv.maturityDate && (
           <View style={styles.additionalInfo}>
             <Text style={styles.additionalText}>
-              Matures on {investment.maturityDate.toLocaleDateString()} • {investment.interestRate}% p.a.
+              Matures on {inv.maturityDate.toLocaleDateString()} • {inv.interestRate}% p.a.
             </Text>
           </View>
         )}
-        
-        {investment.type === 'gold' && investment.weight && (
+
+        {inv.type === 'gold' && inv.weight && (
           <View style={styles.additionalInfo}>
             <Text style={styles.additionalText}>
-              {investment.weight}g @ ₹{investment.unitPrice.amount.toFixed(0)}/g
+              {inv.weight}g @ {formatCurrency(inv.unitPrice.amount, 'INR')}/g
             </Text>
           </View>
         )}
@@ -334,17 +302,14 @@ const InvestmentsScreen: React.FC = () => {
           <MaterialIcons name="add-circle" size={24} color="#FF6B35" />
           <Text style={styles.actionText}>Add Investment</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="pie-chart" size={24} color="#FF6B35" />
           <Text style={styles.actionText}>Portfolio</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="swap-horiz" size={24} color="#FF6B35" />
           <Text style={styles.actionText}>Buy/Sell</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="assessment" size={24} color="#FF6B35" />
           <Text style={styles.actionText}>Performance</Text>
@@ -354,21 +319,17 @@ const InvestmentsScreen: React.FC = () => {
   );
 
   return (
-     <ScreenLayout>
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <ScreenLayout>
+      <StatusBar style="dark" backgroundColor={Colors.background.primary} />
       {renderHeader()}
-      
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderSummaryCards()}
         {renderQuickActions()}
-        
         <View style={styles.investmentsContainer}>
           <Text style={styles.sectionTitle}>Your Investments</Text>
           {investments.map(renderInvestmentCard)}
         </View>
       </ScrollView>
-    </SafeAreaView>
     </ScreenLayout>
   );
 };
@@ -376,25 +337,31 @@ const InvestmentsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: Colors.background.primary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
   },
   addButton: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: Colors.accent,
     borderRadius: 20,
     padding: 8,
   },
@@ -402,7 +369,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
   },
   summaryCard: {
@@ -411,10 +378,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     elevation: 4,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
@@ -436,15 +400,12 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   gainsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.secondary,
     padding: 20,
     borderRadius: 12,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -458,27 +419,27 @@ const styles = StyleSheet.create({
   },
   gainsLabel: {
     fontSize: 14,
-    color: '#666666',
+    color: Colors.text.secondary,
     marginBottom: 8,
   },
   gainsAmount: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
     marginBottom: 4,
   },
   gainsPercent: {
     fontSize: 12,
-    color: '#666666',
+    color: Colors.text.secondary,
   },
   quickActionsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
     marginBottom: 12,
   },
   quickActionGrid: {
@@ -488,40 +449,35 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.secondary,
     padding: 16,
     borderRadius: 12,
     width: '47%',
     marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   actionText: {
     fontSize: 12,
-    color: '#333333',
+    color: Colors.text.primary,
     marginTop: 8,
     textAlign: 'center',
   },
   investmentsContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 100,
   },
   investmentCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.secondary,
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
@@ -550,12 +506,12 @@ const styles = StyleSheet.create({
   investmentName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
     marginBottom: 2,
   },
   investmentDescription: {
     fontSize: 12,
-    color: '#666666',
+    color: Colors.text.secondary,
     marginBottom: 8,
   },
   investmentMeta: {
@@ -571,11 +527,11 @@ const styles = StyleSheet.create({
   riskText: {
     fontSize: 8,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.white,
   },
   brokerText: {
     fontSize: 10,
-    color: '#999999',
+    color: Colors.text.tertiary,
     fontStyle: 'italic',
   },
   moreButton: {
@@ -594,18 +550,18 @@ const styles = StyleSheet.create({
   },
   valueLabel: {
     fontSize: 10,
-    color: '#999999',
+    color: Colors.text.tertiary,
     marginBottom: 4,
   },
   currentValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: Colors.text.primary,
   },
   investedValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666666',
+    color: Colors.text.secondary,
   },
   returnsValue: {
     fontSize: 16,
@@ -619,12 +575,12 @@ const styles = StyleSheet.create({
   },
   additionalInfo: {
     paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border.main,
   },
   additionalText: {
     fontSize: 11,
-    color: '#666666',
+    color: Colors.text.secondary,
     textAlign: 'center',
   },
 });
