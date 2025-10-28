@@ -19,8 +19,10 @@ import {
   RefreshControl
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import { File, Directory, Paths } from 'expo-file-system';
 import { useStorage } from '../services/storage/StorageProvider';
 
 // Enhanced Data Structures
@@ -98,12 +100,13 @@ const Typography = {
     '4xl': 36,
   },
   fontWeight: {
-    normal: '400' as const,
-    medium: '500' as const,
-    semibold: '600' as const,
-    bold: '700' as const,
+    normal: 400 as const,
+    medium: 500 as const,
+    semibold: 600 as const,
+    bold: 700 as const,
   },
 };
+
 
 const BorderRadius = {
   md: 8,
@@ -127,11 +130,12 @@ const formatIndianCurrency = (amount: number): string => {
 };
 
 export default function CashScreen() {
-  const { state, dispatch } = useStorage();
+  const { state, updateCashCategories, updateCashTransactions } = useStorage();
   
   // State management
-  const [categories, setCategories] = useState<CashCategory[]>(DEFAULT_CATEGORIES);
-  const [transactions, setTransactions] = useState<CashTransaction[]>([]);
+  // Get data from StorageProvider instead of local state
+  const categories = state?.cashCategories || DEFAULT_CATEGORIES;
+  const transactions = state?.cashTransactions || [];
   const [refreshing, setRefreshing] = useState(false);
   
   // Modal states
@@ -153,27 +157,6 @@ export default function CashScreen() {
   const [notes, setNotes] = useState('');
   const [selectedCategoryForDetail, setSelectedCategoryForDetail] = useState<CashCategory | null>(null);
 
-  // Initialize data from storage
-  useEffect(() => {
-    initializeData();
-  }, [state]);
-
-  const initializeData = async () => {
-    // Load categories from storage or use defaults
-    if (state.cashCategories && state.cashCategories.length > 0) {
-      setCategories(state.cashCategories);
-    } else {
-      // Initialize with default categories
-      dispatch({ type: 'UPDATE_CASH_CATEGORIES', payload: DEFAULT_CATEGORIES });
-      setCategories(DEFAULT_CATEGORIES);
-    }
-
-    // Load transactions
-    if (state.cashTransactions) {
-      setTransactions(state.cashTransactions);
-    }
-  };
-
   // Calculate total cash across all categories
   const getTotalCash = (): number => {
     return categories.reduce((total, cat) => total + cat.balance, 0);
@@ -187,46 +170,46 @@ export default function CashScreen() {
   };
 
   // Add new category
-  const addCategory = (name: string) => {
-    if (!name.trim()) return;
-    
-    const newCategory: CashCategory = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      balance: 0,
-      color: Colors.accent,
-      isDefault: false,
-    };
-
-    const updatedCategories = [...categories, newCategory];
-    setCategories(updatedCategories);
-    dispatch({ type: 'UPDATE_CASH_CATEGORIES', payload: updatedCategories });
-    setNewCategoryName('');
+const addCategory = async (name: string) => {
+  if (!name.trim()) return;
+  
+  const newCategory: CashCategory = {
+    id: Date.now().toString(),
+    name: name.trim(),
+    balance: 0,
+    color: Colors.accent,
+    isDefault: false,
   };
+
+  const updatedCategories = [...categories, newCategory];
+  await updateCashCategories(updatedCategories);
+  setNewCategoryName('');
+};
+
 
   // Update category balance
-  const updateCategoryBalance = (categoryId: string, amount: number) => {
-    const updatedCategories = categories.map(cat => 
-      cat.id === categoryId 
-        ? { ...cat, balance: Math.max(0, cat.balance + amount) }
-        : cat
-    );
-    setCategories(updatedCategories);
-    dispatch({ type: 'UPDATE_CASH_CATEGORIES', payload: updatedCategories });
-  };
+const updateCategoryBalance = async (categoryId: string, amount: number) => {
+  const updatedCategories = categories.map(cat => 
+    cat.id === categoryId 
+      ? { ...cat, balance: Math.max(0, cat.balance + amount) }
+      : cat
+  );
+  await updateCashCategories(updatedCategories);
+};
+
 
   // Add transaction
-  const addTransaction = (transaction: Omit<CashTransaction, 'id' | 'timestamp'>) => {
-    const newTransaction: CashTransaction = {
-      ...transaction,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-    };
-
-    const updatedTransactions = [newTransaction, ...transactions];
-    setTransactions(updatedTransactions);
-    dispatch({ type: 'UPDATE_CASH_TRANSACTIONS', payload: updatedTransactions });
+const addTransaction = async (transaction: Omit<CashTransaction, 'id' | 'timestamp'>) => {
+  const newTransaction: CashTransaction = {
+    ...transaction,
+    id: Date.now().toString(),
+    timestamp: new Date(),
   };
+
+  const updatedTransactions = [newTransaction, ...transactions];
+  await updateCashTransactions(updatedTransactions);
+};
+
 
   // Handle adding cash
   const handleAddCash = () => {
@@ -236,14 +219,14 @@ export default function CashScreen() {
     }
 
     const amountValue = parseFloat(amount);
-    updateCategoryBalance(selectedCategory, amountValue);
+    await updateCategoryBalance(selectedCategory, amountValue);
 
-    addTransaction({
+    await addTransaction({
       type: 'credit',
       amount: amountValue,
       category: selectedCategory,
       description: description || 'Cash Added',
-      receiptPhoto,
+      receiptPhoto: receiptPhoto ?? undefined,
       notes,
     });
 
@@ -266,22 +249,22 @@ export default function CashScreen() {
       return;
     }
 
-    updateCategoryBalance(selectedCategory, -amountValue);
+    await updateCategoryBalance(selectedCategory, -amountValue);
 
     // Save receipt if captured
-    let receiptPath = null;
+    let receiptPath: string | undefined = undefined;
     if (receiptPhoto) {
       receiptPath = await saveReceipt(receiptPhoto);
     }
-
     addTransaction({
       type: 'debit',
       amount: amountValue,
       category: selectedCategory,
       description: description || 'Expense',
-      receiptPhoto: receiptPath,
+      receiptPhoto: receiptPath, // now string | undefined
       notes,
     });
+
 
     resetForm();
     setExpenseModalVisible(false);
@@ -308,10 +291,10 @@ export default function CashScreen() {
     }
 
     // Update balances
-    updateCategoryBalance(fromCategory, -amountValue);
-    updateCategoryBalance(toCategory, amountValue);
+    await updateCategoryBalance(fromCategory, -amountValue);
+    await updateCategoryBalance(toCategory, amountValue);
 
-    addTransaction({
+    await addTransaction({
       type: 'transfer',
       amount: amountValue,
       fromCategory,
@@ -327,28 +310,28 @@ export default function CashScreen() {
   // Save receipt photo to secure directory
   const saveReceipt = async (photoUri: string): Promise<string> => {
     try {
-      const receiptsDir = FileSystem.documentDirectory + 'receipts/';
+      // Use the new Directory and File APIs
+      const receiptsDir = new Directory(Paths.document, 'receipts');
       
-      // Create receipts directory if it doesn't exist
-      const dirInfo = await FileSystem.getInfoAsync(receiptsDir);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(receiptsDir);
+      // Create directory if it doesn't exist (much simpler now)
+      if (!receiptsDir.exists) {
+        await receiptsDir.create();
       }
 
       const fileName = `receipt_${Date.now()}.jpg`;
-      const newPath = receiptsDir + fileName;
+      const sourceFile = new File(photoUri);
+      const targetFile = new File(receiptsDir, fileName);
       
-      await FileSystem.copyAsync({
-        from: photoUri,
-        to: newPath,
-      });
+      // Copy using the new API
+      await sourceFile.copy(targetFile);
 
-      return newPath;
+      return targetFile.uri;
     } catch (error) {
       console.error('Failed to save receipt:', error);
       return photoUri; // Fallback to original path
     }
   };
+
 
   // Capture receipt photo
   const captureReceipt = async () => {
@@ -411,9 +394,10 @@ export default function CashScreen() {
   // Refresh data
   const onRefresh = async () => {
     setRefreshing(true);
-    await initializeData();
+    // Data automatically updates when StorageProvider reloads
     setRefreshing(false);
   };
+
 
   // Open category detail modal
   const openCategoryDetail = (category: CashCategory) => {
@@ -1333,59 +1317,3 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 });
-```
-
-## Required Storage Provider Updates
-
-```typescript
-// Update StorageProvider.tsx to support new cash data structures
-
-interface PocketWorkxState {
-  // ... existing state
-  cashCategories: CashCategory[];
-  cashTransactions: CashTransaction[];
-}
-
-// Add new action types
-type StorageAction = 
-  | { type: 'UPDATE_CASH_CATEGORIES'; payload: CashCategory[] }
-  | { type: 'UPDATE_CASH_TRANSACTIONS'; payload: CashTransaction[] }
-  // ... other existing actions
-
-// Update reducer
-const reducer = (state: PocketWorkxState, action: StorageAction): PocketWorkxState => {
-  switch (action.type) {
-    case 'UPDATE_CASH_CATEGORIES':
-      return { ...state, cashCategories: action.payload };
-    case 'UPDATE_CASH_TRANSACTIONS':
-      return { ...state, cashTransactions: action.payload };
-    // ... other cases
-  }
-};
-```
-
-## Installation Requirements
-
-```bash
-# Install required dependencies
-npm install @react-native-picker/picker expo-image-picker
-
-# If using Expo managed workflow
-expo install @react-native-picker/picker expo-image-picker
-
-# Update app.json for permissions
-{
-  "expo": {
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you upload receipts for expense tracking.",
-          "cameraPermission": "The app accesses your camera to let you capture receipts for expense tracking."
-        }
-      ]
-    ]
-  }
-}
-```
-

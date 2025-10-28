@@ -42,7 +42,14 @@
           "cameraPermission": "Allow PocketWorkx to scan receipts and documents"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you upload receipts for expense tracking.",
+          "cameraPermission": "The app accesses your camera to let you capture receipts for expense tracking."
+        }
+      ]
     ]
   }
 }
