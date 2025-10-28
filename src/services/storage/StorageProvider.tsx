@@ -11,13 +11,6 @@ export interface CashCategory {
   color?: string;
   isDefault: boolean;
 }
-
-interface PocketWorkxState {
-  // ... existing state
-  cashCategories: CashCategory[];
-  cashTransactions: CashTransaction[];
-}
-
 export interface CashTransaction {
   id: string;
   type: 'credit' | 'debit' | 'transfer';
