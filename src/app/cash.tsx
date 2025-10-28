@@ -13,106 +13,60 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CashEntry } from '../types/finance';
-import { formatCurrency, formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
+import { formatCompactCurrency } from '../utils/currency';
+
+// NEW: use the shared storage (file-backed) instead of component-local arrays
+import { useStorage } from '../services/storage/StorageProvider';
+
+// Align with your existing CashEntry typing in src/types/finance
+// If you have the CashEntry type defined, import it:
+// import { CashEntry } from '../types/finance';
+// Otherwise, define a minimal local type here (compatible with your previous structure):
+type Currency = 'INR';
+type Money = { amount: number; currency: Currency };
+type CashEntry = {
+  id: string;
+  description: string;
+  amount: Money;
+  location?: string;
+  encryptedData?: {
+    encryptionKey: string;
+    encryptionAlgorithm: string;
+    lastEncrypted: Date;
+    isEncrypted: boolean;
+  };
+  auditTrail?: {
+    createdBy: string;
+    createdAt: Date;
+    updatedBy: string;
+    updatedAt: Date;
+    version: number;
+    changes: any[];
+  };
+  linkedTransactions?: any[];
+};
 
 const CashScreen: React.FC = () => {
-  const [cashEntries, setCashEntries] = useState<CashEntry[]>([
-    {
-      id: '1',
-      description: 'Wallet Cash',
-      amount: { amount: 15500, currency: 'INR' },
-      location: 'Personal Wallet',
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: new Date(),
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: new Date('2025-10-01'),
-        updatedBy: 'user',
-        updatedAt: new Date(),
-        version: 1,
-        changes: [],
-      },
-      linkedTransactions: [],
-    },
-    {
-      id: '2',
-      description: 'Home Safe',
-      amount: { amount: 45000, currency: 'INR' },
-      location: 'Home - Bedroom Safe',
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: new Date(),
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: new Date('2025-09-15'),
-        updatedBy: 'user',
-        updatedAt: new Date(),
-        version: 1,
-        changes: [],
-      },
-      linkedTransactions: [],
-    },
-    {
-      id: '3',
-      description: 'Emergency Cash',
-      amount: { amount: 25000, currency: 'INR' },
-      location: 'Car Dashboard',
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: new Date(),
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: new Date('2025-08-20'),
-        updatedBy: 'user',
-        updatedAt: new Date(),
-        version: 1,
-        changes: [],
-      },
-      linkedTransactions: [],
-    },
-    {
-      id: '4',
-      description: 'Office Petty Cash',
-      amount: { amount: 8000, currency: 'INR' },
-      location: 'Office Desk',
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: new Date(),
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: new Date('2025-10-03'),
-        updatedBy: 'user',
-        updatedAt: new Date(),
-        version: 1,
-        changes: [],
-      },
-      linkedTransactions: [],
-    },
-  ]);
+  // Hook into global storage
+  const { state, loading, save } = useStorage();
 
+  // Local UI state for the "Add Cash" modal inputs
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [newCashDescription, setNewCashDescription] = useState('');
   const [newCashAmount, setNewCashAmount] = useState('');
   const [newCashLocation, setNewCashLocation] = useState('');
 
-  const totalCash = cashEntries.reduce((sum, entry) => sum + entry.amount.amount, 0);
+  // Read cash entries from the shared store (backed by local JSON file)
+  const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
 
+  const totalCash = cashEntries.reduce(
+    (sum, entry) => sum + (entry?.amount?.amount ?? 0),
+    0
+  );
+
+  // Keep your icon mapping for locations
   const getLocationIcon = (location: string) => {
     const l = location?.toLowerCase() || '';
     if (l.includes('wallet')) return 'account-balance-wallet';
@@ -133,7 +87,7 @@ const CashScreen: React.FC = () => {
     return '#666666';
   };
 
-  const handleAddCash = () => {
+  const handleAddCash = async () => {
     if (!newCashDescription.trim() || !newCashAmount.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
@@ -164,17 +118,34 @@ const CashScreen: React.FC = () => {
       },
       linkedTransactions: [],
     };
-    setCashEntries(prev => [...prev, newEntry]);
+
+    // Persist using the global store
+    await save(draft => {
+      const next = draft.cashEntries ? [...draft.cashEntries] : [];
+      next.push(newEntry);
+      return { ...draft, cashEntries: next };
+    });
+
+    // Reset local inputs and close modal
     setNewCashDescription('');
     setNewCashAmount('');
     setNewCashLocation('');
     setIsAddModalVisible(false);
   };
 
-  const handleDeleteCash = (id: string) => {
+  const handleDeleteCash = async (id: string) => {
     Alert.alert('Confirm Delete', 'Are you sure you want to remove this cash entry?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => setCashEntries(prev => prev.filter(e => e.id !== id)) },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await save(draft => {
+            const next = (draft.cashEntries ?? []).filter((e: CashEntry) => e.id !== id);
+            return { ...draft, cashEntries: next };
+          });
+        },
+      },
     ]);
   };
 
@@ -201,13 +172,24 @@ const CashScreen: React.FC = () => {
     <TouchableOpacity key={entry.id} style={styles.cashCard}>
       <View style={styles.cashHeader}>
         <View style={styles.cashLeft}>
-          <View style={[styles.locationIcon, { backgroundColor: getLocationColor(entry.location || '') }]}>
-            <MaterialIcons name={getLocationIcon(entry.location || '') as any} size={24} color="#FFFFFF" />
+          <View
+            style={[
+              styles.locationIcon,
+              { backgroundColor: getLocationColor(entry.location || '') },
+            ]}
+          >
+            <MaterialIcons
+              name={getLocationIcon(entry.location || '') as any}
+              size={24}
+              color="#FFFFFF"
+            />
           </View>
           <View style={styles.cashDetails}>
             <Text style={styles.cashDescription}>{entry.description}</Text>
             <Text style={styles.cashLocation}>{entry.location}</Text>
-            <Text style={styles.cashDate}>Added on {entry.auditTrail.createdAt.toLocaleDateString()}</Text>
+            <Text style={styles.cashDate}>
+              Added on {new Date(entry.auditTrail?.createdAt ?? new Date()).toLocaleDateString()}
+            </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCash(entry.id)}>
@@ -216,7 +198,9 @@ const CashScreen: React.FC = () => {
       </View>
       <View style={styles.cashAmount}>
         <Text style={styles.amountLabel}>Amount</Text>
-        <Text style={styles.amountValue}>{formatCompactCurrency(entry.amount.amount, entry.amount.currency)}</Text>
+        <Text style={styles.amountValue}>
+          {formatCompactCurrency(entry.amount.amount, entry.amount.currency)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -246,7 +230,12 @@ const CashScreen: React.FC = () => {
   );
 
   const renderAddCashModal = () => (
-    <Modal visible={isAddModalVisible} animationType="slide" transparent onRequestClose={() => setIsAddModalVisible(false)}>
+    <Modal
+      visible={isAddModalVisible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setIsAddModalVisible(false)}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
@@ -258,19 +247,38 @@ const CashScreen: React.FC = () => {
           <View style={styles.modalBody}>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Description *</Text>
-              <TextInput style={styles.textInput} value={newCashDescription} onChangeText={setNewCashDescription} placeholder="e.g., Wallet Cash, Home Safe" />
+              <TextInput
+                style={styles.textInput}
+                value={newCashDescription}
+                onChangeText={setNewCashDescription}
+                placeholder="e.g., Wallet Cash, Home Safe"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Amount (₹) *</Text>
-              <TextInput style={styles.textInput} value={newCashAmount} onChangeText={setNewCashAmount} placeholder="0" keyboardType="numeric" />
+              <TextInput
+                style={styles.textInput}
+                value={newCashAmount}
+                onChangeText={setNewCashAmount}
+                placeholder="0"
+                keyboardType="numeric"
+              />
             </View>
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Location</Text>
-              <TextInput style={styles.textInput} value={newCashLocation} onChangeText={setNewCashLocation} placeholder="e.g., Personal Wallet, Home Safe" />
+              <TextInput
+                style={styles.textInput}
+                value={newCashLocation}
+                onChangeText={setNewCashLocation}
+                placeholder="e.g., Personal Wallet, Home Safe"
+              />
             </View>
           </View>
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddModalVisible(false)}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setIsAddModalVisible(false)}
+            >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.addCashButton} onPress={handleAddCash}>
@@ -282,6 +290,16 @@ const CashScreen: React.FC = () => {
     </Modal>
   );
 
+  if (loading) {
+    return (
+      <ScreenLayout>
+        <View style={{ padding: 16 }}>
+          <Text>Loading local data…</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
   return (
     <ScreenLayout>
       <StatusBar style="dark" backgroundColor={Colors.background.primary} />
@@ -291,7 +309,9 @@ const CashScreen: React.FC = () => {
         {renderQuickActions()}
         <View style={styles.cashContainer}>
           <Text style={styles.sectionTitle}>Your Cash Entries</Text>
-          {cashEntries.length > 0 ? cashEntries.map(renderCashEntry) : (
+          {cashEntries.length > 0 ? (
+            cashEntries.map(renderCashEntry)
+          ) : (
             <View style={styles.emptyCash}>
               <MaterialIcons name="account-balance-wallet" size={64} color="#E0E0E0" />
               <Text style={styles.emptyText}>No cash entries yet</Text>
