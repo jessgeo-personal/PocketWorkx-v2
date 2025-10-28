@@ -16,8 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 
 import ScreenLayout from '../components/ScreenLayout';
-import { formatCompactCurrency } from '../utils/currency';
-import { colors } from '../utils/theme';
+import { formatCurrency, formatCompactCurrency } from '../utils/currency';
+import { Colors, colors } from '../utils/theme';
 
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
@@ -229,22 +229,30 @@ const AccountsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  scrollView: { flex: 1, backgroundColor: '#F8F9FA' },
+  scrollView: { flex: 1, backgroundColor: Colors.background.primary },
 
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  headerTitle: { fontSize: 24, fontWeight: '600', color: '#1A1A1A' },
-  addButton: { backgroundColor: colors.primary, borderRadius: 20, padding: 8 },
+    backgroundColor: Colors.background.secondary,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border.main,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+},
+  headerTitle: { fontSize: 24, fontWeight: '600', color: Colors.text.primary },
+  addButton: { backgroundColor: Colors.accent, borderRadius: 20, padding: 8 },
 
   totalCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginVertical: 16,
     padding: 24,
     borderRadius: 16,
@@ -261,7 +269,7 @@ const styles = StyleSheet.create({
 
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 12 },
 
-  quickActionsContainer: { paddingHorizontal: 20, marginBottom: 24 },
+  quickActionsContainer: { paddingHorizontal: 16, marginBottom: 24 },
   quickActionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -280,11 +288,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  actionText: { fontSize: 12, color: '#333333', marginTop: 8, textAlign: 'center' },
+  actionText: { fontSize: 12, color: Colors.text.primary, marginTop: 8, textAlign: 'center' },
 
-  accountsContainer: { paddingHorizontal: 20, marginBottom: 100 },
+  accountsContainer: { paddingHorizontal: 16, marginBottom: 100 },
   accountCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background.secondary,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -310,12 +318,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   accountDetails: { flex: 1 },
-  accountNickname: { fontSize: 16, fontWeight: '600', color: '#1A1A1A', marginBottom: 2 },
-  accountSubtext: { fontSize: 14, color: '#666666', marginBottom: 4 },
-  accountMeta: { fontSize: 12, color: '#999999' },
+  accountNickname: { fontSize: 16, fontWeight: '600', color: Colors.text.primary, marginBottom: 2 },
+  accountSubtext: { fontSize: 14, color: Colors.text.secondary, marginBottom: 4 },
+  accountMeta: { fontSize: 12, color: Colors.text.tertiary },
 
   accountRight: { alignItems: 'flex-end' },
-  balanceLabel: { fontSize: 12, color: '#666666', marginBottom: 4 },
+  balanceLabel: { fontSize: 12, color: Colors.text.secondary, marginBottom: 4 },
   balanceValue: { fontSize: 20, fontWeight: '700', color: colors.secondary },
 
   accountActions: { flexDirection: 'row', marginTop: 8 },
