@@ -122,6 +122,8 @@ const CashScreen: React.FC = () => {
   const [depositFromCategory, setDepositFromCategory] = useState<string>(CashCategoryType.WALLET);
   const [selectedBankAccount, setSelectedBankAccount] = useState<string>('');
   const [depositNotes, setDepositNotes] = useState('');
+  // ADD loading state (after other states):
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // ADD router hook in component
   const router = useRouter();
@@ -236,63 +238,75 @@ const CashScreen: React.FC = () => {
     return '#666666';
   };
 
+  // REPLACE your existing handleAddCash function completely:
   const handleAddCash = async () => {
+    if (isProcessing) return; // Prevent double-tap
+    
     if (!newCashDescription.trim() || !newCashAmount.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
-    
     const amount = parseFloat(newCashAmount);
     if (isNaN(amount) || amount <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
 
-    const now = new Date();
-    const newEntry: CashEntry = {
-      id: Date.now().toString(),
-      description: newCashDescription.trim(),
-      amount: { amount, currency: 'INR' },
-      type: 'ADD_CASH',
-      cashCategory: newCashcashCategory.trim() || 'Uncategorized',
-      timestamp: now,
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: now,
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: now,
-        updatedBy: 'user',
-        updatedAt: now,
-        version: 1,
-        changes: [{
-          action: 'ADD_CASH',
-          timestamp: now,
-          amount: amount,
-          category: newCashcashCategory.trim() || 'Uncategorized'
-        }],
-      },
-      linkedTransactions: [],
-    };
+    setIsProcessing(true);
+    try {
+      const now = new Date();
+      const newEntry: CashEntry = {
+        id: Date.now().toString(),
+        description: newCashDescription.trim(),
+        amount: { amount, currency: 'INR' },
+        type: 'ADD_CASH',
+        cashCategory: newCashcashCategory.trim() || 'Wallet',
+        timestamp: now,
+        encryptedData: {
+          encryptionKey: '',
+          encryptionAlgorithm: 'AES-256',
+          lastEncrypted: now,
+          isEncrypted: false,
+        },
+        auditTrail: {
+          createdBy: 'user',
+          createdAt: now,
+          updatedBy: 'user',
+          updatedAt: now,
+          version: 1,
+          changes: [{
+            action: 'ADD_CASH',
+            timestamp: now,
+            amount: amount,
+            category: newCashcashCategory.trim() || 'Wallet'
+          }],
+        },
+        linkedTransactions: [],
+      };
 
-    // Persist using the global store
-    await save(draft => {
-      const next = draft.cashEntries ? [...draft.cashEntries] : [];
-      next.push(newEntry);
-      return { ...draft, cashEntries: next };
-    });
+      await save(draft => {
+        const next = draft.cashEntries ? [...draft.cashEntries] : [];
+        next.push(newEntry);
+        return { ...draft, cashEntries: next };
+      });
 
-    // Reset local inputs and close modal
-    setNewCashDescription('');
-    setNewCashAmount('');
-    setNewCashcashCategory('');
-    setIsAddModalVisible(false);
+      // Reset form and close modal only on success
+      setNewCashDescription('');
+      setNewCashAmount('');
+      setNewCashcashCategory(CashCategoryType.WALLET);
+      setIsAddModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add cash entry. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
+
+  // REPLACE your existing handleRecordExpense function:
   const handleRecordExpense = async () => {
+    if (isProcessing) return;
+    
     if (!expenseDescription.trim() || !expenseAmount.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
@@ -304,58 +318,69 @@ const CashScreen: React.FC = () => {
       return;
     }
 
-    const now = new Date();
-    const amount = Math.round(raw) * -1; // negative for expense
+    setIsProcessing(true);
+    try {
+      const now = new Date();
+      const amount = Math.round(raw) * -1; // negative for expense
 
-    const newEntry: CashEntry = {
-      id: `${Date.now()}`,
-      description: expenseDescription.trim(),
-      amount: { amount, currency: 'INR' },
-      type: 'RECORD_EXPENSE',
-      cashCategory: expenseCashCategory,       // from chips/dropdown
-      expenseCategory,                         // from expense chips
-      notes: expenseNotes?.trim() || undefined,
-      timestamp: now,
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: now,
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: now,
-        updatedBy: 'user',
-        updatedAt: now,
-        version: 1,
-        changes: [{
-          action: 'RECORD_EXPENSE',
-          timestamp: now,
-          amount,
-          cashCategory: expenseCashCategory,
-          expenseCategory,
-        }],
-      },
-      linkedTransactions: [],
-    };
+      const newEntry: CashEntry = {
+        id: `${Date.now()}`,
+        description: expenseDescription.trim(),
+        amount: { amount, currency: 'INR' },
+        type: 'RECORD_EXPENSE',
+        cashCategory: expenseCashCategory,
+        expenseCategory,
+        notes: expenseNotes?.trim() || undefined,
+        timestamp: now,
+        encryptedData: {
+          encryptionKey: '',
+          encryptionAlgorithm: 'AES-256',
+          lastEncrypted: now,
+          isEncrypted: false,
+        },
+        auditTrail: {
+          createdBy: 'user',
+          createdAt: now,
+          updatedBy: 'user',
+          updatedAt: now,
+          version: 1,
+          changes: [{
+            action: 'RECORD_EXPENSE',
+            timestamp: now,
+            amount,
+            cashCategory: expenseCashCategory,
+            expenseCategory,
+          }],
+        },
+        linkedTransactions: [],
+      };
 
-    await save(draft => {
-      const next = draft.cashEntries ? [...draft.cashEntries] : [];
-      next.push(newEntry);
-      return { ...draft, cashEntries: next };
-    });
+      await save(draft => {
+        const next = draft.cashEntries ? [...draft.cashEntries] : [];
+        next.push(newEntry);
+        return { ...draft, cashEntries: next };
+      });
 
-    // Reset fields and close modal
-    setExpenseDescription('');
-    setExpenseAmount('');
-    setExpenseCategory(ExpenseCategoryType.FOOD);
-    setExpenseCashCategory(CashCategoryType.WALLET);
-    setExpenseNotes('');
-    setIsExpenseModalVisible(false);
+      // Reset fields and close modal
+      setExpenseDescription('');
+      setExpenseAmount('');
+      setExpenseCategory(ExpenseCategoryType.FOOD);
+      setExpenseCashCategory(CashCategoryType.WALLET);
+      setExpenseNotes('');
+      setIsExpenseModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to record expense. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
+
   // ADD below handleRecordExpense()
+  // REPLACE your existing handleMoveCash function:
   const handleMoveCash = async () => {
+    if (isProcessing) return;
+    
     if (!moveAmount.trim()) {
       Alert.alert('Error', 'Please enter amount to move');
       return;
@@ -370,53 +395,61 @@ const CashScreen: React.FC = () => {
       return;
     }
 
-    const now = new Date();
-    const amt = Math.round(raw);
+    setIsProcessing(true);
+    try {
+      const now = new Date();
+      const amt = Math.round(raw);
 
-    const debit: CashEntry = {
-      id: `${Date.now()}-debit`,
-      description: `Move to ${moveToCategory}`,
-      amount: { amount: -amt, currency: 'INR' },
-      type: 'MOVE_CASH',
-      cashCategory: moveFromCategory,
-      timestamp: now,
-      notes: moveNotes?.trim() || undefined,
-      encryptedData: { encryptionKey: '', encryptionAlgorithm: 'AES-256', lastEncrypted: now, isEncrypted: false },
-      auditTrail: {
-        createdBy: 'user', createdAt: now, updatedBy: 'user', updatedAt: now, version: 1,
-        changes: [{ action: 'MOVE_CASH_DEBIT', timestamp: now, amount: -amt, from: moveFromCategory, to: moveToCategory }],
-      },
-      linkedTransactions: [],
-    };
+      const debit: CashEntry = {
+        id: `${Date.now()}-debit`,
+        description: `Move to ${moveToCategory}`,
+        amount: { amount: -amt, currency: 'INR' },
+        type: 'MOVE_CASH',
+        cashCategory: moveFromCategory,
+        timestamp: now,
+        notes: moveNotes?.trim() || undefined,
+        encryptedData: { encryptionKey: '', encryptionAlgorithm: 'AES-256', lastEncrypted: now, isEncrypted: false },
+        auditTrail: {
+          createdBy: 'user', createdAt: now, updatedBy: 'user', updatedAt: now, version: 1,
+          changes: [{ action: 'MOVE_CASH_DEBIT', timestamp: now, amount: -amt, from: moveFromCategory, to: moveToCategory }],
+        },
+        linkedTransactions: [],
+      };
 
-    const credit: CashEntry = {
-      id: `${Date.now()}-credit`,
-      description: `Move from ${moveFromCategory}`,
-      amount: { amount: amt, currency: 'INR' },
-      type: 'MOVE_CASH',
-      cashCategory: moveToCategory,
-      timestamp: now,
-      notes: moveNotes?.trim() || undefined,
-      encryptedData: { encryptionKey: '', encryptionAlgorithm: 'AES-256', lastEncrypted: now, isEncrypted: false },
-      auditTrail: {
-        createdBy: 'user', createdAt: now, updatedBy: 'user', updatedAt: now, version: 1,
-        changes: [{ action: 'MOVE_CASH_CREDIT', timestamp: now, amount: amt, from: moveFromCategory, to: moveToCategory }],
-      },
-      linkedTransactions: [],
-    };
+      const credit: CashEntry = {
+        id: `${Date.now()}-credit`,
+        description: `Move from ${moveFromCategory}`,
+        amount: { amount: amt, currency: 'INR' },
+        type: 'MOVE_CASH',
+        cashCategory: moveToCategory,
+        timestamp: now,
+        notes: moveNotes?.trim() || undefined,
+        encryptedData: { encryptionKey: '', encryptionAlgorithm: 'AES-256', lastEncrypted: now, isEncrypted: false },
+        auditTrail: {
+          createdBy: 'user', createdAt: now, updatedBy: 'user', updatedAt: now, version: 1,
+          changes: [{ action: 'MOVE_CASH_CREDIT', timestamp: now, amount: amt, from: moveFromCategory, to: moveToCategory }],
+        },
+        linkedTransactions: [],
+      };
 
-    await save(draft => {
-      const next = draft.cashEntries ? [...draft.cashEntries] : [];
-      next.push(debit, credit);
-      return { ...draft, cashEntries: next };
-    });
+      await save(draft => {
+        const next = draft.cashEntries ? [...draft.cashEntries] : [];
+        next.push(debit, credit);
+        return { ...draft, cashEntries: next };
+      });
 
-    setIsMoveModalVisible(false);
-    setMoveAmount('');
-    setMoveFromCategory(CashCategoryType.WALLET);
-    setMoveToCategory(CashCategoryType.HOME_SAFE);
-    setMoveNotes('');
+      setMoveAmount('');
+      setMoveFromCategory(CashCategoryType.WALLET);
+      setMoveToCategory(CashCategoryType.HOME_SAFE);
+      setMoveNotes('');
+      setIsMoveModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to move cash. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
 
   // ADD below handleMoveCash()
   const handleDepositToBank = async () => {
@@ -561,50 +594,72 @@ const CashScreen: React.FC = () => {
   );
 
 
-  const rendercashCategoryGroup = (group: cashCategoryGroup) => (
-    <TouchableOpacity key={group.categoryName} style={styles.cashCard}>
-      <View style={styles.cashHeader}>
-        <View style={styles.cashLeft}>
-          <View
-            style={[
-              styles.cashCategoryIcon,
-              { backgroundColor: getcashCategoryColor(group.categoryName) },
-            ]}
+ // UPDATE rendercashCategoryGroup to show transaction type breakdown:
+  const rendercashCategoryGroup = (group: cashCategoryGroup) => {
+    // Calculate transaction type counts
+    const addCount = group.transactions.filter(t => t.type === 'ADD_CASH').length;
+    const expenseCount = group.transactions.filter(t => t.type === 'RECORD_EXPENSE').length;
+    const moveCount = group.transactions.filter(t => t.type === 'MOVE_CASH').length;
+
+    return (
+      <TouchableOpacity key={group.categoryName} style={styles.cashCard}>
+        <View style={styles.cashHeader}>
+          <View style={styles.cashLeft}>
+            <View
+              style={[
+                styles.cashCategoryIcon,
+                { backgroundColor: getcashCategoryColor(group.categoryName) },
+              ]}
+            >
+              <MaterialIcons
+                name={getcashCategoryIcon(group.categoryName) as any}
+                size={24}
+                color="#FFFFFF"
+              />
+            </View>
+            <View style={styles.cashDetails}>
+              <Text style={styles.cashDescription}>{group.categoryName}</Text>
+              <View style={styles.transactionBreakdown}>
+                {addCount > 0 && (
+                  <Text style={styles.transactionType}>
+                    +{addCount} deposits
+                  </Text>
+                )}
+                {expenseCount > 0 && (
+                  <Text style={styles.transactionType}>
+                    -{expenseCount} expenses
+                  </Text>
+                )}
+                {moveCount > 0 && (
+                  <Text style={styles.transactionType}>
+                    ↔{moveCount} moves
+                  </Text>
+                )}
+              </View>
+              <Text style={styles.cashDate}>
+                Last updated: {formatWithTZ(group.lastUpdated)}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={() => handleDeletecashCategory(group.categoryName)}
           >
-            <MaterialIcons
-              name={getcashCategoryIcon(group.categoryName) as any}
-              size={24}
-              color="#FFFFFF"
-            />
-          </View>
-          <View style={styles.cashDetails}>
-            <Text style={styles.cashDescription}>{group.categoryName}</Text>
-            <Text style={styles.transactionSummary}>
-              {group.transactionCount} {group.transactionCount === 1 ? 'transaction' : 'transactions'}
-            </Text>
-            <Text style={styles.cashDate}>
-              Last updated: {formatWithTZ(group.lastUpdated)}
-            </Text>
-          </View>
+            <MaterialIcons name="delete" size={20} color="#E74C3C" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={styles.deleteButton} 
-          onPress={() => handleDeletecashCategory(group.categoryName)}
-        >
-          <MaterialIcons name="delete" size={20} color="#E74C3C" />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.cashAmount}>
-        <Text style={styles.amountLabel}>Category Total</Text>
-        <Text style={[
-          styles.amountValue,
-          group.totalAmount < 0 && styles.negativeAmount
-        ]}>
-          {formatFullINR(group.totalAmount)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.cashAmount}>
+          <Text style={styles.amountLabel}>Category Total</Text>
+          <Text style={[
+            styles.amountValue,
+            group.totalAmount < 0 && styles.negativeAmount
+          ]}>
+            {formatFullINR(group.totalAmount)}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderQuickActions = () => (
     <View style={styles.quickActionsContainer}>
@@ -704,8 +759,14 @@ const CashScreen: React.FC = () => {
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.addCashButton} onPress={handleAddCash}>
-              <Text style={styles.addButtonText}>Add Cash</Text>
+            <TouchableOpacity 
+              style={[styles.addCashButton, isProcessing && styles.disabledButton]} 
+              onPress={handleAddCash}
+              disabled={isProcessing}
+            >
+              <Text style={styles.addButtonText}>
+                {isProcessing ? 'Adding...' : 'Add Cash'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -821,10 +882,13 @@ const CashScreen: React.FC = () => {
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.addCashButton} 
+              style={[styles.addCashButton, isProcessing && styles.disabledButton]}
               onPress={handleRecordExpense}
+              disabled={isProcessing}
             >
-              <Text style={styles.addButtonText}>Record Expense</Text>
+              <Text style={styles.addButtonText}>
+                {isProcessing ? 'Recording...' : 'Record Expense'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -935,10 +999,13 @@ const CashScreen: React.FC = () => {
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.addCashButton}
-              onPress={() => handleMoveCash()}
+              style={[styles.addCashButton, isProcessing && styles.disabledButton]}
+              onPress={handleMoveCash}
+              disabled={isProcessing}
             >
-              <Text style={styles.addButtonText}>Move</Text>
+              <Text style={styles.addButtonText}>
+                {isProcessing ? 'Moving...' : 'Move'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -946,7 +1013,6 @@ const CashScreen: React.FC = () => {
     </Modal>
   );
 
-  // ADD after renderMoveCashModal
   // ADD after renderMoveCashModal
   const renderDepositToBankModal = () => (
     <Modal
@@ -1068,12 +1134,14 @@ const CashScreen: React.FC = () => {
             <TouchableOpacity 
               style={[
                 styles.addCashButton,
-                (!hasBankAccounts || !selectedBankAccount) && styles.disabledButton
+                (isProcessing || !hasBankAccounts || !selectedBankAccount) && styles.disabledButton
               ]}
-              onPress={() => handleDepositToBank()}
-              disabled={!hasBankAccounts || !selectedBankAccount}
+              onPress={handleDepositToBank}
+              disabled={isProcessing || !hasBankAccounts || !selectedBankAccount}
             >
-              <Text style={styles.addButtonText}>Deposit</Text>
+              <Text style={styles.addButtonText}>
+                {isProcessing ? 'Depositing...' : 'Deposit'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1476,6 +1544,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border.main,
     opacity: 0.6,
   },
+  transactionBreakdown: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 4,
+    gap: 8,
+  },
+  transactionType: {
+    fontSize: 11,
+    color: Colors.text.tertiary,
+    backgroundColor: Colors.background.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+
 });
 
 export { CashScreen as default };
