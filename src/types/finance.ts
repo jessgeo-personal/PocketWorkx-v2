@@ -1,4 +1,5 @@
 // src/types/finance.ts
+export * from './transactions';
 export interface Currency {
   code: 'INR' | 'USD' | 'EUR' | 'AED' | 'GBP';
   symbol: string;

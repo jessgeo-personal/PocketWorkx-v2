@@ -125,7 +125,7 @@ const LiquidityScreen: React.FC = () => {
       </View>
 
       <View style={styles.recommendationCard}>
-        <Feather name="lightbulb" size={20} color={Colors.warning.main} />
+        <Feather name="alert-circle" size={20} color={Colors.warning.main} />
         <View style={styles.recommendationText}>
           <Text style={styles.recommendationTitle}>Recommendation</Text>
           <Text style={styles.recommendationDescription}>
@@ -137,7 +137,7 @@ const LiquidityScreen: React.FC = () => {
   );
 
   return (
-    <ScreenLayout title="Liquidity">
+    <ScreenLayout>
       <ScrollView 
         style={styles.container} 
         showsVerticalScrollIndicator={false}
