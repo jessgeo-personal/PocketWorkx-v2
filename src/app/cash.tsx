@@ -18,6 +18,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
 import { formatCompactCurrency } from '../utils/currency';
+import type { TransactionRecord, FilterCriteria } from '../types/transactions';
+
+import TransactionsModal from '../components/modals/TransactionsModal';
+
+
 
 // NEW: use the shared storage (file-backed) instead of component-local arrays
 import { useStorage } from '../services/storage/StorageProvider';
@@ -124,6 +129,13 @@ const CashScreen: React.FC = () => {
   const [depositNotes, setDepositNotes] = useState('');
   // ADD loading state (after other states):
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showTransactionsModal, setShowTransactionsModal] = useState(false);
+  const [modalTransactions, setModalTransactions] = useState<TransactionRecord[]>([]);
+  const [modalFilterCriteria, setModalFilterCriteria] = useState<FilterCriteria | null>(null);
+  const [txModalVisible, setTxModalVisible] = useState(false);
+  const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
+
+
 
   // ADD router hook in component
   const router = useRouter();
@@ -575,34 +587,61 @@ const CashScreen: React.FC = () => {
     </View>
   );
 
+
+
   const renderTotalCard = () => (
-    <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
-      <Text style={styles.totalLabel}>Total Liquid Cash</Text>
-      <Text style={[
-        styles.totalAmount,
-        totalLiquidCash < 0 && styles.negativeTotalAmount
-      ]}>
-        {formatFullINR(totalLiquidCash)}
-      </Text>
-      <Text style={styles.entriesCount}>
-        {cashCategoryGroups.length} Cash {cashCategoryGroups.length === 1 ? 'Category' : 'Categories'}
-      </Text>
-      <Text style={styles.transactionsCount}>
-        {cashEntries.length} Total Transactions
-      </Text>
-    </LinearGradient>
+    <TouchableOpacity activeOpacity={0.9} onPress={() => {
+      setTxFilter({
+        assetType: 'cash',
+        filterType: 'all',
+        assetLabel: 'All Liquid Cash',
+      });
+      setTxModalVisible(true);
+    }}>       
+        <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
+          <Text style={styles.totalLabel}>Total Liquid Cash</Text>
+          <Text style={[
+            styles.totalAmount,
+            totalLiquidCash < 0 && styles.negativeTotalAmount
+          ]}>
+            {formatFullINR(totalLiquidCash)}
+          </Text>
+          <Text style={styles.entriesCount}>
+            {cashCategoryGroups.length} Cash {cashCategoryGroups.length === 1 ? 'Category' : 'Categories'}
+          </Text>
+          <Text style={styles.transactionsCount}>
+            {cashEntries.length} Total Transactions
+          </Text>
+        </LinearGradient>
+    </TouchableOpacity>
   );
 
 
- // UPDATE rendercashCategoryGroup to show transaction type breakdown:
+
+
+
   const rendercashCategoryGroup = (group: cashCategoryGroup) => {
     // Calculate transaction type counts
     const addCount = group.transactions.filter(t => t.type === 'ADD_CASH').length;
     const expenseCount = group.transactions.filter(t => t.type === 'RECORD_EXPENSE').length;
     const moveCount = group.transactions.filter(t => t.type === 'MOVE_CASH').length;
 
+    const handleOpenTransactions = () => {
+      setTxFilter({
+        assetType: 'cash',
+        filterType: 'category',
+        assetLabel: group.categoryName, // display label shown in modal header and CSV filename
+      });
+      setTxModalVisible(true);
+    };
+
     return (
-      <TouchableOpacity key={group.categoryName} style={styles.cashCard}>
+      <TouchableOpacity
+        key={group.categoryName}
+        style={styles.cashCard}
+        activeOpacity={0.9}
+        onPress={handleOpenTransactions}
+      >
         <View style={styles.cashHeader}>
           <View style={styles.cashLeft}>
             <View
@@ -650,16 +689,19 @@ const CashScreen: React.FC = () => {
         </View>
         <View style={styles.cashAmount}>
           <Text style={styles.amountLabel}>Category Total</Text>
-          <Text style={[
-            styles.amountValue,
-            group.totalAmount < 0 && styles.negativeAmount
-          ]}>
+          <Text
+            style={[
+              styles.amountValue,
+              group.totalAmount < 0 && styles.negativeAmount
+            ]}
+          >
             {formatFullINR(group.totalAmount)}
           </Text>
         </View>
       </TouchableOpacity>
     );
   };
+
 
   const renderQuickActions = () => (
     <View style={styles.quickActionsContainer}>
@@ -1195,6 +1237,14 @@ const CashScreen: React.FC = () => {
       {renderRecordExpenseModal()}
       {renderMoveCashModal()}
       {renderDepositToBankModal()}
+      {/* NEW: Reusable Transactions modal (opens on total card or category taps) */}
+      {txFilter && (
+        <TransactionsModal
+          visible={txModalVisible}
+          onClose={() => setTxModalVisible(false)}
+          params={{ filterCriteria: txFilter }}
+        />
+      )}
     </ScreenLayout>
   );
 };
