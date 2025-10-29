@@ -102,10 +102,22 @@ const CashScreen: React.FC = () => {
   const [newCashDescription, setNewCashDescription] = useState('');
   const [newCashAmount, setNewCashAmount] = useState('');
   const [newCashcashCategory, setNewCashcashCategory] = useState<string>(CashCategoryType.WALLET);
+  // ADD new state variables (around line 53, after existing states)
+  const [isExpenseModalVisible, setIsExpenseModalVisible] = useState(false);
+  const [expenseDescription, setExpenseDescription] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseCategory, setExpenseCategory] = useState<string>(ExpenseCategoryType.FOOD);
+  const [expenseCashCategory, setExpenseCashCategory] = useState<string>(CashCategoryType.WALLET);
+  const [expenseNotes, setExpenseNotes] = useState('');
 
-// ADD dropdown helper
+  // ADD dropdown helper
 const getcashCategoryOptions = (): string[] => {
   return Object.values(CashCategoryType);
+};
+
+// ADD helper function for expense categories
+const getExpenseCategoryOptions = (): string[] => {
+  return Object.values(ExpenseCategoryType);
 };
 
   // Read cash entries from the shared store (backed by local JSON file)
@@ -342,7 +354,10 @@ const totalLiquidCash = cashCategoryGroups.reduce(
           <MaterialIcons name="swap-horiz" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Move Cash</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => setIsExpenseModalVisible(true)}
+        >
           <MaterialIcons name="receipt" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Record Expense</Text>
         </TouchableOpacity>
@@ -428,6 +443,135 @@ const totalLiquidCash = cashCategoryGroups.reduce(
     </Modal>
   );
 
+  // ADD new modal function (after renderAddCashModal, around line 250)
+  const renderRecordExpenseModal = () => (
+    <Modal
+      visible={isExpenseModalVisible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setIsExpenseModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContentScrollable}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Record Expense</Text>
+            <TouchableOpacity onPress={() => setIsExpenseModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView 
+            style={styles.modalScrollView}
+            contentContainerStyle={styles.modalScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalBody}>
+              {/* All your existing form content goes here unchanged */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Description *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={expenseDescription}
+                  onChangeText={setExpenseDescription}
+                  placeholder="e.g., Lunch, Groceries, Fuel"
+                />
+              </View>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={expenseAmount}
+                  onChangeText={setExpenseAmount}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Expense Category *</Text>
+                <View style={styles.pickerContainer}>
+                  {getExpenseCategoryOptions().map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.pickerOption,
+                        expenseCategory === option && styles.pickerOptionSelected
+                      ]}
+                      onPress={() => setExpenseCategory(option)}
+                    >
+                      <Text style={[
+                        styles.pickerOptionText,
+                        expenseCategory === option && styles.pickerOptionTextSelected
+                      ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Cash Category *</Text>
+                <View style={styles.pickerContainer}>
+                  {getcashCategoryOptions().map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.pickerOption,
+                        expenseCashCategory === option && styles.pickerOptionSelected
+                      ]}
+                      onPress={() => setExpenseCashCategory(option)}
+                    >
+                      <Text style={[
+                        styles.pickerOptionText,
+                        expenseCashCategory === option && styles.pickerOptionTextSelected
+                      ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.textInput, styles.notesInput]}
+                  value={expenseNotes}
+                  onChangeText={setExpenseNotes}
+                  placeholder="Additional details..."
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          </ScrollView>
+          
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setIsExpenseModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.addCashButton} 
+              onPress={() => {
+                // Placeholder for next phase
+                Alert.alert('Coming Soon', 'Expense recording will be implemented in next phase');
+              }}
+            >
+              <Text style={styles.addButtonText}>Record Expense</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+
+
   if (loading) {
     return (
       <ScreenLayout>
@@ -467,6 +611,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
         </View>
       </ScrollView>
       {renderAddCashModal()}
+      {renderRecordExpenseModal()}
     </ScreenLayout>
   );
 };
@@ -663,6 +808,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 400,
     maxHeight: '80%',
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -770,6 +916,25 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '600',
   },
+  notesInput: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+    modalContentScrollable: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '85%', // Allow more height
+    flexDirection: 'column',
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+  },
+
 });
 
 export { CashScreen as default };
