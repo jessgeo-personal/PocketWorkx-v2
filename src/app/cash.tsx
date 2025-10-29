@@ -48,6 +48,21 @@ type CashEntry = {
   };
   linkedTransactions?: any[];
 };
+// Add these new types after the existing CashEntry type
+type cashCategoryGroup = {
+  categoryName: string;
+  totalAmount: number;
+  transactionCount: number;
+  lastUpdated: Date;
+  transactions: CashEntry[];
+};
+
+type CashTransaction = CashEntry & {
+  transactionType: 'ADD_CASH' | 'RECORD_EXPENSE' | 'MOVE_CASH';
+  fromCategory?: string; // For MOVE_CASH
+  toCategory?: string;   // For MOVE_CASH
+};
+
 
 const CashScreen: React.FC = () => {
   // Hook into global storage
@@ -60,12 +75,42 @@ const CashScreen: React.FC = () => {
   const [newCashcashCategory, setNewCashcashCategory] = useState('');
 
   // Read cash entries from the shared store (backed by local JSON file)
-  const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
+const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
 
-  const totalCash = cashEntries.reduce(
-    (sum, entry) => sum + (entry?.amount?.amount ?? 0),
-    0
-  );
+// Group entries by cash category
+const cashCategoriesMap = cashEntries.reduce((acc, entry) => {
+  const categoryName = entry.cashCategory || 'Uncategorized';
+  
+  if (!acc[categoryName]) {
+    acc[categoryName] = {
+      categoryName,
+      totalAmount: 0,
+      transactionCount: 0,
+      lastUpdated: new Date(entry.auditTrail?.updatedAt || new Date()),
+      transactions: []
+    };
+  }
+  
+  acc[categoryName].totalAmount += entry.amount.amount;
+  acc[categoryName].transactionCount += 1;
+  acc[categoryName].transactions.push(entry);
+  
+  // Update last updated date if this transaction is newer
+  const entryDate = new Date(entry.auditTrail?.updatedAt || new Date());
+  if (entryDate > acc[categoryName].lastUpdated) {
+    acc[categoryName].lastUpdated = entryDate;
+  }
+  
+  return acc;
+}, {} as Record<string, cashCategoryGroup>);
+
+const cashCategoryGroups = Object.values(cashCategoriesMap);
+
+// Calculate total liquid cash from all categories
+const totalLiquidCash = cashCategoryGroups.reduce(
+  (sum, group) => sum + group.totalAmount,
+  0
+);
 
   // Keep your icon mapping for cash Category
   const getcashCategoryIcon = (cashCategory: string) => {
@@ -89,50 +134,58 @@ const CashScreen: React.FC = () => {
   };
 
   const handleAddCash = async () => {
-    if (!newCashDescription.trim() || !newCashAmount.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-    const amount = parseFloat(newCashAmount);
-    if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
-      return;
-    }
-    const newEntry: CashEntry = {
-      id: Date.now().toString(),
-      description: newCashDescription.trim(),
-      amount: { amount, currency: 'INR' },
-      cashCategory: newCashcashCategory.trim() || 'Not specified',
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: new Date(),
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: new Date(),
-        updatedBy: 'user',
-        updatedAt: new Date(),
-        version: 1,
-        changes: [],
-      },
-      linkedTransactions: [],
-    };
+  if (!newCashDescription.trim() || !newCashAmount.trim()) {
+    Alert.alert('Error', 'Please fill in all required fields');
+    return;
+  }
+  const amount = parseFloat(newCashAmount);
+  if (isNaN(amount) || amount <= 0) {
+    Alert.alert('Error', 'Please enter a valid amount');
+    return;
+  }
 
-    // Persist using the global store
-    await save(draft => {
-      const next = draft.cashEntries ? [...draft.cashEntries] : [];
-      next.push(newEntry);
-      return { ...draft, cashEntries: next };
-    });
-
-    // Reset local inputs and close modal
-    setNewCashDescription('');
-    setNewCashAmount('');
-    setNewCashcashCategory('');
-    setIsAddModalVisible(false);
+  const now = new Date();
+  const newEntry: CashEntry = {
+    id: Date.now().toString(),
+    description: newCashDescription.trim(),
+    amount: { amount, currency: 'INR' },
+    cashCategory: newCashcashCategory.trim() || 'Uncategorized',
+    encryptedData: {
+      encryptionKey: '',
+      encryptionAlgorithm: 'AES-256',
+      lastEncrypted: now,
+      isEncrypted: false,
+    },
+    auditTrail: {
+      createdBy: 'user',
+      createdAt: now,
+      updatedBy: 'user',
+      updatedAt: now,
+      version: 1,
+      changes: [{
+        action: 'ADD_CASH',
+        timestamp: now,
+        amount: amount,
+        category: newCashcashCategory.trim() || 'Uncategorized'
+      }],
+    },
+    linkedTransactions: [],
   };
+
+  // Persist using the global store
+  await save(draft => {
+    const next = draft.cashEntries ? [...draft.cashEntries] : [];
+    next.push(newEntry);
+    return { ...draft, cashEntries: next };
+  });
+
+  // Reset local inputs and close modal
+  setNewCashDescription('');
+  setNewCashAmount('');
+  setNewCashcashCategory('');
+  setIsAddModalVisible(false);
+};
+
 
   const handleDeleteCash = async (id: string) => {
     Alert.alert('Confirm Delete', 'Are you sure you want to remove this cash entry?', [
@@ -150,6 +203,32 @@ const CashScreen: React.FC = () => {
     ]);
   };
 
+  // Add this new function after handleDeleteCash:
+  const handleDeletecashCategory = async (categoryName: string) => {
+    Alert.alert(
+      'Confirm Delete Category', 
+      `Are you sure you want to delete all cash entries in "${categoryName}"? This will remove ${
+        cashCategoriesMap[categoryName]?.transactionCount || 0
+      } transactions.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete All',
+          style: 'destructive',
+          onPress: async () => {
+            await save(draft => {
+              const next = (draft.cashEntries ?? []).filter(
+                (e: CashEntry) => (e.cashCategory || 'Uncategorized') !== categoryName
+              );
+              return { ...draft, cashEntries: next };
+            });
+          },
+        },
+      ]
+    );
+  };
+
+
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Cash</Text>
@@ -162,45 +241,54 @@ const CashScreen: React.FC = () => {
   const renderTotalCard = () => (
     <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
       <Text style={styles.totalLabel}>Total Liquid Cash</Text>
-      <Text style={styles.totalAmount}>{formatCompactCurrency(totalCash, 'INR')}</Text>
+      <Text style={styles.totalAmount}>{formatCompactCurrency(totalLiquidCash, 'INR')}</Text>
       <Text style={styles.entriesCount}>
-        {cashEntries.length} Cash {cashEntries.length === 1 ? 'Entry' : 'Entries'}
+        {cashCategoryGroups.length} Cash {cashCategoryGroups.length === 1 ? 'Category' : 'Categories'}
+      </Text>
+      <Text style={styles.transactionsCount}>
+        {cashEntries.length} Total Transactions
       </Text>
     </LinearGradient>
   );
 
-  const renderCashEntry = (entry: CashEntry) => (
-    <TouchableOpacity key={entry.id} style={styles.cashCard}>
+
+  const rendercashCategoryGroup = (group: cashCategoryGroup) => (
+    <TouchableOpacity key={group.categoryName} style={styles.cashCard}>
       <View style={styles.cashHeader}>
         <View style={styles.cashLeft}>
           <View
             style={[
               styles.cashCategoryIcon,
-              { backgroundColor: getcashCategoryColor(entry.cashCategory || '') },
+              { backgroundColor: getcashCategoryColor(group.categoryName) },
             ]}
           >
             <MaterialIcons
-              name={getcashCategoryIcon(entry.cashCategory || '') as any}
+              name={getcashCategoryIcon(group.categoryName) as any}
               size={24}
               color="#FFFFFF"
             />
           </View>
           <View style={styles.cashDetails}>
-            <Text style={styles.cashDescription}>{entry.description}</Text>
-            <Text style={styles.cashcashCategory}>{entry.cashCategory}</Text>
+            <Text style={styles.cashDescription}>{group.categoryName}</Text>
+            <Text style={styles.transactionSummary}>
+              {group.transactionCount} {group.transactionCount === 1 ? 'transaction' : 'transactions'}
+            </Text>
             <Text style={styles.cashDate}>
-              Added on {new Date(entry.auditTrail?.createdAt ?? new Date()).toLocaleDateString()}
+              Last updated: {group.lastUpdated.toLocaleDateString()}
             </Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteCash(entry.id)}>
+        <TouchableOpacity 
+          style={styles.deleteButton} 
+          onPress={() => handleDeletecashCategory(group.categoryName)}
+        >
           <MaterialIcons name="delete" size={20} color="#E74C3C" />
         </TouchableOpacity>
       </View>
       <View style={styles.cashAmount}>
-        <Text style={styles.amountLabel}>Amount</Text>
+        <Text style={styles.amountLabel}>Category Total</Text>
         <Text style={styles.amountValue}>
-          {formatCompactCurrency(entry.amount.amount, entry.amount.currency)}
+          {formatCompactCurrency(group.totalAmount, 'INR')}
         </Text>
       </View>
     </TouchableOpacity>
@@ -317,13 +405,13 @@ const CashScreen: React.FC = () => {
         {renderTotalCard()}
         {renderQuickActions()}
         <View style={styles.cashContainer}>
-          <Text style={styles.sectionTitle}>Your Cash Entries</Text>
-          {cashEntries.length > 0 ? (
-            cashEntries.map(renderCashEntry)
+          <Text style={styles.sectionTitle}>Your Cash Categories</Text>
+          {cashCategoryGroups.length > 0 ? (
+            cashCategoryGroups.map(rendercashCategoryGroup)
           ) : (
             <View style={styles.emptyCash}>
               <MaterialIcons name="account-balance-wallet" size={64} color="#E0E0E0" />
-              <Text style={styles.emptyText}>No cash entries yet</Text>
+              <Text style={styles.emptyText}>No cash categories yet</Text>
               <Text style={styles.emptySubtext}>Add your first cash entry to get started</Text>
             </View>
           )}
@@ -597,7 +685,17 @@ const styles = StyleSheet.create({
     width: 200,
     height: 100,
   },
-
+  transactionsCount: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    opacity: 0.7,
+    marginTop: 2,
+  },
+  transactionSummary: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    marginBottom: 4,
+  },
 });
 
 export { CashScreen as default };
