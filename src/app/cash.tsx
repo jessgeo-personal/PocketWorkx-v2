@@ -140,6 +140,33 @@ const formatWithTZ = (d: Date) => {
   }
 };
 
+// ADD this helper function near the top (after the existing helpers)
+const formatFullINR = (value: number): string => {
+  try {
+    const formatter = new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    });
+    return formatter.format(Math.round(value));
+  } catch {
+    // Fallback if Intl not available
+    const abs = Math.abs(Math.round(value));
+    const sign = value < 0 ? '-' : '';
+    const str = abs.toString();
+    const lastThree = str.substring(str.length - 3);
+    const otherNumbers = str.substring(0, str.length - 3);
+    const result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + 
+                   (otherNumbers ? ',' : '') + lastThree;
+    return `${sign}₹${result}`;
+  }
+};
+
+
+
+
+
 // Group entries by cash category
 const cashCategoriesMap = cashEntries.reduce((acc, entry) => {
   const categoryName = entry.cashCategory || 'Uncategorized';
@@ -438,7 +465,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
         styles.totalAmount,
         totalLiquidCash < 0 && styles.negativeTotalAmount
       ]}>
-        {formatCompactCurrency(totalLiquidCash, 'INR')}
+        {formatFullINR(totalLiquidCash)}
       </Text>
       <Text style={styles.entriesCount}>
         {cashCategoryGroups.length} Cash {cashCategoryGroups.length === 1 ? 'Category' : 'Categories'}
@@ -489,7 +516,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
           styles.amountValue,
           group.totalAmount < 0 && styles.negativeAmount
         ]}>
-          {formatCompactCurrency(group.totalAmount, 'INR')}
+          {formatFullINR(group.totalAmount)}
         </Text>
       </View>
     </TouchableOpacity>
