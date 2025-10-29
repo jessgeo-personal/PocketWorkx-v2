@@ -27,11 +27,38 @@ import { useStorage } from '../services/storage/StorageProvider';
 // Otherwise, define a minimal local type here (compatible with your previous structure):
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
+
+enum CashCategoryType {
+  WALLET = 'Wallet',
+  HOME_SAFE = 'Home Safe', 
+  LOOSE_CHANGE_CAR = 'Loose change (car)',
+  LOOSE_CHANGE_HOME = 'Loose Change (home)'
+}
+
+enum ExpenseCategoryType {
+  FOOD = 'Food',
+  GROCERY = 'Grocery',
+  HOME_EXPENSES = 'Home expenses',
+  SHOPPING = 'Shopping',
+  JEWELERY = 'Jewelery',
+  FUEL = 'Fuel',
+  CAR_EXPENDITURE = 'Car expenditure',
+  UTILITIES = 'utilities',
+  SUBSCRIPTIONS = 'subscriptions',
+  PHONE_INTERNET = 'Phone & Internet',
+  INVESTMENTS = 'Investments'
+}
+
+// CashEntry type (cashTransactions format)
 type CashEntry = {
   id: string;
   description: string;
   amount: Money;
-  cashCategory?: string;
+  type: 'ADD_CASH' | 'RECORD_EXPENSE' | 'MOVE_CASH';
+  cashCategory: string;
+  expenseCategory?: string; // Only for RECORD_EXPENSE
+  notes?: string;
+  timestamp: Date;
   encryptedData?: {
     encryptionKey: string;
     encryptionAlgorithm: string;
@@ -48,6 +75,8 @@ type CashEntry = {
   };
   linkedTransactions?: any[];
 };
+
+
 // Add these new types after the existing CashEntry type
 type cashCategoryGroup = {
   categoryName: string;
@@ -72,7 +101,12 @@ const CashScreen: React.FC = () => {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [newCashDescription, setNewCashDescription] = useState('');
   const [newCashAmount, setNewCashAmount] = useState('');
-  const [newCashcashCategory, setNewCashcashCategory] = useState('');
+  const [newCashcashCategory, setNewCashcashCategory] = useState<string>(CashCategoryType.WALLET);
+
+// ADD dropdown helper
+const getcashCategoryOptions = (): string[] => {
+  return Object.values(CashCategoryType);
+};
 
   // Read cash entries from the shared store (backed by local JSON file)
 const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
@@ -149,7 +183,9 @@ const totalLiquidCash = cashCategoryGroups.reduce(
     id: Date.now().toString(),
     description: newCashDescription.trim(),
     amount: { amount, currency: 'INR' },
+    type: 'ADD_CASH',
     cashCategory: newCashcashCategory.trim() || 'Uncategorized',
+    timestamp: now,
     encryptedData: {
       encryptionKey: '',
       encryptionAlgorithm: 'AES-256',
@@ -354,13 +390,26 @@ const totalLiquidCash = cashCategoryGroups.reduce(
               />
             </View>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Cash Category</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newCashcashCategory}
-                onChangeText={setNewCashcashCategory}
-                placeholder="e.g., Personal Wallet, Home Safe"
-              />
+              <Text style={styles.inputLabel}>Cash Category *</Text>
+              <View style={styles.pickerContainer}>
+                {getcashCategoryOptions().map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.pickerOption,
+                      newCashcashCategory === option && styles.pickerOptionSelected
+                    ]}
+                    onPress={() => setNewCashcashCategory(option)}
+                  >
+                    <Text style={[
+                      styles.pickerOptionText,
+                      newCashcashCategory === option && styles.pickerOptionTextSelected
+                    ]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </View>
           <View style={styles.modalFooter}>
@@ -695,6 +744,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.text.secondary,
     marginBottom: 4,
+  },
+  pickerContainer: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: 8,
+  },
+  pickerOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border.main,
+    backgroundColor: Colors.background.secondary,
+  },
+  pickerOptionSelected: {
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
+  },
+  pickerOptionText: {
+    fontSize: 14,
+    color: Colors.text.primary,
+  },
+  pickerOptionTextSelected: {
+    color: Colors.white,
+    fontWeight: '600',
   },
 });
 
