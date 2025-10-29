@@ -444,7 +444,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
   );
 
   // ADD new modal function (after renderAddCashModal, around line 250)
-  const renderRecordExpenseModal = () => (
+ const renderRecordExpenseModal = () => (
     <Modal
       visible={isExpenseModalVisible}
       animationType="slide"
@@ -452,7 +452,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
       onRequestClose={() => setIsExpenseModalVisible(false)}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContentScrollable}>
+        <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Record Expense</Text>
             <TouchableOpacity onPress={() => setIsExpenseModalVisible(false)}>
@@ -460,13 +460,8 @@ const totalLiquidCash = cashCategoryGroups.reduce(
             </TouchableOpacity>
           </View>
           
-          <ScrollView 
-            style={styles.modalScrollView}
-            contentContainerStyle={styles.modalScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
             <View style={styles.modalBody}>
-              {/* All your existing form content goes here unchanged */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Description *</Text>
                 <TextInput
@@ -558,7 +553,6 @@ const totalLiquidCash = cashCategoryGroups.reduce(
             <TouchableOpacity 
               style={styles.addCashButton} 
               onPress={() => {
-                // Placeholder for next phase
                 Alert.alert('Coming Soon', 'Expense recording will be implemented in next phase');
               }}
             >
@@ -569,6 +563,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
       </View>
     </Modal>
   );
+
 
 
 
@@ -920,7 +915,7 @@ const styles = StyleSheet.create({
     height: 80,
     textAlignVertical: 'top',
   },
-    modalContentScrollable: {
+  modalContentScrollable: {
     backgroundColor: Colors.background.secondary,
     borderRadius: 16,
     width: '90%',
@@ -930,6 +925,7 @@ const styles = StyleSheet.create({
   },
   modalScrollView: {
     flex: 1,
+    maxHeight: 400,
   },
   modalScrollContent: {
     flexGrow: 1,
