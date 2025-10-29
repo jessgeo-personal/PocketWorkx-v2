@@ -377,7 +377,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
       onRequestClose={() => setIsAddModalVisible(false)}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={styles.modalContentScrollable}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Add Cash Entry</Text>
             <TouchableOpacity onPress={() => setIsAddModalVisible(false)}>
@@ -921,14 +921,13 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 400,
     maxHeight: '85%', // Allow more height
-    flexDirection: 'column',
+    overflow: 'hidden',
   },
   modalScrollView: {
-    flex: 1,
-    maxHeight: 400,
+    flexGrow: 1,
   },
   modalScrollContent: {
-    flexGrow: 1,
+    paddingBottom: 12,
   },
 
 });
