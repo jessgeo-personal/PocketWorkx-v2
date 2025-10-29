@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -300,10 +301,18 @@ const CashScreen: React.FC = () => {
     );
   }
 
-  return (
-    <ScreenLayout>
-      <StatusBar style="dark" backgroundColor={Colors.background.primary} />
-      {renderHeader()}
+ return (
+  <ScreenLayout>
+    <StatusBar style="dark" backgroundColor={Colors.background.primary} />
+    <View style={styles.logoContainer}>
+      <Image
+        source={require('../assets/logo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+    </View>
+    {renderHeader()}
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {renderTotalCard()}
         {renderQuickActions()}
@@ -578,6 +587,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.white,
   },
+    logoContainer: {
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 0,
+  },
+  logo: {
+    width: 200,
+    height: 100,
+  },
+
 });
 
 export { CashScreen as default };
