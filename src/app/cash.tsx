@@ -31,7 +31,7 @@ type CashEntry = {
   id: string;
   description: string;
   amount: Money;
-  location?: string;
+  cashCategory?: string;
   encryptedData?: {
     encryptionKey: string;
     encryptionAlgorithm: string;
@@ -57,7 +57,7 @@ const CashScreen: React.FC = () => {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [newCashDescription, setNewCashDescription] = useState('');
   const [newCashAmount, setNewCashAmount] = useState('');
-  const [newCashLocation, setNewCashLocation] = useState('');
+  const [newCashcashCategory, setNewCashcashCategory] = useState('');
 
   // Read cash entries from the shared store (backed by local JSON file)
   const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
@@ -67,9 +67,9 @@ const CashScreen: React.FC = () => {
     0
   );
 
-  // Keep your icon mapping for locations
-  const getLocationIcon = (location: string) => {
-    const l = location?.toLowerCase() || '';
+  // Keep your icon mapping for cash Category
+  const getcashCategoryIcon = (cashCategory: string) => {
+    const l = cashCategory?.toLowerCase() || '';
     if (l.includes('wallet')) return 'account-balance-wallet';
     if (l.includes('home')) return 'home';
     if (l.includes('car')) return 'directions-car';
@@ -78,8 +78,8 @@ const CashScreen: React.FC = () => {
     return 'place';
   };
 
-  const getLocationColor = (location: string) => {
-    const l = location?.toLowerCase() || '';
+  const getcashCategoryColor = (cashCategory: string) => {
+    const l = cashCategory?.toLowerCase() || '';
     if (l.includes('wallet')) return '#4CAF50';
     if (l.includes('home')) return '#2196F3';
     if (l.includes('car')) return '#FF9800';
@@ -102,7 +102,7 @@ const CashScreen: React.FC = () => {
       id: Date.now().toString(),
       description: newCashDescription.trim(),
       amount: { amount, currency: 'INR' },
-      location: newCashLocation.trim() || 'Not specified',
+      cashCategory: newCashcashCategory.trim() || 'Not specified',
       encryptedData: {
         encryptionKey: '',
         encryptionAlgorithm: 'AES-256',
@@ -130,7 +130,7 @@ const CashScreen: React.FC = () => {
     // Reset local inputs and close modal
     setNewCashDescription('');
     setNewCashAmount('');
-    setNewCashLocation('');
+    setNewCashcashCategory('');
     setIsAddModalVisible(false);
   };
 
@@ -175,19 +175,19 @@ const CashScreen: React.FC = () => {
         <View style={styles.cashLeft}>
           <View
             style={[
-              styles.locationIcon,
-              { backgroundColor: getLocationColor(entry.location || '') },
+              styles.cashCategoryIcon,
+              { backgroundColor: getcashCategoryColor(entry.cashCategory || '') },
             ]}
           >
             <MaterialIcons
-              name={getLocationIcon(entry.location || '') as any}
+              name={getcashCategoryIcon(entry.cashCategory || '') as any}
               size={24}
               color="#FFFFFF"
             />
           </View>
           <View style={styles.cashDetails}>
             <Text style={styles.cashDescription}>{entry.description}</Text>
-            <Text style={styles.cashLocation}>{entry.location}</Text>
+            <Text style={styles.cashcashCategory}>{entry.cashCategory}</Text>
             <Text style={styles.cashDate}>
               Added on {new Date(entry.auditTrail?.createdAt ?? new Date()).toLocaleDateString()}
             </Text>
@@ -266,11 +266,11 @@ const CashScreen: React.FC = () => {
               />
             </View>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Location</Text>
+              <Text style={styles.inputLabel}>Cash Category</Text>
               <TextInput
                 style={styles.textInput}
-                value={newCashLocation}
-                onChangeText={setNewCashLocation}
+                value={newCashcashCategory}
+                onChangeText={setNewCashcashCategory}
                 placeholder="e.g., Personal Wallet, Home Safe"
               />
             </View>
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     flex: 1,
   },
-  locationIcon: {
+  cashCategoryIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: 2,
   },
-  cashLocation: {
+  cashcashCategory: {
     fontSize: 14,
     color: Colors.text.secondary,
     marginBottom: 4,
