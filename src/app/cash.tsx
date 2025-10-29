@@ -109,6 +109,12 @@ const CashScreen: React.FC = () => {
   const [expenseCategory, setExpenseCategory] = useState<string>(ExpenseCategoryType.FOOD);
   const [expenseCashCategory, setExpenseCashCategory] = useState<string>(CashCategoryType.WALLET);
   const [expenseNotes, setExpenseNotes] = useState('');
+  // ADD near other expense modal states
+  const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
+  const [moveAmount, setMoveAmount] = useState('');
+  const [moveFromCategory, setMoveFromCategory] = useState<string>(CashCategoryType.WALLET);
+  const [moveToCategory, setMoveToCategory] = useState<string>(CashCategoryType.HOME_SAFE);
+  const [moveNotes, setMoveNotes] = useState('');
 
   // ADD dropdown helper
 const getcashCategoryOptions = (): string[] => {
@@ -308,6 +314,72 @@ const totalLiquidCash = cashCategoryGroups.reduce(
     setIsExpenseModalVisible(false);
   };
 
+  // ADD below handleRecordExpense()
+  const handleMoveCash = async () => {
+    if (!moveAmount.trim()) {
+      Alert.alert('Error', 'Please enter amount to move');
+      return;
+    }
+    const raw = Number(moveAmount);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      Alert.alert('Error', 'Please enter a valid positive amount');
+      return;
+    }
+    if (moveFromCategory === moveToCategory) {
+      Alert.alert('Error', 'From and To categories must be different');
+      return;
+    }
+
+    const now = new Date();
+    const amt = Math.round(raw);
+
+    const debit: CashEntry = {
+      id: `${Date.now()}-debit`,
+      description: `Move to ${moveToCategory}`,
+      amount: { amount: -amt, currency: 'INR' },
+      type: 'MOVE_CASH',
+      cashCategory: moveFromCategory,
+      timestamp: now,
+      notes: moveNotes?.trim() || undefined,
+      encryptedData: { encryptionKey: '', encryptionAlgorithm: 'AES-256', lastEncrypted: now, isEncrypted: false },
+      auditTrail: {
+        createdBy: 'user', createdAt: now, updatedBy: 'user', updatedAt: now, version: 1,
+        changes: [{ action: 'MOVE_CASH_DEBIT', timestamp: now, amount: -amt, from: moveFromCategory, to: moveToCategory }],
+      },
+      linkedTransactions: [],
+    };
+
+    const credit: CashEntry = {
+      id: `${Date.now()}-credit`,
+      description: `Move from ${moveFromCategory}`,
+      amount: { amount: amt, currency: 'INR' },
+      type: 'MOVE_CASH',
+      cashCategory: moveToCategory,
+      timestamp: now,
+      notes: moveNotes?.trim() || undefined,
+      encryptedData: { encryptionKey: '', encryptionAlgorithm: 'AES-256', lastEncrypted: now, isEncrypted: false },
+      auditTrail: {
+        createdBy: 'user', createdAt: now, updatedBy: 'user', updatedAt: now, version: 1,
+        changes: [{ action: 'MOVE_CASH_CREDIT', timestamp: now, amount: amt, from: moveFromCategory, to: moveToCategory }],
+      },
+      linkedTransactions: [],
+    };
+
+    await save(draft => {
+      const next = draft.cashEntries ? [...draft.cashEntries] : [];
+      next.push(debit, credit);
+      return { ...draft, cashEntries: next };
+    });
+
+    setIsMoveModalVisible(false);
+    setMoveAmount('');
+    setMoveFromCategory(CashCategoryType.WALLET);
+    setMoveToCategory(CashCategoryType.HOME_SAFE);
+    setMoveNotes('');
+  };
+
+
+
   const handleDeleteCash = async (id: string) => {
     Alert.alert('Confirm Delete', 'Are you sure you want to remove this cash entry?', [
       { text: 'Cancel', style: 'cancel' },
@@ -362,7 +434,12 @@ const totalLiquidCash = cashCategoryGroups.reduce(
   const renderTotalCard = () => (
     <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
       <Text style={styles.totalLabel}>Total Liquid Cash</Text>
-      <Text style={styles.totalAmount}>{formatCompactCurrency(totalLiquidCash, 'INR')}</Text>
+      <Text style={[
+        styles.totalAmount,
+        totalLiquidCash < 0 && styles.negativeTotalAmount
+      ]}>
+        {formatCompactCurrency(totalLiquidCash, 'INR')}
+      </Text>
       <Text style={styles.entriesCount}>
         {cashCategoryGroups.length} Cash {cashCategoryGroups.length === 1 ? 'Category' : 'Categories'}
       </Text>
@@ -408,7 +485,10 @@ const totalLiquidCash = cashCategoryGroups.reduce(
       </View>
       <View style={styles.cashAmount}>
         <Text style={styles.amountLabel}>Category Total</Text>
-        <Text style={styles.amountValue}>
+        <Text style={[
+          styles.amountValue,
+          group.totalAmount < 0 && styles.negativeAmount
+        ]}>
           {formatCompactCurrency(group.totalAmount, 'INR')}
         </Text>
       </View>
@@ -423,7 +503,10 @@ const totalLiquidCash = cashCategoryGroups.reduce(
           <MaterialIcons name="add-circle" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Add Cash</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => setIsMoveModalVisible(true)}
+        >
           <MaterialIcons name="swap-horiz" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Move Cash</Text>
         </TouchableOpacity>
@@ -635,7 +718,119 @@ const totalLiquidCash = cashCategoryGroups.reduce(
     </Modal>
   );
 
+  // ADD after renderRecordExpenseModal
+  const renderMoveCashModal = () => (
+    <Modal
+      visible={isMoveModalVisible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setIsMoveModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContentScrollable}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Move Cash</Text>
+            <TouchableOpacity onPress={() => setIsMoveModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
 
+          <ScrollView
+            style={styles.modalScrollView}
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalBody}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={moveAmount}
+                  onChangeText={setMoveAmount}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>From Cash Category *</Text>
+                <View style={styles.pickerContainer}>
+                  {Object.values(CashCategoryType).map((option) => (
+                    <TouchableOpacity
+                      key={`from-${option}`}
+                      style={[
+                        styles.pickerOption,
+                        moveFromCategory === option && styles.pickerOptionSelected
+                      ]}
+                      onPress={() => setMoveFromCategory(option)}
+                    >
+                      <Text style={[
+                        styles.pickerOptionText,
+                        moveFromCategory === option && styles.pickerOptionTextSelected
+                      ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>To Cash Category *</Text>
+                <View style={styles.pickerContainer}>
+                  {Object.values(CashCategoryType).map((option) => (
+                    <TouchableOpacity
+                      key={`to-${option}`}
+                      style={[
+                        styles.pickerOption,
+                        moveToCategory === option && styles.pickerOptionSelected
+                      ]}
+                      onPress={() => setMoveToCategory(option)}
+                    >
+                      <Text style={[
+                        styles.pickerOptionText,
+                        moveToCategory === option && styles.pickerOptionTextSelected
+                      ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.textInput, styles.notesInput]}
+                  value={moveNotes}
+                  onChangeText={setMoveNotes}
+                  placeholder="Reason for move…"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setIsMoveModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.addCashButton}
+              onPress={() => handleMoveCash()}
+            >
+              <Text style={styles.addButtonText}>Move</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
 
   if (loading) {
@@ -678,6 +873,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
       </ScrollView>
       {renderAddCashModal()}
       {renderRecordExpenseModal()}
+      {renderMoveCashModal()}
     </ScreenLayout>
   );
 };
@@ -1000,7 +1196,12 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingBottom: 12,
   },
-
+  negativeAmount: {
+    color: '#E74C3C', // Red color for negative amounts
+  },
+  negativeTotalAmount: {
+    color: '#FF6B6B', // Lighter red for header negative amounts
+  },
 });
 
 export { CashScreen as default };
