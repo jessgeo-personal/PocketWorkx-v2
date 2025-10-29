@@ -123,6 +123,17 @@ const getExpenseCategoryOptions = (): string[] => {
   // Read cash entries from the shared store (backed by local JSON file)
 const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
 
+const formatWithTZ = (d: Date) => {
+  try {
+    const date = new Date(d);
+    const parts = date.toString().split(' ');
+    const tzAbbr = parts[parts.length - 2].includes('GMT') ? 'GMT' : parts[parts.length - 1];
+    return `${date.toLocaleDateString('en-IN')} ${tzAbbr}`;
+  } catch {
+    return '';
+  }
+};
+
 // Group entries by cash category
 const cashCategoriesMap = cashEntries.reduce((acc, entry) => {
   const categoryName = entry.cashCategory || 'Uncategorized';
@@ -180,60 +191,122 @@ const totalLiquidCash = cashCategoryGroups.reduce(
   };
 
   const handleAddCash = async () => {
-  if (!newCashDescription.trim() || !newCashAmount.trim()) {
-    Alert.alert('Error', 'Please fill in all required fields');
-    return;
-  }
-  const amount = parseFloat(newCashAmount);
-  if (isNaN(amount) || amount <= 0) {
-    Alert.alert('Error', 'Please enter a valid amount');
-    return;
-  }
+    if (!newCashDescription.trim() || !newCashAmount.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+    
+    const amount = parseFloat(newCashAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
 
-  const now = new Date();
-  const newEntry: CashEntry = {
-    id: Date.now().toString(),
-    description: newCashDescription.trim(),
-    amount: { amount, currency: 'INR' },
-    type: 'ADD_CASH',
-    cashCategory: newCashcashCategory.trim() || 'Uncategorized',
-    timestamp: now,
-    encryptedData: {
-      encryptionKey: '',
-      encryptionAlgorithm: 'AES-256',
-      lastEncrypted: now,
-      isEncrypted: false,
-    },
-    auditTrail: {
-      createdBy: 'user',
-      createdAt: now,
-      updatedBy: 'user',
-      updatedAt: now,
-      version: 1,
-      changes: [{
-        action: 'ADD_CASH',
-        timestamp: now,
-        amount: amount,
-        category: newCashcashCategory.trim() || 'Uncategorized'
-      }],
-    },
-    linkedTransactions: [],
+    const now = new Date();
+    const newEntry: CashEntry = {
+      id: Date.now().toString(),
+      description: newCashDescription.trim(),
+      amount: { amount, currency: 'INR' },
+      type: 'ADD_CASH',
+      cashCategory: newCashcashCategory.trim() || 'Uncategorized',
+      timestamp: now,
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: now,
+        isEncrypted: false,
+      },
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: now,
+        updatedBy: 'user',
+        updatedAt: now,
+        version: 1,
+        changes: [{
+          action: 'ADD_CASH',
+          timestamp: now,
+          amount: amount,
+          category: newCashcashCategory.trim() || 'Uncategorized'
+        }],
+      },
+      linkedTransactions: [],
+    };
+
+    // Persist using the global store
+    await save(draft => {
+      const next = draft.cashEntries ? [...draft.cashEntries] : [];
+      next.push(newEntry);
+      return { ...draft, cashEntries: next };
+    });
+
+    // Reset local inputs and close modal
+    setNewCashDescription('');
+    setNewCashAmount('');
+    setNewCashcashCategory('');
+    setIsAddModalVisible(false);
   };
 
-  // Persist using the global store
-  await save(draft => {
-    const next = draft.cashEntries ? [...draft.cashEntries] : [];
-    next.push(newEntry);
-    return { ...draft, cashEntries: next };
-  });
+  const handleRecordExpense = async () => {
+    if (!expenseDescription.trim() || !expenseAmount.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
 
-  // Reset local inputs and close modal
-  setNewCashDescription('');
-  setNewCashAmount('');
-  setNewCashcashCategory('');
-  setIsAddModalVisible(false);
-};
+    const raw = Number(expenseAmount);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      Alert.alert('Error', 'Please enter a valid positive amount');
+      return;
+    }
 
+    const now = new Date();
+    const amount = Math.round(raw) * -1; // negative for expense
+
+    const newEntry: CashEntry = {
+      id: `${Date.now()}`,
+      description: expenseDescription.trim(),
+      amount: { amount, currency: 'INR' },
+      type: 'RECORD_EXPENSE',
+      cashCategory: expenseCashCategory,       // from chips/dropdown
+      expenseCategory,                         // from expense chips
+      notes: expenseNotes?.trim() || undefined,
+      timestamp: now,
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: now,
+        isEncrypted: false,
+      },
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: now,
+        updatedBy: 'user',
+        updatedAt: now,
+        version: 1,
+        changes: [{
+          action: 'RECORD_EXPENSE',
+          timestamp: now,
+          amount,
+          cashCategory: expenseCashCategory,
+          expenseCategory,
+        }],
+      },
+      linkedTransactions: [],
+    };
+
+    await save(draft => {
+      const next = draft.cashEntries ? [...draft.cashEntries] : [];
+      next.push(newEntry);
+      return { ...draft, cashEntries: next };
+    });
+
+    // Reset fields and close modal
+    setExpenseDescription('');
+    setExpenseAmount('');
+    setExpenseCategory(ExpenseCategoryType.FOOD);
+    setExpenseCashCategory(CashCategoryType.WALLET);
+    setExpenseNotes('');
+    setIsExpenseModalVisible(false);
+  };
 
   const handleDeleteCash = async (id: string) => {
     Alert.alert('Confirm Delete', 'Are you sure you want to remove this cash entry?', [
@@ -322,7 +395,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
               {group.transactionCount} {group.transactionCount === 1 ? 'transaction' : 'transactions'}
             </Text>
             <Text style={styles.cashDate}>
-              Last updated: {group.lastUpdated.toLocaleDateString()}
+              Last updated: {formatWithTZ(group.lastUpdated)}
             </Text>
           </View>
         </View>
@@ -552,9 +625,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.addCashButton} 
-              onPress={() => {
-                Alert.alert('Coming Soon', 'Expense recording will be implemented in next phase');
-              }}
+              onPress={handleRecordExpense}
             >
               <Text style={styles.addButtonText}>Record Expense</Text>
             </TouchableOpacity>
