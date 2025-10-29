@@ -115,6 +115,12 @@ const CashScreen: React.FC = () => {
   const [moveFromCategory, setMoveFromCategory] = useState<string>(CashCategoryType.WALLET);
   const [moveToCategory, setMoveToCategory] = useState<string>(CashCategoryType.HOME_SAFE);
   const [moveNotes, setMoveNotes] = useState('');
+  // ADD new state variables (after existing modal states)
+  const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositFromCategory, setDepositFromCategory] = useState<string>(CashCategoryType.WALLET);
+  const [depositBankName, setDepositBankName] = useState('');
+  const [depositNotes, setDepositNotes] = useState('');
 
   // ADD dropdown helper
 const getcashCategoryOptions = (): string[] => {
@@ -405,6 +411,67 @@ const totalLiquidCash = cashCategoryGroups.reduce(
     setMoveNotes('');
   };
 
+  // ADD below handleMoveCash()
+  const handleDepositToBank = async () => {
+    if (!depositAmount.trim() || !depositBankName.trim()) {
+      Alert.alert('Error', 'Please enter amount and bank name');
+      return;
+    }
+
+    const raw = Number(depositAmount);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      Alert.alert('Error', 'Please enter a valid positive amount');
+      return;
+    }
+
+    const now = new Date();
+    const amount = Math.round(raw) * -1; // negative for deposit (reduces cash)
+
+    const depositEntry: CashEntry = {
+      id: `${Date.now()}-deposit`,
+      description: `Bank deposit to ${depositBankName}`,
+      amount: { amount, currency: 'INR' },
+      type: 'RECORD_EXPENSE', // Treat as expense since it reduces liquid cash
+      cashCategory: depositFromCategory,
+      expenseCategory: 'Bank Deposit', // Special category
+      notes: depositNotes?.trim() || undefined,
+      timestamp: now,
+      encryptedData: {
+        encryptionKey: '',
+        encryptionAlgorithm: 'AES-256',
+        lastEncrypted: now,
+        isEncrypted: false,
+      },
+      auditTrail: {
+        createdBy: 'user',
+        createdAt: now,
+        updatedBy: 'user',
+        updatedAt: now,
+        version: 1,
+        changes: [{
+          action: 'DEPOSIT_TO_BANK',
+          timestamp: now,
+          amount,
+          cashCategory: depositFromCategory,
+          bankName: depositBankName,
+        }],
+      },
+      linkedTransactions: [],
+    };
+
+    await save(draft => {
+      const next = draft.cashEntries ? [...draft.cashEntries] : [];
+      next.push(depositEntry);
+      return { ...draft, cashEntries: next };
+    });
+
+    // Reset form and close modal
+    setDepositAmount('');
+    setDepositFromCategory(CashCategoryType.WALLET);
+    setDepositBankName('');
+    setDepositNotes('');
+    setIsDepositModalVisible(false);
+  };
 
 
   const handleDeleteCash = async (id: string) => {
@@ -544,7 +611,10 @@ const totalLiquidCash = cashCategoryGroups.reduce(
           <MaterialIcons name="receipt" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Record Expense</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => setIsDepositModalVisible(true)}
+        >
           <MaterialIcons name="account-balance" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Deposit to Bank</Text>
         </TouchableOpacity>
@@ -859,6 +929,109 @@ const totalLiquidCash = cashCategoryGroups.reduce(
     </Modal>
   );
 
+  // ADD after renderMoveCashModal
+  const renderDepositToBankModal = () => (
+    <Modal
+      visible={isDepositModalVisible}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setIsDepositModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContentScrollable}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Deposit to Bank</Text>
+            <TouchableOpacity onPress={() => setIsDepositModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.modalScrollView}
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.modalBody}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={depositAmount}
+                  onChangeText={setDepositAmount}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>From Cash Category *</Text>
+                <View style={styles.pickerContainer}>
+                  {Object.values(CashCategoryType).map((option) => (
+                    <TouchableOpacity
+                      key={`deposit-from-${option}`}
+                      style={[
+                        styles.pickerOption,
+                        depositFromCategory === option && styles.pickerOptionSelected
+                      ]}
+                      onPress={() => setDepositFromCategory(option)}
+                    >
+                      <Text style={[
+                        styles.pickerOptionText,
+                        depositFromCategory === option && styles.pickerOptionTextSelected
+                      ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bank Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={depositBankName}
+                  onChangeText={setDepositBankName}
+                  placeholder="e.g., HDFC Bank, ICICI Bank"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.textInput, styles.notesInput]}
+                  value={depositNotes}
+                  onChangeText={setDepositNotes}
+                  placeholder="Reference number, purpose..."
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setIsDepositModalVisible(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.addCashButton}
+              onPress={() => handleDepositToBank()}
+            >
+              <Text style={styles.addButtonText}>Deposit</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+
+
 
   if (loading) {
     return (
@@ -901,6 +1074,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
       {renderAddCashModal()}
       {renderRecordExpenseModal()}
       {renderMoveCashModal()}
+      {renderDepositToBankModal()}
     </ScreenLayout>
   );
 };
