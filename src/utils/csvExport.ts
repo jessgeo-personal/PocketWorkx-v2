@@ -1,9 +1,12 @@
-// src/utils/csvExport.ts
+// src/utils/csvExport.ts - Expo FileSystem version (replaces react-native-fs)
 
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
-import { TransactionRecord, FilterCriteria } from '../types/transactions'; // Updated path
-import RNFS from 'react-native-fs';
+import { TransactionRecord, FilterCriteria } from '../types/transactions';
+
+
+
 
 /**
  * Format date to DD-MMM-YYYY format for filenames
@@ -94,39 +97,46 @@ const transactionsToCSV = (transactions: TransactionRecord[]): string => {
  * @param filterCriteria - Filter criteria for filename generation
  * @returns Promise resolving to success status and file URI
  */
-export const exportTransactionsToCSV = async (
-  transactions: TransactionRecord[],
-  filterCriteria: FilterCriteria
-): Promise<{ success: boolean; uri?: string; error?: string }> => {
-  try {
-    // Generate CSV content
-    const csvContent = transactionsToCSV(transactions);
-    
-    // Generate filename
-    const filename = generateFilename(filterCriteria, new Date());
-    
-    // Define file path - use Documents directory (works on both iOS and Android)
-    const fileUri = `${RNFS.DocumentDirectoryPath}/${filename}`;
-    
-    // Write CSV to file system
-    await RNFS.writeFile(fileUri, csvContent, 'utf8');
+  export const exportTransactionsToCSV = async (
+    transactions: TransactionRecord[],
+    filterCriteria: FilterCriteria
+  ): Promise<{ success: boolean; uri?: string; error?: string }> => {
+    try {
+      // Generate CSV content
+      const csvContent = transactionsToCSV(transactions);
+      
+      // Generate filename
+      const filename = generateFilename(filterCriteria, new Date());
+      
+      /// Define file path using Expo FileSystem (fixed version)
+  const dir = (FileSystem as any).documentDirectory ?? (FileSystem as any).cacheDirectory ?? '';
+  if (!dir) {
+    return { success: false, error: 'FileSystem directory unavailable' };
+  }
 
-    // Check if sharing is available
-    const isSharingAvailable = await Sharing.isAvailableAsync();
-    
-    if (isSharingAvailable) {
-      // Share the file (allows user to save to Downloads or share via apps)
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'text/csv',
-        dialogTitle: 'Save Transaction CSV',
-        UTI: 'public.comma-separated-values-text',
-      });
-    } else {
-      // Fallback: File saved but sharing not available
-      console.log('CSV saved to:', fileUri);
-    }
+  const fileUri = dir + filename;
 
-    return { success: true, uri: fileUri };
+// Write CSV to file system using Expo FileSystem
+await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+  encoding: (FileSystem as any).EncodingType?.UTF8 ?? 'utf8',
+});
+
+// Check if sharing is available
+const isSharingAvailable = await Sharing.isAvailableAsync();
+if (isSharingAvailable) {
+  // Share the file (allows user to save to Downloads or share via apps)
+  await Sharing.shareAsync(fileUri, {
+    mimeType: 'text/csv',
+    dialogTitle: 'Save Transaction CSV',
+    UTI: 'public.comma-separated-values-text',
+  });
+} else {
+  // Fallback: File saved but sharing not available
+  console.log('CSV saved to:', fileUri);
+}
+
+return { success: true, uri: fileUri };
+
   } catch (error) {
     console.error('CSV Export Error:', error);
     return { 
