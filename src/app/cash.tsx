@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
@@ -119,94 +120,100 @@ const CashScreen: React.FC = () => {
   const [isDepositModalVisible, setIsDepositModalVisible] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [depositFromCategory, setDepositFromCategory] = useState<string>(CashCategoryType.WALLET);
-  const [depositBankName, setDepositBankName] = useState('');
+  const [selectedBankAccount, setSelectedBankAccount] = useState<string>('');
   const [depositNotes, setDepositNotes] = useState('');
 
+  // ADD router hook in component
+  const router = useRouter();
+
   // ADD dropdown helper
-const getcashCategoryOptions = (): string[] => {
-  return Object.values(CashCategoryType);
-};
+  const getcashCategoryOptions = (): string[] => {
+    return Object.values(CashCategoryType);
+  };
 
-// ADD helper function for expense categories
-const getExpenseCategoryOptions = (): string[] => {
-  return Object.values(ExpenseCategoryType);
-};
+  // ADD helper function for expense categories
+  const getExpenseCategoryOptions = (): string[] => {
+    return Object.values(ExpenseCategoryType);
+  };
 
-  // Read cash entries from the shared store (backed by local JSON file)
-const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
+    // Read cash entries from the shared store (backed by local JSON file)
+  const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
 
-const formatWithTZ = (d: Date) => {
-  try {
-    const date = new Date(d);
-    const parts = date.toString().split(' ');
-    const tzAbbr = parts[parts.length - 2].includes('GMT') ? 'GMT' : parts[parts.length - 1];
-    return `${date.toLocaleDateString('en-IN')} ${tzAbbr}`;
-  } catch {
-    return '';
-  }
-};
+  const availableBankAccounts = (state?.accounts as any[] | undefined) ?? [];
+  const hasBankAccounts = availableBankAccounts.length > 0;
 
-// ADD this helper function near the top (after the existing helpers)
-const formatFullINR = (value: number): string => {
-  try {
-    const formatter = new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-      minimumFractionDigits: 0,
-    });
-    return formatter.format(Math.round(value));
-  } catch {
-    // Fallback if Intl not available
-    const abs = Math.abs(Math.round(value));
-    const sign = value < 0 ? '-' : '';
-    const str = abs.toString();
-    const lastThree = str.substring(str.length - 3);
-    const otherNumbers = str.substring(0, str.length - 3);
-    const result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + 
-                   (otherNumbers ? ',' : '') + lastThree;
-    return `${sign}₹${result}`;
-  }
-};
+  const formatWithTZ = (d: Date) => {
+    try {
+      const date = new Date(d);
+      const parts = date.toString().split(' ');
+      const tzAbbr = parts[parts.length - 2].includes('GMT') ? 'GMT' : parts[parts.length - 1];
+      return `${date.toLocaleDateString('en-IN')} ${tzAbbr}`;
+    } catch {
+      return '';
+    }
+  };
+
+  // ADD this helper function near the top (after the existing helpers)
+  const formatFullINR = (value: number): string => {
+    try {
+      const formatter = new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
+      });
+      return formatter.format(Math.round(value));
+    } catch {
+      // Fallback if Intl not available
+      const abs = Math.abs(Math.round(value));
+      const sign = value < 0 ? '-' : '';
+      const str = abs.toString();
+      const lastThree = str.substring(str.length - 3);
+      const otherNumbers = str.substring(0, str.length - 3);
+      const result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + 
+                    (otherNumbers ? ',' : '') + lastThree;
+      return `${sign}₹${result}`;
+    }
+  };
 
 
 
 
 
-// Group entries by cash category
-const cashCategoriesMap = cashEntries.reduce((acc, entry) => {
-  const categoryName = entry.cashCategory || 'Uncategorized';
-  
-  if (!acc[categoryName]) {
-    acc[categoryName] = {
-      categoryName,
-      totalAmount: 0,
-      transactionCount: 0,
-      lastUpdated: new Date(entry.auditTrail?.updatedAt || new Date()),
-      transactions: []
-    };
-  }
-  
-  acc[categoryName].totalAmount += entry.amount.amount;
-  acc[categoryName].transactionCount += 1;
-  acc[categoryName].transactions.push(entry);
-  
-  // Update last updated date if this transaction is newer
-  const entryDate = new Date(entry.auditTrail?.updatedAt || new Date());
-  if (entryDate > acc[categoryName].lastUpdated) {
-    acc[categoryName].lastUpdated = entryDate;
-  }
-  
-  return acc;
-}, {} as Record<string, cashCategoryGroup>);
+  // Group entries by cash category
+  const cashCategoriesMap = cashEntries.reduce((acc, entry) => {
+    const categoryName = entry.cashCategory || 'Uncategorized';
+    
+    if (!acc[categoryName]) {
+      acc[categoryName] = {
+        categoryName,
+        totalAmount: 0,
+        transactionCount: 0,
+        lastUpdated: new Date(entry.auditTrail?.updatedAt || new Date()),
+        transactions: []
+      };
+    }
+    
+    acc[categoryName].totalAmount += entry.amount.amount;
+    acc[categoryName].transactionCount += 1;
+    acc[categoryName].transactions.push(entry);
+    
+    // Update last updated date if this transaction is newer
+    const entryDate = new Date(entry.auditTrail?.updatedAt || new Date());
+    if (entryDate > acc[categoryName].lastUpdated) {
+      acc[categoryName].lastUpdated = entryDate;
+    }
+    
+    return acc;
+  }, {} as Record<string, cashCategoryGroup>);
 
-const cashCategoryGroups = Object.values(cashCategoriesMap);
+  const cashCategoryGroups = Object.values(cashCategoriesMap);
 
-// Calculate total liquid cash from all categories
-const totalLiquidCash = cashCategoryGroups.reduce(
-  (sum, group) => sum + group.totalAmount,
-  0
-);
+  // Calculate total liquid cash from all categories
+  const totalLiquidCash = cashCategoryGroups.reduce(
+    (sum, group) => sum + group.totalAmount,
+    0
+  );
 
   // Keep your icon mapping for cash Category
   const getcashCategoryIcon = (cashCategory: string) => {
@@ -413,8 +420,12 @@ const totalLiquidCash = cashCategoryGroups.reduce(
 
   // ADD below handleMoveCash()
   const handleDepositToBank = async () => {
-    if (!depositAmount.trim() || !depositBankName.trim()) {
-      Alert.alert('Error', 'Please enter amount and bank name');
+    if (!depositAmount.trim()) {
+      Alert.alert('Error', 'Please enter deposit amount');
+      return;
+    }
+    if (!hasBankAccounts || !selectedBankAccount) {
+      Alert.alert('Error', 'Please select a bank account');
       return;
     }
 
@@ -426,14 +437,19 @@ const totalLiquidCash = cashCategoryGroups.reduce(
 
     const now = new Date();
     const amount = Math.round(raw) * -1; // negative for deposit (reduces cash)
+    
+    const selectedAccount = availableBankAccounts.find(acc => acc.id === selectedBankAccount);
+    const bankDisplayName = selectedAccount ? 
+      `${selectedAccount.bankName} (${selectedAccount.accountType})` : 
+      'Selected Bank';
 
     const depositEntry: CashEntry = {
       id: `${Date.now()}-deposit`,
-      description: `Bank deposit to ${depositBankName}`,
+      description: `Bank deposit to ${bankDisplayName}`,
       amount: { amount, currency: 'INR' },
-      type: 'RECORD_EXPENSE', // Treat as expense since it reduces liquid cash
+      type: 'RECORD_EXPENSE',
       cashCategory: depositFromCategory,
-      expenseCategory: 'Bank Deposit', // Special category
+      expenseCategory: 'Bank Deposit',
       notes: depositNotes?.trim() || undefined,
       timestamp: now,
       encryptedData: {
@@ -453,7 +469,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
           timestamp: now,
           amount,
           cashCategory: depositFromCategory,
-          bankName: depositBankName,
+          bankAccount: selectedBankAccount,
         }],
       },
       linkedTransactions: [],
@@ -468,10 +484,11 @@ const totalLiquidCash = cashCategoryGroups.reduce(
     // Reset form and close modal
     setDepositAmount('');
     setDepositFromCategory(CashCategoryType.WALLET);
-    setDepositBankName('');
+    setSelectedBankAccount('');
     setDepositNotes('');
     setIsDepositModalVisible(false);
   };
+
 
 
   const handleDeleteCash = async (id: string) => {
@@ -930,6 +947,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
   );
 
   // ADD after renderMoveCashModal
+  // ADD after renderMoveCashModal
   const renderDepositToBankModal = () => (
     <Modal
       visible={isDepositModalVisible}
@@ -987,15 +1005,44 @@ const totalLiquidCash = cashCategoryGroups.reduce(
                 </View>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Bank Name *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={depositBankName}
-                  onChangeText={setDepositBankName}
-                  placeholder="e.g., HDFC Bank, ICICI Bank"
-                />
-              </View>
+              {hasBankAccounts ? (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>To Bank Account *</Text>
+                  <View style={styles.pickerContainer}>
+                    {availableBankAccounts.map((account, index) => (
+                      <TouchableOpacity
+                        key={`bank-${index}`}
+                        style={[
+                          styles.pickerOption,
+                          selectedBankAccount === account.id && styles.pickerOptionSelected
+                        ]}
+                        onPress={() => setSelectedBankAccount(account.id)}
+                      >
+                        <Text style={[
+                          styles.pickerOptionText,
+                          selectedBankAccount === account.id && styles.pickerOptionTextSelected
+                        ]}>
+                          {account.bankName} - {account.accountType}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Bank Account Required</Text>
+                  <TouchableOpacity 
+                    style={styles.addBankButton}
+                    onPress={() => {
+                      setIsDepositModalVisible(false);
+                      router.push('/accounts');
+                    }}
+                  >
+                    <MaterialIcons name="add-circle" size={20} color="#FFFFFF" />
+                    <Text style={styles.addBankButtonText}>Add Bank Account</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Notes (Optional)</Text>
@@ -1019,8 +1066,12 @@ const totalLiquidCash = cashCategoryGroups.reduce(
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.addCashButton}
+              style={[
+                styles.addCashButton,
+                (!hasBankAccounts || !selectedBankAccount) && styles.disabledButton
+              ]}
               onPress={() => handleDepositToBank()}
+              disabled={!hasBankAccounts || !selectedBankAccount}
             >
               <Text style={styles.addButtonText}>Deposit</Text>
             </TouchableOpacity>
@@ -1029,6 +1080,7 @@ const totalLiquidCash = cashCategoryGroups.reduce(
       </View>
     </Modal>
   );
+
 
 
 
@@ -1402,6 +1454,27 @@ const styles = StyleSheet.create({
   },
   negativeTotalAmount: {
     color: '#FF6B6B', // Lighter red for header negative amounts
+  },
+  // ADD these styles to StyleSheet
+  addBankButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  addBankButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  disabledButton: {
+    backgroundColor: Colors.border.main,
+    opacity: 0.6,
   },
 });
 
