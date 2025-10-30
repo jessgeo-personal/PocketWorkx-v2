@@ -160,6 +160,11 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     return allCash;
   }, [params, allCash]);
 
+  //2.1) filtered balance
+  const filteredBalance = useMemo(() => {
+    return filtered.reduce((sum, transaction) => sum + transaction.amount.amount, 0);
+  }, [filtered]);
+
   // 3) Pagination
   const paged = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page]);
 
@@ -265,14 +270,28 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           </View>
 
           <View style={styles.actions}>
-            <TouchableOpacity
-              onPress={handleExportCSV}
-              style={[styles.primaryBtn, exporting && styles.disabledBtn]}
-              disabled={exporting}
-            >
-              <MaterialIcons name="file-download" size={18} color="#fff" />
-              <Text style={styles.primaryBtnText}>{exporting ? 'Exporting…' : 'Download CSV'}</Text>
-            </TouchableOpacity>
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                onPress={handleExportCSV}
+                style={[styles.primaryBtn, exporting && styles.disabledBtn]}
+                disabled={exporting}
+              >
+                <MaterialIcons name="file-download" size={18} color="#fff" />
+                <Text style={styles.primaryBtnText}>{exporting ? 'Exporting…' : 'Download CSV'}</Text>
+              </TouchableOpacity>
+
+              <View style={styles.balanceContainer}>
+                <Text style={styles.balanceLabel}>
+                  {getBalanceLabel(params.filterCriteria.assetType, params.filterCriteria.filterType)}
+                </Text>
+                <Text style={[
+                  styles.balanceAmount,
+                  filteredBalance < 0 && styles.negativeBalance
+                ]}>
+                  {formatINR(filteredBalance)}
+                </Text>
+              </View>
+            </View>
           </View>
 
           <FlatList
@@ -403,6 +422,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  balanceContainer: {
+    alignItems: 'flex-end',
+    flex: 1,
+    marginLeft: 16,
+  },
+  balanceLabel: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginBottom: 2,
+  },
+  balanceAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#27AE60',
+  },
+  negativeBalance: {
+    color: '#E74C3C',
   },
   loadMoreText: { color: Colors.text.primary, fontWeight: '600' },
 });
