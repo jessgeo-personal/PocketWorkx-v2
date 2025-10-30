@@ -394,7 +394,7 @@ const AccountsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
-  );
+  );}
 
 
 
@@ -611,13 +611,13 @@ const AccountsScreen: React.FC = () => {
       {renderEditModal()}
       
       {/* TransactionsModal Integration */}
-      {txFilter && (
+      {txFilter ? (
         <TransactionsModal
           visible={txModalVisible}
           onClose={() => setTxModalVisible(false)}
           params={{ filterCriteria: txFilter }}
         />
-      )}
+      ) : null}
     </ScreenLayout>
   );
 };
@@ -876,4 +876,4 @@ const styles = StyleSheet.create({
 
 });
 
-export { AccountsScreen as default }
+export { AccountsScreen as default };
