@@ -15,6 +15,111 @@ type Props = {
 
 const PAGE_SIZE = 20;
 
+// ADD these GENERIC helper functions for all asset types:
+const getAssetIcon = (assetType: string, assetLabel: string) => {
+  const label = assetLabel?.toLowerCase() || '';
+  const type = assetType?.toLowerCase() || '';
+  
+  // Cash categories
+  if (type === 'cash') {
+    if (label.includes('wallet')) return 'account-balance-wallet';
+    if (label.includes('home')) return 'home';
+    if (label.includes('car')) return 'directions-car';
+    if (label.includes('safe')) return 'security';
+    return 'place'; // default cash icon
+  }
+  
+  // Bank accounts (future)
+  if (type === 'account') {
+    if (label.includes('savings')) return 'savings';
+    if (label.includes('current') || label.includes('checking')) return 'account-balance';
+    if (label.includes('fd') || label.includes('deposit')) return 'account-balance-wallet';
+    return 'account-balance'; // default account icon
+  }
+  
+  // Loans (future)
+  if (type === 'loan') {
+    if (label.includes('home') || label.includes('mortgage')) return 'home';
+    if (label.includes('car') || label.includes('auto')) return 'directions-car';
+    if (label.includes('personal')) return 'person';
+    return 'trending-up'; // default loan icon
+  }
+  
+  // Credit cards (future)
+  if (type === 'credit_card') {
+    return 'credit-card';
+  }
+  
+  // Default fallback
+  return 'account-balance-wallet';
+};
+
+const getAssetColor = (assetType: string, assetLabel: string) => {
+  const label = assetLabel?.toLowerCase() || '';
+  const type = assetType?.toLowerCase() || '';
+  
+  // Cash categories (keep current colors)
+  if (type === 'cash') {
+    if (label.includes('wallet')) return '#4CAF50';
+    if (label.includes('home')) return '#2196F3';
+    if (label.includes('car')) return '#FF9800';
+    if (label.includes('safe')) return '#795548';
+    return '#666666'; // default cash color
+  }
+  
+  // Bank accounts (future) - different color scheme
+  if (type === 'account') {
+    if (label.includes('savings')) return '#1976D2'; // blue
+    if (label.includes('current')) return '#388E3C'; // green
+    if (label.includes('fd')) return '#7B1FA2'; // purple
+    return '#1976D2'; // default account color
+  }
+  
+  // Loans (future) - red/orange tones
+  if (type === 'loan') {
+    if (label.includes('home')) return '#D32F2F'; // red
+    if (label.includes('car')) return '#F57C00'; // orange
+    if (label.includes('personal')) return '#E64A19'; // deep orange
+    return '#D32F2F'; // default loan color
+  }
+  
+  // Credit cards (future) - purple tones
+  if (type === 'credit_card') {
+    return '#8B5CF6'; // purple accent color
+  }
+  
+  // Default fallback
+  return '#666666';
+};
+
+const getBalanceLabel = (assetType: string, filterType: string) => {
+  if (filterType === 'all') {
+    // Asset-type-specific "All" labels
+    switch (assetType) {
+      case 'cash': return 'Total Liquid Cash';
+      case 'account': return 'Total Bank Accounts';
+      case 'loan': return 'Total Outstanding Loans';
+      case 'credit_card': return 'Total Credit Card Balances';
+      case 'investment': return 'Total Investments';
+      case 'crypto': return 'Total Crypto Holdings';
+      default: return 'Total Balance';
+    }
+  } else {
+    // Asset-type-specific category/individual labels
+    switch (assetType) {
+      case 'cash': return 'Category Total';
+      case 'account': return 'Account Balance';
+      case 'loan': return 'Outstanding Balance';
+      case 'credit_card': return 'Card Balance';
+      case 'investment': return 'Investment Value';
+      case 'crypto': return 'Holding Value';
+      default: return 'Balance';
+    }
+  }
+};
+
+
+
 const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
   const { state } = useStorage();
   const [page, setPage] = useState(1);
@@ -126,9 +231,34 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>
-              {params.filterCriteria.assetLabel || 'Transactions'}
-            </Text>
+            <View style={styles.headerContent}>
+              {/* Show icon for categories/specific assets, not for "All" views */}
+              {params.filterCriteria.filterType === 'category' && (
+                <View
+                  style={[
+                    styles.headerIcon,
+                    { 
+                      backgroundColor: getAssetColor(
+                        params.filterCriteria.assetType, 
+                        params.filterCriteria.assetLabel
+                      ) 
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={getAssetIcon(
+                      params.filterCriteria.assetType, 
+                      params.filterCriteria.assetLabel
+                    ) as any}
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </View>
+              )}
+              <Text style={styles.title}>
+                {params.filterCriteria.assetLabel || 'Transactions'}
+              </Text>
+            </View>
             <TouchableOpacity onPress={onClose}>
               <MaterialIcons name="close" size={24} color={Colors.text.primary} />
             </TouchableOpacity>
@@ -191,7 +321,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: Colors.background.primary, // golden base per design
-    maxHeight: '85%',
+    maxHeight: '90%',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 24,
@@ -260,6 +390,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.border.main,
+  },
+  headerContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  flex: 1,
+  },
+  headerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   loadMoreText: { color: Colors.text.primary, fontWeight: '600' },
 });
