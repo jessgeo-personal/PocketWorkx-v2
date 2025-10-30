@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import { formatCompactCurrency } from '../utils/currency';
 import type { TransactionRecord, FilterCriteria } from '../types/transactions';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import { useStorage } from '../services/storage/StorageProvider';
+import { StatusBar } from 'expo-status-bar';
 
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
@@ -44,6 +46,30 @@ const getBankBadgeColor = (bankName: string) => {
   if (b.includes('kotak')) return '#0066CC';
   return '#666666';
 };
+
+// Add this function after getBankBadgeColor
+const formatFullINR = (value: number): string => {
+  try {
+    const formatter = new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    });
+    return formatter.format(Math.round(value));
+  } catch {
+    // Fallback if Intl not available
+    const abs = Math.abs(Math.round(value));
+    const sign = value < 0 ? '-' : '';
+    const str = abs.toString();
+    const lastThree = str.substring(str.length - 3);
+    const otherNumbers = str.substring(0, str.length - 3);
+    const result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + 
+                  (otherNumbers ? ',' : '') + lastThree;
+    return `${sign}₹${result}`;
+  }
+};
+
 
 const AccountsScreen: React.FC = () => {
   const router = useRouter();
@@ -171,8 +197,11 @@ const AccountsScreen: React.FC = () => {
       <TouchableOpacity activeOpacity={0.9} onPress={handleOpenAllTransactions}>
         <LinearGradient colors={['#2F80ED', '#56CCF2']} style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Bank Accounts</Text>
-          <Text style={styles.totalAmount}>
-            {formatCompactCurrency(totalBalance, 'INR')}
+          <Text style={[
+            styles.totalAmount,
+            totalBalance < 0 && styles.negativeTotalAmount
+          ]}>
+            {formatFullINR(totalBalance)}
           </Text>
           <Text style={styles.entriesCount}>
             {accounts.length} {accounts.length === 1 ? 'Account' : 'Accounts'}
@@ -248,7 +277,7 @@ const AccountsScreen: React.FC = () => {
         <View style={styles.accountRight}>
           <Text style={styles.balanceLabel}>Account Balance</Text>
           <Text style={styles.balanceValue}>
-            {formatCompactCurrency(acc.balance.amount, 'INR')}
+            {formatFullINR(acc.balance.amount)}
           </Text>
         </View>
       </TouchableOpacity>
@@ -370,8 +399,17 @@ const AccountsScreen: React.FC = () => {
 
   return (
     <ScreenLayout>
+      <StatusBar style="dark" backgroundColor="#F7D94C" />
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('../assets/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      {renderHeader()}
+
       <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: 24 }}>
-        {renderHeader()}
         {renderTotalCard()}
         {renderQuickActions()}
         
@@ -617,6 +655,19 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#E0E0E0',
     opacity: 0.6,
+  },
+  logoContainer: {
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 0,
+  },
+  logo: {
+    width: 200,
+    height: 100,
+  },
+  negativeTotalAmount: {
+    color: '#FF6B6B', // Lighter red for header negative amounts
   },
 });
 
