@@ -72,6 +72,7 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     {
       title: 'Quick Actions',
       items: [
+        { id: '10', title: 'Transactions', route: '/transactions?assetType=cash&filterType=all&assetLabel=All%20Liquid%20Cash', icon: 'receipt-long', color: colors.primary },
         { id: '11', title: 'Liquidity', route: '/liquidity', icon: 'water-drop', color: colors.primary },
         { id: '12', title: 'Liabilities', route: '/liabilities', icon: 'remove-circle', color: colors.error },
         { id: '13', title: 'Investments & Receivables', route: '/investments-receivables', icon: 'pie-chart', color: colors.secondary },

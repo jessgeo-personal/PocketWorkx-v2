@@ -125,40 +125,73 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
 
-  // 1) Build unified transactions from state for CASH only for now (extend later)
-  const allCash: TransactionRecord[] = useMemo(() => {
-    const cashEntries = (state?.cashEntries ?? []) as any[];
-    return cashEntries.map((e) => ({
-      id: e.id,
-      datetime: new Date(e.timestamp),
-      amount: { amount: e.amount?.amount ?? 0, currency: 'INR' },
-      description: e.description ?? '',
-      notes: e.notes,
-      cashCategory: e.cashCategory,
-      expenseCategory: e.expenseCategory,
-      type: e.type,
-      assetType: 'cash',
-      assetId: e.cashCategory, // use category as grouping id for now
-      assetLabel: e.cashCategory,
-    })) as TransactionRecord[];
-  }, [state?.cashEntries]);
+  // 1) Build unified transactions from state (EXTEND for multiple asset types)
+  const allTransactions: TransactionRecord[] = useMemo(() => {
+    let combined: TransactionRecord[] = [];
 
-  // 2) Apply filter
+    // CASH transactions (existing)
+    if (params.filterCriteria.assetType === 'cash') {
+      const cashEntries = (state?.cashEntries ?? []) as any[];
+      combined = cashEntries.map((e) => ({
+        id: e.id,
+        datetime: new Date(e.timestamp),
+        amount: { amount: e.amount?.amount ?? 0, currency: 'INR' },
+        description: e.description ?? '',
+        notes: e.notes,
+        cashCategory: e.cashCategory,
+        expenseCategory: e.expenseCategory,
+        type: e.type,
+        assetType: 'cash',
+        assetId: e.cashCategory,
+        assetLabel: e.cashCategory,
+      })) as TransactionRecord[];
+    }
+
+    // ACCOUNTS transactions (NEW - future ready)
+    else if (params.filterCriteria.assetType === 'account') {
+      const accounts = (state?.accounts ?? []) as any[];
+      // For now, return empty array since accounts.tsx transaction structure isn't defined yet
+      // When accounts.tsx is ready, map account transactions here:
+      // combined = accounts.flatMap(account => 
+      //   (account.transactions ?? []).map(tx => ({ ...tx, assetType: 'account', assetId: account.id, assetLabel: account.displayName }))
+      // );
+      combined = []; 
+    }
+
+    // Future asset types (loans, credit cards, etc.)
+    // Add more else-if blocks here for other asset types
+
+    return combined;
+  }, [state, params.filterCriteria.assetType]);
+
+  // 2) Apply filter (UPDATED to use allTransactions instead of allCash)
   const filtered = useMemo(() => {
     const { filterCriteria } = params;
-    if (!filterCriteria) return allCash;
-    if (filterCriteria.assetType !== 'cash') return []; // will extend with other assets later
+    if (!filterCriteria) return allTransactions;
 
     if (filterCriteria.filterType === 'all') {
-      return allCash.sort((a, b) => +new Date(b.datetime) - +new Date(a.datetime));
+      return allTransactions.sort((a, b) => +new Date(b.datetime) - +new Date(a.datetime));
     }
+    
     if (filterCriteria.filterType === 'category' && filterCriteria.assetLabel) {
-      return allCash
-        .filter((t) => (t.cashCategory || '') === filterCriteria.assetLabel)
+      return allTransactions
+        .filter((t) => {
+          // For cash: filter by cashCategory
+          if (filterCriteria.assetType === 'cash') {
+            return (t.cashCategory || '') === filterCriteria.assetLabel;
+          }
+          // For accounts: filter by assetLabel (account display name)
+          if (filterCriteria.assetType === 'account') {
+            return t.assetLabel === filterCriteria.assetLabel;
+          }
+          // Add other asset type filters here
+          return false;
+        })
         .sort((a, b) => +new Date(b.datetime) - +new Date(a.datetime));
     }
-    return allCash;
-  }, [params, allCash]);
+    
+    return allTransactions;
+  }, [params, allTransactions]);
 
   //2.1) filtered balance
   const filteredBalance = useMemo(() => {

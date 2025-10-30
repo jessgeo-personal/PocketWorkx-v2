@@ -94,25 +94,25 @@ const MenuScreen: React.FC = () => {
           id: 'dashboard',
           title: 'Dashboard',
           icon: 'dashboard',
-          onPress: () => console.log('Dashboard')
+          onPress: () => router.push('/dashboard'),
         },
         {
           id: 'transactions',
           title: 'Transactions',
           icon: 'receipt-long',
-           onPress: () => router.push('/transactions?assetType=cash&filterType=all&assetLabel=All%20Liquid%20Cash')
+          onPress: () => router.push('/transactions?assetType=cash&filterType=all&assetLabel=All%20Liquid%20Cash'),
         },
         {
           id: 'trends',
           title: 'Trends',
           icon: 'analytics',
-          onPress: () => console.log('Trends')
+          onPress: () => router.push('/trends'),
         },
         {
           id: 'cashflow',
           title: 'Cashflow',
           icon: 'water-drop',
-          onPress: () => console.log('Cashflow')
+          onPress: () => router.push('/cashflow'),
         }
       ]
     },
@@ -203,43 +203,13 @@ const MenuScreen: React.FC = () => {
   // Debug version - Add this temporarily to test
 // Replace the return statement in menu.tsx with this simplified version
 
-return (
-  <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
-    <View style={{ padding: 20, backgroundColor: '#FFFFFF' }}>
-      <Text style={{ fontSize: 24, fontWeight: 'bold' }}>MENU DEBUG</Text>
+  return (
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {menuGroups.map((group, index) => renderMenuGroup(group, index))}
+      </ScrollView>
     </View>
-    
-    <ScrollView style={{ flex: 1, padding: 20 }}>
-      {/* Test Group 1 */}
-      <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000', marginBottom: 10 }}>
-        ACCOUNTS
-      </Text>
-      <View style={{ backgroundColor: '#FFF', borderRadius: 8, padding: 10, marginBottom: 20 }}>
-        <Text>Cash</Text>
-        <Text>Accounts</Text>
-        <Text>Crypto Assets</Text>
-      </View>
-
-      {/* Test Group 2 */}
-      <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000', marginBottom: 10 }}>
-        LIABILITIES
-      </Text>
-      <View style={{ backgroundColor: '#FFF', borderRadius: 8, padding: 10, marginBottom: 20 }}>
-        <Text>Loans</Text>
-        <Text>Credit Cards</Text>
-      </View>
-
-      {/* Test Group 3 */}
-      <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000', marginBottom: 10 }}>
-        INVESTMENTS
-      </Text>
-      <View style={{ backgroundColor: '#FFF', borderRadius: 8, padding: 10, marginBottom: 20 }}>
-        <Text>Receivables</Text>
-        <Text>Investments</Text>
-      </View>
-    </ScrollView>
-  </View>
-);
+  );
 };
 
 const styles = StyleSheet.create({

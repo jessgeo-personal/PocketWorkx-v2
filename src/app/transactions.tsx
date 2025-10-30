@@ -35,12 +35,7 @@ const TransactionsPage: React.FC = () => {
             <MaterialIcons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.title}>{filter.assetLabel}</Text>
-          <TouchableOpacity 
-            style={styles.menuButton}
-            onPress={() => router.push('/menu')}
-          >
-            <MaterialIcons name="menu" size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
+            <View style={{ width: 24 }} />
         </View>
         
         {/* Reuse the TransactionsModal as full-screen content */}
