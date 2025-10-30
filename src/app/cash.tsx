@@ -589,15 +589,21 @@ const CashScreen: React.FC = () => {
 
 
 
-  const renderTotalCard = () => (
-    <TouchableOpacity activeOpacity={0.9} onPress={() => {
+  const renderTotalCard = () => {
+    const handleOpenAllTransactions = () => {
       setTxFilter({
         assetType: 'cash',
         filterType: 'all',
         assetLabel: 'All Liquid Cash',
       });
       setTxModalVisible(true);
-    }}>       
+    };
+
+    return (
+      <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={handleOpenAllTransactions}
+      >
         <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
           <Text style={styles.totalLabel}>Total Liquid Cash</Text>
           <Text style={[
@@ -613,8 +619,9 @@ const CashScreen: React.FC = () => {
             {cashEntries.length} Total Transactions
           </Text>
         </LinearGradient>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
 
 

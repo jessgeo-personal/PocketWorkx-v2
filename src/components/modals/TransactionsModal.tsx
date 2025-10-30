@@ -67,11 +67,28 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
   const resetPaging = useCallback(() => setPage(1), []);
   React.useEffect(() => { resetPaging(); }, [params?.filterCriteria, resetPaging]);
 
-  // 4) Export CSV
+ // 4) Export CSV - DEBUG VERSION
   const handleExportCSV = async () => {
     try {
       setExporting(true);
-      await exportTransactionsToCSV(filtered, params.filterCriteria);
+      
+      // DEBUG: Log what we're trying to export
+      console.log('=== CSV Export Debug ===');
+      console.log('Filtered transactions count:', filtered.length);
+      console.log('Filter criteria:', params.filterCriteria);
+      
+      if (filtered.length === 0) {
+        console.log('No transactions to export');
+        return;
+      }
+      
+      console.log('First transaction:', filtered[0]);
+      
+      const result = await exportTransactionsToCSV(filtered, params.filterCriteria);
+      console.log('Export result:', result);
+      
+    } catch (error) {
+      console.error('Export error:', error);
     } finally {
       setExporting(false);
     }

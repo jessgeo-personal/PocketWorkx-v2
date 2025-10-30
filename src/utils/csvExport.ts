@@ -1,16 +1,12 @@
-// src/utils/csvExport.ts - Expo FileSystem version (replaces react-native-fs)
+// src/utils/csvExport.ts - Bulletproof CSV Export
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { TransactionRecord, FilterCriteria } from '../types/transactions';
 
-
-
-
 /**
  * Format date to DD-MMM-YYYY format for filenames
- * Example: 29-Oct-2025
  */
 const formatDateForFilename = (date: Date): string => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -22,7 +18,6 @@ const formatDateForFilename = (date: Date): string => {
 
 /**
  * Format date-time for CSV content
- * Example: 29-Oct-2025 14:30:45
  */
 const formatDateTimeForCSV = (date: Date): string => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -36,7 +31,7 @@ const formatDateTimeForCSV = (date: Date): string => {
 };
 
 /**
- * Escape CSV special characters (quotes, commas, newlines)
+ * Escape CSV special characters
  */
 const escapeCSVValue = (value: string): string => {
   if (value.includes('"') || value.includes(',') || value.includes('\n')) {
@@ -46,9 +41,7 @@ const escapeCSVValue = (value: string): string => {
 };
 
 /**
- * Generate filename based on filter criteria and download date
- * Format: {assetType}_{filterLabel}_{downloadDate}.csv
- * Example: cash_Wallet_29Oct2025.csv
+ * Generate filename
  */
 const generateFilename = (filterCriteria: FilterCriteria, downloadDate: Date): string => {
   const { assetType, assetLabel } = filterCriteria;
@@ -61,7 +54,6 @@ const generateFilename = (filterCriteria: FilterCriteria, downloadDate: Date): s
  * Convert transaction records to CSV string
  */
 const transactionsToCSV = (transactions: TransactionRecord[]): string => {
-  // CSV Headers
   const headers = [
     'DateTime',
     'Description',
@@ -73,7 +65,6 @@ const transactionsToCSV = (transactions: TransactionRecord[]): string => {
     'Asset Label'
   ];
 
-  // Generate CSV rows
   const rows = transactions.map(transaction => {
     const datetime = formatDateTimeForCSV(new Date(transaction.datetime));
     const description = escapeCSVValue(transaction.description || '');
@@ -87,68 +78,67 @@ const transactionsToCSV = (transactions: TransactionRecord[]): string => {
     return [datetime, description, amount, cashCategory, expenseCategory, notes, type, assetLabel].join(',');
   });
 
-  // Combine headers and rows
   return [headers.join(','), ...rows].join('\n');
 };
 
 /**
- * Export transactions to CSV file and trigger download/share
- * @param transactions - Array of transaction records to export
- * @param filterCriteria - Filter criteria for filename generation
- * @returns Promise resolving to success status and file URI
+ * Export transactions to CSV - BULLETPROOF VERSION
  */
-  export const exportTransactionsToCSV = async (
-    transactions: TransactionRecord[],
-    filterCriteria: FilterCriteria
-  ): Promise<{ success: boolean; uri?: string; error?: string }> => {
-    try {
-      // Generate CSV content
-      const csvContent = transactionsToCSV(transactions);
-      
-      // Generate filename
-      const filename = generateFilename(filterCriteria, new Date());
-      
-      /// Define file path using Expo FileSystem (fixed version)
-  const dir = (FileSystem as any).documentDirectory ?? (FileSystem as any).cacheDirectory ?? '';
-  if (!dir) {
-    return { success: false, error: 'FileSystem directory unavailable' };
-  }
+export const exportTransactionsToCSV = async (
+  transactions: TransactionRecord[],
+  filterCriteria: FilterCriteria
+): Promise<{ success: boolean; uri?: string; error?: string }> => {
+  try {
+    const csvContent = transactionsToCSV(transactions);
+    const filename = generateFilename(filterCriteria, new Date());
+    
+    console.log('Generated filename:', filename);
+    console.log('CSV content length:', csvContent.length);
 
-  const fileUri = dir + filename;
+    // Try cacheDirectory first, then documentDirectory
+    const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+    
+    if (!baseDir) {
+      return { success: false, error: 'No file system directory available' };
+    }
 
-// Write CSV to file system using Expo FileSystem
-await FileSystem.writeAsStringAsync(fileUri, csvContent, {
-  encoding: (FileSystem as any).EncodingType?.UTF8 ?? 'utf8',
-});
+    console.log('Using directory:', baseDir);
+    
+    const fileUri = baseDir + filename;
+    console.log('File URI:', fileUri);
 
-// Check if sharing is available
-const isSharingAvailable = await Sharing.isAvailableAsync();
-if (isSharingAvailable) {
-  // Share the file (allows user to save to Downloads or share via apps)
-  await Sharing.shareAsync(fileUri, {
-    mimeType: 'text/csv',
-    dialogTitle: 'Save Transaction CSV',
-    UTI: 'public.comma-separated-values-text',
-  });
-} else {
-  // Fallback: File saved but sharing not available
-  console.log('CSV saved to:', fileUri);
-}
+    // Write file
+    await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+    
+    console.log('File written successfully');
 
-return { success: true, uri: fileUri };
+    // Share file
+    const isSharingAvailable = await Sharing.isAvailableAsync();
+    if (!isSharingAvailable) {
+      return { success: false, error: 'Sharing not available' };
+    }
+
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'text/csv',
+      dialogTitle: 'Save Transaction CSV',
+    });
+
+    console.log('File shared successfully');
+    return { success: true, uri: fileUri };
 
   } catch (error) {
     console.error('CSV Export Error:', error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      error: error instanceof Error ? error.message : 'Export failed' 
     };
   }
 };
 
 /**
- * Get preview of CSV content (first 5 rows for testing)
- * Useful for debugging without triggering file system operations
+ * Get CSV preview
  */
 export const getCSVPreview = (transactions: TransactionRecord[]): string => {
   const previewTransactions = transactions.slice(0, 5);
