@@ -1,5 +1,6 @@
 // src/app/menu.tsx - FIXED VERSION with visible group titles
 import React from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -26,6 +27,8 @@ interface MenuItem {
 }
 
 const MenuScreen: React.FC = () => {
+  const router = useRouter();
+
   const menuGroups: MenuGroup[] = [
     {
       title: 'Accounts',
@@ -92,6 +95,12 @@ const MenuScreen: React.FC = () => {
           title: 'Dashboard',
           icon: 'dashboard',
           onPress: () => console.log('Dashboard')
+        },
+        {
+          id: 'transactions',
+          title: 'Transactions',
+          icon: 'receipt-long',
+           onPress: () => router.push('/transactions?assetType=cash&filterType=all&assetLabel=All%20Liquid%20Cash')
         },
         {
           id: 'trends',
