@@ -31,10 +31,11 @@ const getAssetIcon = (assetType: string, assetLabel: string) => {
   
   // Bank accounts (future)
   if (type === 'account') {
+    // Prefer accountType hints
     if (label.includes('savings')) return 'savings';
     if (label.includes('current') || label.includes('checking')) return 'account-balance';
-    if (label.includes('fd') || label.includes('deposit')) return 'account-balance-wallet';
-    return 'account-balance'; // default account icon
+    // Fallback by bank name cues (kept generic)
+    return 'account-balance';
   }
   
   // Loans (future)
@@ -52,6 +53,14 @@ const getAssetIcon = (assetType: string, assetLabel: string) => {
   
   // Default fallback
   return 'account-balance-wallet';
+};
+
+const parseAccountLabel = (label?: string) => {
+  try {
+    const obj = JSON.parse(label || '');
+    if (obj && typeof obj === 'object') return obj as { nickname?: string; accountType?: string; last4?: string; bankName?: string; };
+  } catch {}
+  return null;
 };
 
 const getAssetColor = (assetType: string, assetLabel: string) => {
@@ -151,10 +160,16 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     // ACCOUNTS transactions (NEW - ready for account transaction data)
     else if (params.filterCriteria.assetType === 'account') {
       const accounts = (state?.accounts ?? []) as any[];
-      // For now, return mock transactions to test integration
-      // When account transaction structure is ready, map real account transactions here
-      combined = accounts.flatMap(account => [
-        {
+      combined = accounts.flatMap((account) => {
+        const packedLabel = JSON.stringify({
+          nickname: account.nickname,
+          accountType: account.type,
+          last4: (account.accountNumberMasked || '').slice(-4).replace('*', ''),
+          bankName: account.bankName,
+        });
+
+        // Until real transactions exist, expose a balance row
+        return [{
           id: `${account.id}-balance`,
           datetime: account.lastSynced ? new Date(account.lastSynced) : new Date(),
           amount: { amount: account.balance?.amount ?? 0, currency: 'INR' },
@@ -163,9 +178,9 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           type: 'balance',
           assetType: 'account',
           assetId: account.id,
-          assetLabel: account.nickname,
-        }
-      ]) as unknown as TransactionRecord[];
+          assetLabel: packedLabel, // critical for filter and display
+        }] as unknown as TransactionRecord[];
+      });
     }
 
     // Future asset types (loans, credit cards, etc.)
@@ -192,6 +207,7 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           }
           // For accounts: filter by assetLabel (account display name)
           if (filterCriteria.assetType === 'account') {
+            // For accounts, t.assetLabel should also be the same packed JSON string for exact match
             return t.assetLabel === filterCriteria.assetLabel;
           }
           // Add other asset type filters here
@@ -281,31 +297,37 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           <View style={styles.header}>
             <View style={styles.headerContent}>
               {/* Show icon for categories/specific assets, not for "All" views */}
-              {params.filterCriteria.filterType === 'category' && (
-                <View
-                  style={[
-                    styles.headerIcon,
-                    { 
-                      backgroundColor: getAssetColor(
-                        params.filterCriteria.assetType, 
-                        params.filterCriteria.assetLabel
-                      ) 
-                    },
-                  ]}
-                >
-                  <MaterialIcons
-                    name={getAssetIcon(
-                      params.filterCriteria.assetType, 
-                      params.filterCriteria.assetLabel
-                    ) as any}
-                    size={20}
-                    color="#FFFFFF"
-                  />
-                </View>
-              )}
-              <Text style={styles.title}>
-                {params.filterCriteria.assetLabel || 'Transactions'}
-              </Text>
+              {(() => {
+                const { filterCriteria } = params;
+                const isAccountCategory = filterCriteria.assetType === 'account' && filterCriteria.filterType === 'category';
+                const parsed = isAccountCategory ? parseAccountLabel(filterCriteria.assetLabel) : null;
+
+                // Build label for display
+                const displayTitle = isAccountCategory && parsed
+                  ? `${parsed.nickname ?? 'Account'} ${parsed.last4 ? `****${parsed.last4}` : ''}`.trim()
+                  : (filterCriteria.assetLabel || 'Transactions');
+
+                // Pick icon/color
+                const color = getAssetColor(
+                  filterCriteria.assetType,
+                  isAccountCategory && parsed ? (parsed.accountType ?? parsed.nickname ?? '') : (filterCriteria.assetLabel || '')
+                );
+                const icon = getAssetIcon(
+                  filterCriteria.assetType,
+                  isAccountCategory && parsed ? (parsed.accountType ?? parsed.nickname ?? '') : (filterCriteria.assetLabel || '')
+                );
+
+                return (
+                  <>
+                    {filterCriteria.filterType === 'category' && (
+                      <View style={[styles.headerIcon, { backgroundColor: color }]}>
+                        <MaterialIcons name={icon as any} size={20} color="#FFFFFF" />
+                      </View>
+                    )}
+                    <Text style={styles.title}>{displayTitle}</Text>
+                  </>
+                );
+              })()}
             </View>
             <TouchableOpacity onPress={onClose}>
               <MaterialIcons name="close" size={24} color={Colors.text.primary} />

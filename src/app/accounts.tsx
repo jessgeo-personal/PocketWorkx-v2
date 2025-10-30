@@ -70,6 +70,17 @@ const formatFullINR = (value: number): string => {
   }
 };
 
+const handleDeleteAccountConfirm = (acc: Account) => {
+  const last4 = acc.accountNumberMasked.slice(-4).replace('*', '');
+  Alert.alert(
+    'Confirm Delete',
+    `Are you sure you want to delete ${acc.nickname} ${last4 ? `****${last4}` : ''}?  The account and all transactions under it will be lost.`,
+    [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => handleDeleteAccount(acc.id) },
+    ]
+  );
+};
 
 const AccountsScreen: React.FC = () => {
   const router = useRouter();
@@ -83,6 +94,16 @@ const AccountsScreen: React.FC = () => {
   const [type, setType] = useState<AccountType>('savings');
   const [balanceAmount, setBalanceAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+
+  // Edit form fields
+  const [editBankName, setEditBankName] = useState('');
+  const [editNickname, setEditNickname] = useState('');
+  const [editAccountNumberMasked, setEditAccountNumberMasked] = useState('');
+  const [editType, setEditType] = useState<AccountType>('savings');
+  const [editBalanceAmount, setEditBalanceAmount] = useState('');
 
   // TransactionsModal states
   const [txModalVisible, setTxModalVisible] = useState(false);
@@ -147,6 +168,45 @@ const AccountsScreen: React.FC = () => {
       setIsProcessing(false);
     }
   };
+
+  const openEditAccount = (acc: Account) => {
+    setEditingAccount(acc);
+    setEditBankName(acc.bankName);
+    setEditNickname(acc.nickname);
+    setEditAccountNumberMasked(acc.accountNumberMasked);
+    setEditType(acc.type);
+    setEditBalanceAmount(String(acc.balance.amount));
+    setIsEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAccount) return;
+    const amt = Number(editBalanceAmount);
+    if (!Number.isFinite(amt) || amt < 0) {
+      Alert.alert('Error', 'Enter a valid non-negative balance.');
+      return;
+    }
+    await save(draft => {
+      const next = (draft.accounts ?? []).map((a: Account) =>
+        a.id === editingAccount.id
+          ? {
+              ...a,
+              bankName: editBankName.trim(),
+              nickname: editNickname.trim(),
+              accountNumberMasked: editAccountNumberMasked.trim() || a.accountNumberMasked,
+              type: editType,
+              balance: { amount: amt, currency: 'INR' },
+              lastSynced: new Date(),
+            }
+          : a
+      );
+      return { ...draft, accounts: next };
+    });
+    setIsEditModalVisible(false);
+    setEditingAccount(null);
+  };
+
+
 
   // Delete account handler
   const handleDeleteAccount = (id: string) =>
@@ -242,7 +302,13 @@ const AccountsScreen: React.FC = () => {
       setTxFilter({
         assetType: 'account',
         filterType: 'category',
-        assetLabel: acc.nickname, // Display name for modal header and CSV
+        // Pack full card reference so modal can display it
+        assetLabel: JSON.stringify({
+          nickname: acc.nickname,
+          accountType: acc.type,
+          last4: acc.accountNumberMasked.slice(-4).replace('*', ''),
+          bankName: acc.bankName,
+        }),
       });
       setTxModalVisible(true);
     };
@@ -267,16 +333,60 @@ const AccountsScreen: React.FC = () => {
               <Text style={styles.accountMeta}>{acc.type.toUpperCase()}</Text>
             </View>
           </View>
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={() => handleDeleteAccount(acc.id)}
-          >
-            <MaterialIcons name="delete" size={20} color="#E74C3C" />
-          </TouchableOpacity>
+          <View style={styles.cardActionsRow}>
+            <TouchableOpacity
+              style={styles.rowAction}
+              onPress={(e) => {
+                e.stopPropagation();
+                setTxFilter({
+                  assetType: 'account',
+                  filterType: 'category',
+                  assetLabel: JSON.stringify({
+                    nickname: acc.nickname,
+                    accountType: acc.type,
+                    last4: acc.accountNumberMasked.slice(-4).replace('*', ''),
+                    bankName: acc.bankName,
+                  }),
+                });
+                setTxModalVisible(true);
+              }}
+            >
+              <MaterialIcons name="visibility" size={18} color={Colors.text.primary} />
+              <Text style={styles.rowActionText}>View</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.rowAction}
+              onPress={(e) => {
+                e.stopPropagation();
+                openEditAccount(acc);
+              }}
+            >
+              <MaterialIcons name="edit" size={18} color={Colors.text.primary} />
+              <Text style={styles.rowActionText}>Edit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.rowAction}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeleteAccountConfirm(acc);
+              }}
+            >
+              <MaterialIcons name="delete-outline" size={18} color="#E74C3C" />
+              <Text style={[styles.rowActionText, { color: '#E74C3C' }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
         <View style={styles.accountRight}>
           <Text style={styles.balanceLabel}>Account Balance</Text>
-          <Text style={styles.balanceValue}>
+          <Text
+            style={[
+              styles.balanceValue,
+              acc.balance.amount < 0 && styles.negativeAmount
+            ]}
+          >
             {formatFullINR(acc.balance.amount)}
           </Text>
         </View>
@@ -387,6 +497,72 @@ const AccountsScreen: React.FC = () => {
     </Modal>
   );
 
+  // Edit account modal
+  const renderEditModal = () => (
+    <Modal visible={isEditModalVisible} transparent animationType="slide" onRequestClose={() => setIsEditModalVisible(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Edit Bank Account</Text>
+            <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bank Name *</Text>
+                <TextInput style={styles.textInput} value={editBankName} onChangeText={setEditBankName} />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Nickname *</Text>
+                <TextInput style={styles.textInput} value={editNickname} onChangeText={setEditNickname} />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Number (Last 4 digits)</Text>
+                <TextInput style={styles.textInput} value={editAccountNumberMasked} onChangeText={setEditAccountNumberMasked} />
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Type *</Text>
+                <View style={styles.pickerContainer}>
+                  {(['savings', 'current', 'salary', 'other'] as AccountType[]).map((option) => (
+                    <TouchableOpacity
+                      key={`edit-${option}`}
+                      style={[styles.pickerOption, editType === option && styles.pickerOptionSelected]}
+                      onPress={() => setEditType(option)}
+                    >
+                      <Text style={[styles.pickerOptionText, editType === option && styles.pickerOptionTextSelected]}>
+                        {option.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Current Balance (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editBalanceAmount}
+                  onChangeText={setEditBalanceAmount}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </ScrollView>
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addButton} onPress={handleSaveEdit}>
+              <Text style={styles.addButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+
   if (loading) {
     return (
       <ScreenLayout>
@@ -428,6 +604,7 @@ const AccountsScreen: React.FC = () => {
       </ScrollView>
 
       {renderAddModal()}
+      {renderEditModal()}
       
       {/* TransactionsModal Integration */}
       {txFilter && (
@@ -669,6 +846,24 @@ const styles = StyleSheet.create({
   negativeTotalAmount: {
     color: '#FF6B6B', // Lighter red for header negative amounts
   },
+  negativeAmount: {
+    color: '#E74C3C',
+  },
+  cardActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rowAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rowActionText: {
+    fontSize: 13,
+    color: Colors.text.primary,
+    marginLeft: 6,
+  },
+
 });
 
 export { AccountsScreen as default };
