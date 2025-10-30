@@ -147,15 +147,25 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
       })) as TransactionRecord[];
     }
 
-    // ACCOUNTS transactions (NEW - future ready)
+    
+    // ACCOUNTS transactions (NEW - ready for account transaction data)
     else if (params.filterCriteria.assetType === 'account') {
       const accounts = (state?.accounts ?? []) as any[];
-      // For now, return empty array since accounts.tsx transaction structure isn't defined yet
-      // When accounts.tsx is ready, map account transactions here:
-      // combined = accounts.flatMap(account => 
-      //   (account.transactions ?? []).map(tx => ({ ...tx, assetType: 'account', assetId: account.id, assetLabel: account.displayName }))
-      // );
-      combined = []; 
+      // For now, return mock transactions to test integration
+      // When account transaction structure is ready, map real account transactions here
+      combined = accounts.flatMap(account => [
+        {
+          id: `${account.id}-balance`,
+          datetime: account.lastSynced ? new Date(account.lastSynced) : new Date(),
+          amount: { amount: account.balance?.amount ?? 0, currency: 'INR' },
+          description: `Current balance - ${account.nickname}`,
+          notes: `${account.bankName} • ${account.accountNumberMasked}`,
+          type: 'balance',
+          assetType: 'account',
+          assetId: account.id,
+          assetLabel: account.nickname,
+        }
+      ]) as unknown as TransactionRecord[];
     }
 
     // Future asset types (loans, credit cards, etc.)
