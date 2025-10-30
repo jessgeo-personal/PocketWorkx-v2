@@ -370,7 +370,8 @@ const AccountsScreen: React.FC = () => {
           {formatFullINR(acc.balance.amount)}
         </Text>
       </View>
-      
+      <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: '#EEE', marginTop: 8 }} />
+
       <View style={styles.accountActionsBottomRow}>
         <TouchableOpacity
           style={styles.rowAction}
