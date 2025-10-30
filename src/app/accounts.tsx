@@ -70,17 +70,7 @@ const formatFullINR = (value: number): string => {
   }
 };
 
-const handleDeleteAccountConfirm = (acc: Account) => {
-  const last4 = acc.accountNumberMasked.slice(-4).replace('*', '');
-  Alert.alert(
-    'Confirm Delete',
-    `Are you sure you want to delete ${acc.nickname} ${last4 ? `****${last4}` : ''}?  The account and all transactions under it will be lost.`,
-    [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => handleDeleteAccount(acc.id) },
-    ]
-  );
-};
+
 
 const AccountsScreen: React.FC = () => {
   const router = useRouter();
@@ -117,6 +107,19 @@ const AccountsScreen: React.FC = () => {
     () => accounts.reduce((sum, a) => sum + a.balance.amount, 0),
     [accounts]
   );
+
+  //Handle Account Delete
+  const handleDeleteAccountConfirm = (acc: Account) => {
+    const last4 = acc.accountNumberMasked.slice(-4).replace('*', '');
+    Alert.alert(
+      'Confirm Delete',
+      `Are you sure you want to delete ${acc.nickname} ${last4 ? `****${last4}` : ''}?  The account and all transactions under it will be lost.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => handleDeleteAccount(acc.id) },
+      ]
+    );
+  };
 
   // Reset form helper
   const resetAddForm = () => {
@@ -313,86 +316,87 @@ const AccountsScreen: React.FC = () => {
       setTxModalVisible(true);
     };
 
-    return (
-      <TouchableOpacity
-        key={acc.id}
-        style={styles.accountCard}
-        activeOpacity={0.9}
-        onPress={handleOpenAccountTransactions}
-      >
-        <View style={styles.accountHeader}>
-          <View style={styles.accountLeft}>
-            <View style={[styles.bankIcon, { backgroundColor: getBankBadgeColor(acc.bankName) }]}>
-              <MaterialIcons name="account-balance" size={22} color="#FFFFFF" />
-            </View>
-            <View style={styles.accountDetails}>
-              <Text style={styles.accountNickname}>{acc.nickname}</Text>
-              <Text style={styles.accountSubtext}>
-                {acc.bankName} • {acc.accountNumberMasked}
-              </Text>
-              <Text style={styles.accountMeta}>{acc.type.toUpperCase()}</Text>
-            </View>
+   return (
+    <TouchableOpacity
+      key={acc.id}
+      style={styles.accountCard}
+      activeOpacity={0.9}
+      onPress={handleOpenAccountTransactions}
+    >
+      <View style={styles.accountHeader}>
+        <View style={styles.accountLeft}>
+          <View style={[styles.bankIcon, { backgroundColor: getBankBadgeColor(acc.bankName) }]}>
+            <MaterialIcons name="account-balance" size={22} color="#FFFFFF" />
           </View>
-          <View style={styles.cardActionsRow}>
-            <TouchableOpacity
-              style={styles.rowAction}
-              onPress={(e) => {
-                e.stopPropagation();
-                setTxFilter({
-                  assetType: 'account',
-                  filterType: 'category',
-                  assetLabel: JSON.stringify({
-                    nickname: acc.nickname,
-                    accountType: acc.type,
-                    last4: acc.accountNumberMasked.slice(-4).replace('*', ''),
-                    bankName: acc.bankName,
-                  }),
-                });
-                setTxModalVisible(true);
-              }}
-            >
-              <MaterialIcons name="visibility" size={18} color={Colors.text.primary} />
-              <Text style={styles.rowActionText}>View</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.rowAction}
-              onPress={(e) => {
-                e.stopPropagation();
-                openEditAccount(acc);
-              }}
-            >
-              <MaterialIcons name="edit" size={18} color={Colors.text.primary} />
-              <Text style={styles.rowActionText}>Edit</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.rowAction}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleDeleteAccountConfirm(acc);
-              }}
-            >
-              <MaterialIcons name="delete-outline" size={18} color="#E74C3C" />
-              <Text style={[styles.rowActionText, { color: '#E74C3C' }]}>Delete</Text>
-            </TouchableOpacity>
+          <View style={styles.accountDetails}>
+            <Text style={styles.accountNickname}>{acc.nickname}</Text>
+            <Text style={styles.accountSubtext}>
+              {acc.bankName} • {acc.accountNumberMasked}
+            </Text>
+            <Text style={styles.accountMeta}>{acc.type.toUpperCase()}</Text>
           </View>
+        </View>
+      </View>
+      <View style={styles.accountRight}>
+        <Text style={styles.balanceLabel}>Account Balance</Text>
+        <Text
+          style={[
+            styles.balanceValue,
+            acc.balance.amount < 0 && styles.negativeAmount
+          ]}
+        >
+          {formatFullINR(acc.balance.amount)}
+        </Text>
+      </View>
+      
+      <View style={styles.accountActionsBottomRow}>
+        <TouchableOpacity
+          style={styles.rowAction}
+          onPress={(e) => {
+            e.stopPropagation();
+            setTxFilter({
+              assetType: 'account',
+              filterType: 'category',
+              assetLabel: JSON.stringify({
+                nickname: acc.nickname,
+                accountType: acc.type,
+                last4: acc.accountNumberMasked.slice(-4).replace('*', ''),
+                bankName: acc.bankName,
+              }),
+            });
+            setTxModalVisible(true);
+          }}
+        >
+          <MaterialIcons name="visibility" size={18} color={Colors.text.primary} />
+          <Text style={styles.rowActionText}>View</Text>
+        </TouchableOpacity>
 
-        </View>
-        <View style={styles.accountRight}>
-          <Text style={styles.balanceLabel}>Account Balance</Text>
-          <Text
-            style={[
-              styles.balanceValue,
-              acc.balance.amount < 0 && styles.negativeAmount
-            ]}
-          >
-            {formatFullINR(acc.balance.amount)}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+        <TouchableOpacity
+          style={styles.rowAction}
+          onPress={(e) => {
+            e.stopPropagation();
+            openEditAccount(acc);
+          }}
+        >
+          <MaterialIcons name="edit" size={18} color={Colors.text.primary} />
+          <Text style={styles.rowActionText}>Edit</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.rowAction}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleDeleteAccountConfirm(acc);
+          }}
+        >
+          <MaterialIcons name="delete-outline" size={18} color="#E74C3C" />
+          <Text style={[styles.rowActionText, { color: '#E74C3C' }]}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+
+
 
   // Add account modal
   const renderAddModal = () => (
@@ -863,7 +867,13 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginLeft: 6,
   },
+  accountActionsBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
 
 });
 
-export { AccountsScreen as default };
+export { AccountsScreen as default }
