@@ -34,6 +34,23 @@ type Account = {
   type: AccountType;
   balance: Money;
   lastSynced?: Date | null;
+  status?: 'active' | 'closed';
+};
+
+// Add this helper function after imports and before getAssetIcon
+const parseAccountLabel = (label?: string) => {
+  try {
+    const obj = JSON.parse(label || '');
+    if (obj && typeof obj === 'object') {
+      return obj as { 
+        nickname?: string; 
+        accountType?: string; 
+        last4?: string; 
+        bankName?: string; 
+      };
+    }
+  } catch {}
+  return null;
 };
 
 // Indian bank colors for visual consistency
@@ -155,6 +172,7 @@ const AccountsScreen: React.FC = () => {
         type,
         balance: { amount: amt, currency: 'INR' },
         lastSynced: new Date(),
+        status: 'active',
       };
 
       await save(draft => {
@@ -319,7 +337,11 @@ const AccountsScreen: React.FC = () => {
    return (
     <TouchableOpacity
       key={acc.id}
-      style={styles.accountCard}
+      style={[
+        styles.accountCard,
+        (acc.status ?? 'active') === 'closed' && { opacity: 0.6 }
+      ]}
+
       activeOpacity={0.9}
       onPress={handleOpenAccountTransactions}
     >
@@ -370,6 +392,44 @@ const AccountsScreen: React.FC = () => {
           <MaterialIcons name="visibility" size={18} color={Colors.text.primary} />
           <Text style={styles.rowActionText}>View</Text>
         </TouchableOpacity>
+
+        
+        {(acc.status ?? 'active') === 'active' ? (
+          <TouchableOpacity
+            style={styles.rowAction}
+            onPress={(e) => {
+              e.stopPropagation();
+              save(draft => {
+                const next = (draft.accounts ?? []).map((a: Account) =>
+                  a.id === acc.id ? { ...a, status: 'closed' as const } : a
+                );
+                return { ...draft, accounts: next };
+              });
+            }}
+          >
+            <MaterialIcons name="lock" size={18} color={Colors.text.primary} />
+            <Text style={styles.rowActionText}>Close</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.rowAction}
+            onPress={(e) => {
+              e.stopPropagation();
+              save(draft => {
+                const next = (draft.accounts ?? []).map((a: Account) =>
+                  a.id === acc.id ? { ...a, status: 'active' as const } : a
+                );
+                return { ...draft, accounts: next };
+              });
+            }}
+          >
+            <MaterialIcons name="lock-open" size={18} color={Colors.text.primary} />
+            <Text style={styles.rowActionText}>Revive</Text>
+          </TouchableOpacity>
+        )}
+
+
+
 
         <TouchableOpacity
           style={styles.rowAction}
@@ -596,7 +656,14 @@ const AccountsScreen: React.FC = () => {
         <View style={styles.accountsContainer}>
           <Text style={styles.sectionTitle}>Your Bank Accounts</Text>
           {accounts.length > 0 ? (
-            accounts.map(renderAccountCard)
+            [...accounts]
+              .sort((a, b) => {
+                const ac = (a.status ?? 'active') === 'closed';
+                const bc = (b.status ?? 'active') === 'closed';
+                if (ac === bc) return 0;
+                return ac ? 1 : -1;
+              })
+              .map(renderAccountCard)
           ) : (
             <View style={styles.emptyAccounts}>
               <MaterialIcons name="account-balance" size={64} color="#E0E0E0" />
