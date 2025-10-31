@@ -46,11 +46,11 @@ type Account = {
   status?: 'active' | 'closed';
   transactions?: AccountTransaction[]; // NEW: ready for persistence
 
-    // New BaseAsset fields (optional for migration compatibility)
+  // New BaseAsset fields (optional for migration compatibility)
   assetId?: string;
   userProfile?: string;
-  assetType?: AssetType;
-  currency?: CurrencyCode;
+  assetType?: import('../types/finance').AssetType;
+  currency?: import('../types/finance').CurrencyCode;
   currencyFormat?: 'Indian' | 'NonIndian';
   assetHolderName?: string;
   assetNickname?: string;
@@ -58,7 +58,12 @@ type Account = {
   createdDate?: Date;
   createdBy?: string;
   assetStatus?: 'active' | 'inactive' | 'closed';
+
+  // Add these two to match object literal in handleAddAccount
+  encryptedData?: import('../types/finance').EncryptedStorageMetadata;
+  auditTrail?: import('../types/finance').AuditTrail;
 };
+
 
 
 
