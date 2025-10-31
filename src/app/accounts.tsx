@@ -397,7 +397,7 @@ const AccountsScreen: React.FC = () => {
         
         {(acc.status ?? 'active') === 'active' ? (
           <TouchableOpacity
-            style={styles.rowAction}
+            style={[styles.rowAction, { opacity: 1 }]}
             onPress={(e) => {
               e.stopPropagation();
               save(draft => {
@@ -413,7 +413,7 @@ const AccountsScreen: React.FC = () => {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={styles.rowAction}
+            style={[styles.rowAction, { opacity: 1 }]}
             onPress={(e) => {
               e.stopPropagation();
               save(draft => {
