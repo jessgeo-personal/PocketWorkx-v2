@@ -125,6 +125,12 @@ const AccountsScreen: React.FC = () => {
   const [editAccountNumberMasked, setEditAccountNumberMasked] = useState('');
   const [editType, setEditType] = useState<AccountType>('savings');
   const [editBalanceAmount, setEditBalanceAmount] = useState('');
+  const [editAccountNumberFull, setEditAccountNumberFull] = useState('');
+  const [editIfscCode, setEditIfscCode] = useState('');
+  const [editSwiftCode, setEditSwiftCode] = useState('');
+  const [editUpiId, setEditUpiId] = useState('');
+  const [editAccountHolderName, setEditAccountHolderName] = useState('');
+
 
   // TransactionsModal states
   const [txModalVisible, setTxModalVisible] = useState(false);
@@ -225,13 +231,18 @@ const AccountsScreen: React.FC = () => {
   };
 
   const openEditAccount = (acc: Account) => {
-    setEditingAccount(acc);
-    setEditBankName(acc.bankName);
-    setEditNickname(acc.nickname);
-    setEditAccountNumberMasked(acc.accountNumberMasked);
-    setEditType(acc.type);
-    setEditBalanceAmount(String(acc.balance.amount));
-    setIsEditModalVisible(true);
+      setEditingAccount(acc);
+      setEditBankName(acc.bankName);
+      setEditNickname(acc.nickname);
+      setEditAccountNumberMasked(acc.accountNumberMasked);
+      setEditAccountNumberFull(acc.accountNumberFull || '');
+      setEditIfscCode(acc.ifscCode || '');
+      setEditSwiftCode(acc.swiftCode || '');
+      setEditUpiId(acc.upiId || '');
+      setEditAccountHolderName(acc.accountHolderName || '');
+      setEditType(acc.type);
+      setEditBalanceAmount(String(acc.balance.amount));
+      setIsEditModalVisible(true);
   };
 
   const handleSaveEdit = async () => {
@@ -241,6 +252,13 @@ const AccountsScreen: React.FC = () => {
       Alert.alert('Error', 'Enter a valid non-negative balance.');
       return;
     }
+
+    // Auto-derive last 4 if full account number is provided
+    const fullNumber = editAccountNumberFull.trim();
+    const derivedMasked = fullNumber 
+      ? (fullNumber.length >= 4 ? `****${fullNumber.slice(-4)}` : '****XXXX')
+      : editAccountNumberMasked.trim() || editingAccount.accountNumberMasked;
+
     await save(draft => {
       const next = (draft.accounts ?? []).map((a: Account) =>
         a.id === editingAccount.id
@@ -248,7 +266,12 @@ const AccountsScreen: React.FC = () => {
               ...a,
               bankName: editBankName.trim(),
               nickname: editNickname.trim(),
-              accountNumberMasked: editAccountNumberMasked.trim() || a.accountNumberMasked,
+              accountNumberMasked: derivedMasked,
+              accountNumberFull: fullNumber || undefined,
+              ifscCode: editIfscCode.trim() || undefined,
+              swiftCode: editSwiftCode.trim() || undefined,
+              upiId: editUpiId.trim() || undefined,
+              accountHolderName: editAccountHolderName.trim() || undefined,
               type: editType,
               balance: { amount: amt, currency: 'INR' },
               lastSynced: new Date(),
@@ -260,6 +283,7 @@ const AccountsScreen: React.FC = () => {
     setIsEditModalVisible(false);
     setEditingAccount(null);
   };
+
 
 
 
@@ -665,28 +689,42 @@ const AccountsScreen: React.FC = () => {
                   if (editingAccount) handleDeleteAccountConfirm(editingAccount);
                 }}
                 style={{ marginRight: 12 }}
+                accessibilityRole="button"
+                accessibilityLabel="Delete account"
               >
                 <MaterialIcons name="delete" size={22} color="#E74C3C" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)} accessibilityRole="button" accessibilityLabel="Close edit modal">
                 <MaterialIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
           </View>
+
           <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
             <View style={styles.modalBody}>
+              {/* Required fields only */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Bank Name *</Text>
-                <TextInput style={styles.textInput} value={editBankName} onChangeText={setEditBankName} />
+                <TextInput
+                  style={styles.textInput}
+                  value={editBankName}
+                  onChangeText={setEditBankName}
+                  placeholder="e.g., HDFC Bank, ICICI Bank"
+                />
               </View>
+
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Account Nickname *</Text>
-                <TextInput style={styles.textInput} value={editNickname} onChangeText={setEditNickname} />
+                <Text style={styles.inputLabel}>Full Account Number / IBAN</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editAccountNumberFull}
+                  onChangeText={setEditAccountNumberFull}
+                  placeholder="Complete account number or IBAN"
+                  keyboardType="default"
+                  autoCapitalize="characters"
+                />
               </View>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Account Number (Last 4 digits)</Text>
-                <TextInput style={styles.textInput} value={editAccountNumberMasked} onChangeText={setEditAccountNumberMasked} />
-              </View>
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Account Type *</Text>
                 <View style={styles.pickerContainer}>
@@ -695,6 +733,8 @@ const AccountsScreen: React.FC = () => {
                       key={`edit-${option}`}
                       style={[styles.pickerOption, editType === option && styles.pickerOptionSelected]}
                       onPress={() => setEditType(option)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Select ${option} account type`}
                     >
                       <Text style={[styles.pickerOptionText, editType === option && styles.pickerOptionTextSelected]}>
                         {option.toUpperCase()}
@@ -703,6 +743,7 @@ const AccountsScreen: React.FC = () => {
                   ))}
                 </View>
               </View>
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Current Balance (₹) *</Text>
                 <TextInput
@@ -710,10 +751,76 @@ const AccountsScreen: React.FC = () => {
                   value={editBalanceAmount}
                   onChangeText={setEditBalanceAmount}
                   keyboardType="numeric"
+                  placeholder="0"
+                />
+              </View>
+
+              {/* Optional Fields Divider */}
+              <View style={styles.optionalFieldsDivider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Optional fields</Text>
+              </View>
+
+              {/* Optional fields (same order as Add Account) */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Holder Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editAccountHolderName}
+                  onChangeText={setEditAccountHolderName}
+                  placeholder="Name as per bank records"
+                  autoCapitalize="words"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Nickname (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editNickname}
+                  onChangeText={setEditNickname}
+                  placeholder="Auto-generated if left blank"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>IFSC Code</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editIfscCode}
+                  onChangeText={(text) => setEditIfscCode(text.toUpperCase())}
+                  placeholder="e.g., HDFC0001234"
+                  autoCapitalize="characters"
+                  maxLength={11}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Swift Code</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editSwiftCode}
+                  onChangeText={(text) => setEditSwiftCode(text.toUpperCase())}
+                  placeholder="e.g., HDFCINBB"
+                  autoCapitalize="characters"
+                  maxLength={11}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>UPI ID</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editUpiId}
+                  onChangeText={setEditUpiId}
+                  placeholder="e.g., yourname@paytm"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
                 />
               </View>
             </View>
           </ScrollView>
+
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -726,6 +833,9 @@ const AccountsScreen: React.FC = () => {
       </View>
     </Modal>
   );
+
+
+
 
 
   if (loading) {
