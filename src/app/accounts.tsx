@@ -17,6 +17,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
 import { formatCompactCurrency } from '../utils/currency';
+import { AssetType, CurrencyCode, BaseAsset, EncryptedStorageMetadata, AuditTrail } from '../types/finance';
+import { generateAssetId, maskAccountNumber, getDefaultUserProfile } from '../utils/idGeneration';
 import { formatFullINR } from '../utils/currency';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import { useStorage } from '../services/storage/StorageProvider';
@@ -43,6 +45,19 @@ type Account = {
   lastSynced?: Date | null;
   status?: 'active' | 'closed';
   transactions?: AccountTransaction[]; // NEW: ready for persistence
+
+    // New BaseAsset fields (optional for migration compatibility)
+  assetId?: string;
+  userProfile?: string;
+  assetType?: AssetType;
+  currency?: CurrencyCode;
+  currencyFormat?: 'Indian' | 'NonIndian';
+  assetHolderName?: string;
+  assetNickname?: string;
+  bankNameOrIssuer?: string;
+  createdDate?: Date;
+  createdBy?: string;
+  assetStatus?: 'active' | 'inactive' | 'closed';
 };
 
 
@@ -256,16 +271,25 @@ const AccountsScreen: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      // Auto-derive last 4 digits and generate nickname if not provided
+      const now = new Date();
       const fullNumber = accountNumberFull.trim();
-      const last4 = fullNumber.slice(-4);
-      const derivedMasked = fullNumber.length >= 4 ? `****${last4}` : '****XXXX';
+      const maskedNumber = maskAccountNumber(fullNumber);
+      const derivedMasked = `****${maskedNumber}`;
 
       // Auto-generate nickname if not provided
       const finalNickname = nickname.trim() || 
-        `${bankName.trim()} ${type.charAt(0).toUpperCase() + type.slice(1)} ${last4}`;
+        `${bankName.trim()} ${type.charAt(0).toUpperCase() + type.slice(1)} ${maskedNumber}`;
+
+      // Generate guideline-compliant asset ID
+      const assetId = generateAssetId(
+        AssetType.BANK_ACCOUNT,
+        finalNickname,
+        CurrencyCode.INR,
+        maskedNumber
+      );
 
       const newAccount: Account = {
+        // Legacy fields (backward compatibility)
         id: Date.now().toString(),
         bankName: bankName.trim(),
         nickname: finalNickname,
@@ -277,10 +301,45 @@ const AccountsScreen: React.FC = () => {
         accountHolderName: accountHolderName.trim() || undefined,
         type,
         balance: { amount: amt, currency: 'INR' },
-        lastSynced: new Date(),
+        lastSynced: now,
         status: 'active',
-      };
+        transactions: [],
 
+        // New BaseAsset-compliant fields (guidelines compliance)
+        assetId,
+        userProfile: getDefaultUserProfile(),
+        assetType: AssetType.BANK_ACCOUNT,
+        currency: CurrencyCode.INR,
+        currencyFormat: 'Indian',
+        assetHolderName: accountHolderName.trim() || 'Account Holder',
+        assetNickname: finalNickname,
+        bankNameOrIssuer: bankName.trim(),
+        createdDate: now,
+        createdBy: 'user',
+        assetStatus: 'active',
+        
+        // Security fields (using defaults)
+        encryptedData: {
+          encryptionKey: '',
+          encryptionAlgorithm: 'AES-256' as const,
+          lastEncrypted: now,
+          isEncrypted: false,
+        },
+        auditTrail: {
+          createdBy: 'user',
+          createdAt: now,
+          updatedBy: 'user',
+          updatedAt: now,
+          version: 1,
+          changes: [{
+            field: 'account_created',
+            oldValue: null,
+            newValue: assetId,
+            timestamp: now,
+            reason: 'New account creation'
+          }],
+        },
+      };
 
       await save(draft => {
         const next = draft.accounts ? [...draft.accounts] : [];
@@ -291,11 +350,13 @@ const AccountsScreen: React.FC = () => {
       resetAddForm();
       setIsAddModalVisible(false);
     } catch (error) {
+      console.error('Account creation error:', error);
       Alert.alert('Error', 'Failed to add account. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
+
 
   const openEditAccount = (acc: Account) => {
       setEditingAccount(acc);

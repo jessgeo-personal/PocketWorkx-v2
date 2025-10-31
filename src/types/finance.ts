@@ -29,6 +29,64 @@ export interface AuditTrail {
   changes: AuditChange[];
 }
 
+// === ADD: CurrencyCode enum (non-breaking; existing Money.currency continues to use Currency['code']) ===
+export enum CurrencyCode {
+  INR = 'INR',
+  USD = 'USD',
+  EUR = 'EUR',
+  AED = 'AED',
+  GBP = 'GBP',
+  SGD = 'SGD',
+  CAD = 'CAD',
+  AUD = 'AUD',
+}
+
+// === ADD: AssetType enum for future consolidation across assets ===
+export enum AssetType {
+  BANK_ACCOUNT = 'bankAccount',
+  DEPOSIT_ACCOUNT = 'depositAccount',
+  LOAN_ACCOUNT = 'loanAccount',
+  CREDIT_CARD = 'creditCard',
+  CRYPTO = 'crypto',
+  PHYSICAL_ASSET = 'physicalAsset',
+  INVESTMENT = 'investment',
+  RECEIVABLE = 'receivable',
+  CASH = 'cash',
+}
+
+// === ADD: BaseAsset for guideline-compliant assets; does NOT replace existing interfaces ===
+export interface BaseAsset {
+  // Identity & Classification
+  assetId: string; // Format: assetType-assetNickname-currency-accountNumberMasked
+  userProfile: string; // userName-profileCountry
+  assetType: AssetType;
+  currency: CurrencyCode;
+  currencyFormat: 'Indian' | 'NonIndian';
+
+  // Asset Details
+  assetHolderName: string;
+  assetNickname: string;
+  accountNumber?: string;     // encrypted full number (optional)
+  cardNumber?: string;        // encrypted full number (optional)
+  accountNumberMasked: string;
+
+  // Financial Institution
+  bankNameOrIssuer: string;
+  ifscCode?: string;
+  swiftCode?: string;
+
+  // Metadata
+  createdDate: Date;
+  createdBy: string;
+  lastSynced: Date;
+  assetStatus: 'active' | 'inactive' | 'closed';
+
+  // Security & Audit (reusing existing types)
+  encryptedData: EncryptedStorageMetadata;
+  auditTrail: AuditTrail;
+}
+
+
 export interface AuditChange {
   field: string;
   oldValue: any;
