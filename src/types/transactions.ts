@@ -19,8 +19,16 @@ export interface TransactionRecord {
   // Cash-specific fields
   cashCategory?: string; // 'Wallet', 'Home Safe', 'Loose change car', 'Loose change home'
   expenseCategory?: string; // 'Food', 'Grocery', 'Shopping', etc.
-  type: 'ADD_CASH' | 'RECORD_EXPENSE' | 'MOVE_CASH' | 'DEPOSIT_TO_BANK' | 'ACCOUNT' | 'LOAN' | 'CREDIT_CARD';
-
+  type:
+  | 'ADD_CASH'
+  | 'RECORD_EXPENSE' 
+  | 'MOVE_CASH'
+  | 'DEPOSIT_TO_BANK'
+  | 'ACCOUNT'
+  | 'LOAN' 
+  | 'CREDIT_CARD'
+  | 'ACCT_OPENING_BAL';
+  
   // Bank account-specific fields (optional)
   merchant?: string;
   balance?: number; // Balance after transaction
@@ -90,7 +98,16 @@ export interface AccountTransaction {
   datetime: Date;
   amount: { amount: number; currency: string };
   description: string;
-  type: 'opening_balance' | 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out' | 'fee' | 'interest' | 'adjustment' | 'balance_correction';
+  type: | 'opening_balance' // legacy alias
+        | 'ACCT_OPENING_BAL' // new canonical opening balance type
+        | 'deposit'
+        | 'withdrawal'
+        | 'transfer_in'
+        | 'transfer_out'
+        | 'fee'
+        | 'interest'
+        | 'adjustment'
+        | 'balance_correction';
   notes?: string;
   // Optional metadata for account transactions
   transactionId?: string; // Bank's transaction reference

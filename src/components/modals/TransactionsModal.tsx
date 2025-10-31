@@ -239,22 +239,21 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
 
           if (!hasOpeningRow) {
             const openingRow = {
-            id: ${account.id}-opening-balance,
-            datetime: realTransactions.length > 0
-            ? new Date(new Date(realTransactions[realTransactions.length - 1].datetime).getTime() - 1000)
-            : new Date(account.lastSynced ? new Date(account.lastSynced).getTime() - 1000 : Date.now() - 1000),
-            amount: { amount: openingAmount, currency: 'INR' },
-            description: 'Opening Balance',
-            notes: ${account.bankName} - ${account.type?.toUpperCase?.()} - ${account.accountNumberMasked},
-            type: 'ACCT_OPENING_BAL', // new canonical type
-            assetType: 'account',
-            assetId: account.id,
-            assetLabel: packedLabel,
-            bankName: account.bankName,
-            accountType: account.type,
-            accountStatus: account.status ?? 'active',
+              id: `${account.id}-opening-balance`,
+              datetime: realTransactions.length > 0
+                ? new Date(new Date(realTransactions[realTransactions.length - 1].datetime).getTime() - 1000)
+                : new Date(account.lastSynced ? new Date(account.lastSynced).getTime() - 1000 : Date.now() - 1000),
+              amount: { amount: openingAmount, currency: 'INR' },
+              description: 'Opening Balance',
+              notes: `${account.bankName} • ${account.type?.toUpperCase?.()} • ${account.accountNumberMasked}`,
+              type: 'ACCT_OPENING_BAL',
+              assetType: 'account',
+              assetId: account.id,
+              assetLabel: packedLabel,
+              bankName: account.bankName,
+              accountType: account.type,
+              accountStatus: account.status ?? 'active',
             } as TransactionRecord;
-
             // Include opening row at the end; the global sorter will handle order
             return [...realTransactions, openingRow];
           }
