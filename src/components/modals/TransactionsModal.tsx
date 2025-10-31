@@ -288,11 +288,16 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           if (filterCriteria.assetType === 'cash') {
             return (t.cashCategory || '') === filterCriteria.assetLabel;
           }
-          // For accounts: filter by assetLabel (account display name)
+          // For accounts: filter by stable assetId, fallback to assetLabel
           if (filterCriteria.assetType === 'account') {
-            // For accounts, t.assetLabel should also be the same packed JSON string for exact match
+            // Prefer stable matching by assetId to survive name/type edits
+            if (filterCriteria.assetId) {
+              return t.assetId === filterCriteria.assetId;
+            }
+            // Fallback to label match if assetId is absent (legacy compatibility)
             return t.assetLabel === filterCriteria.assetLabel;
           }
+
           // Add other asset type filters here
           return false;
         })
@@ -307,15 +312,17 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     // For individual account views, show the actual account balance
     if (params.filterCriteria.assetType === 'account' && params.filterCriteria.filterType === 'category') {
       const accounts = (state?.accounts ?? []) as any[];
-      const account = accounts.find(acc => {
-        const packedLabel = JSON.stringify({
-          nickname: acc.nickname,
-          accountType: acc.type,
-          last4: (acc.accountNumberMasked || '').slice(-4).replace('*', ''),
-          bankName: acc.bankName,
+      const account = accounts.find(acc => acc.id === params.filterCriteria.assetId) ?? 
+        accounts.find(acc => {
+          // Legacy fallback only if assetId is missing
+          const packedLabel = JSON.stringify({
+            nickname: acc.nickname,
+            accountType: acc.type,
+            last4: (acc.accountNumberMasked || '').slice(-4).replace('*', ''),
+            bankName: acc.bankName,
+          });
+          return packedLabel === params.filterCriteria.assetLabel;
         });
-        return packedLabel === params.filterCriteria.assetLabel;
-      });
       return account?.balance?.amount ?? 0;
     }
   

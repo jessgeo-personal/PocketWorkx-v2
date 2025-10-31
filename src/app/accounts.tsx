@@ -636,7 +636,7 @@ const AccountsScreen: React.FC = () => {
       setTxFilter({
         assetType: 'account',
         filterType: 'category',
-        // Pack full card reference so modal can display it
+        assetId: acc.id, // stable filter key
         assetLabel: JSON.stringify({
           nickname: acc.nickname,
           accountType: acc.type,
@@ -646,6 +646,7 @@ const AccountsScreen: React.FC = () => {
       });
       setTxModalVisible(true);
     };
+
 
    return (
     <TouchableOpacity
