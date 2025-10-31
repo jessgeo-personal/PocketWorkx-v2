@@ -63,6 +63,18 @@ const parseAccountLabel = (label?: string) => {
   return null;
 };
 
+// Add this function after parseAccountLabel
+const getBankColorFromParsed = (parsed: any) => {
+  if (!parsed?.bankName) return '#1976D2'; // default blue
+  const b = parsed.bankName.toLowerCase();
+  if (b.includes('icici')) return '#F37021';
+  if (b.includes('hdfc')) return '#0054A6';
+  if (b.includes('sbi')) return '#1E88E5';
+  if (b.includes('axis')) return '#AE275F';
+  if (b.includes('kotak')) return '#0066CC';
+  return '#1976D2'; // fallback blue
+};
+
 const getAssetColor = (assetType: string, assetLabel: string) => {
   const label = assetLabel?.toLowerCase() || '';
   const type = assetType?.toLowerCase() || '';
@@ -308,10 +320,12 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
                   : (filterCriteria.assetLabel || 'Transactions');
 
                 // Pick icon/color
-                const color = getAssetColor(
-                  filterCriteria.assetType,
-                  isAccountCategory && parsed ? (parsed.accountType ?? parsed.nickname ?? '') : (filterCriteria.assetLabel || '')
-                );
+                const color = isAccountCategory && parsed 
+                  ? getBankColorFromParsed(parsed)
+                  : getAssetColor(
+                      filterCriteria.assetType,
+                      filterCriteria.assetLabel || ''
+                    );
                 const icon = getAssetIcon(
                   filterCriteria.assetType,
                   isAccountCategory && parsed ? (parsed.accountType ?? parsed.nickname ?? '') : (filterCriteria.assetLabel || '')
