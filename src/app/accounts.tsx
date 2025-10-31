@@ -1,5 +1,5 @@
 // src/app/accounts.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -184,6 +184,21 @@ const AccountsScreen: React.FC = () => {
   // TransactionsModal states
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
+
+  // Auto-open debit modal when navigated with query param: /accounts?openModal=debit
+  useEffect(() => {
+    try {
+      // Parse URL for openModal parameter
+      const url = (typeof window !== 'undefined' && window.location?.href) || '';
+      const hasDebit = url.includes('openModal=debit');
+      if (hasDebit) {
+        setIsDebitModalVisible(true);
+      }
+    } catch (e) {
+      // Silent fallback if URL is not available (native)
+    }
+  }, []);
+
 
   // Get accounts from storage
   const accounts: Account[] = (state?.accounts as Account[] | undefined) ?? [];

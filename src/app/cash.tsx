@@ -1,5 +1,5 @@
 // src/app/cash.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -119,6 +119,20 @@ const CashScreen: React.FC = () => {
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
 
+  // Auto-open expense modal when navigated with query param: /cash?openModal=expense
+  useEffect(() => {
+    // expo-router exposes segments and params differently depending on version; use global location as fallback
+    try {
+      // If using expo-router v3+, use useLocalSearchParams, but for now parse from window-like APIs:
+      const url = (typeof window !== 'undefined' && window.location?.href) || '';
+      const hasExpense = url.includes('openModal=expense');
+      if (hasExpense) {
+        setIsExpenseModalVisible(true);
+      }
+    } catch (e) {
+      // Silent fallback if URL is not available (native)
+    }
+  }, []);
 
 
   // ADD router hook in component
