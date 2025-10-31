@@ -373,16 +373,127 @@ const AccountsScreen: React.FC = () => {
       },
     ]);
 
-  // Quick action handlers
-  // Debit expense handler (placeholder for HP-4)
-  const handleSaveDebitExpense = () => {
-    Alert.alert('Ready', 'Save functionality will be implemented in HP-4.');
-    // Keep modal open for testing - remove this line in HP-4
+  // Quick action handlers 1
+  // Replace the handleSaveDebitExpense function in accounts.tsx with this corrected implementation
+  const handleSaveDebitExpense = async () => {
+    // Validation
+    if (!debitAmount || isNaN(Number(debitAmount)) || Number(debitAmount) <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount greater than 0.');
+      return;
+    }
+
+    if (!selectedAccountId) {
+      Alert.alert('Error', 'Please select an account for the debit transaction.');
+      return;
+    }
+
+    if (!debitDate) {
+      Alert.alert('Error', 'Please select a transaction date.');
+      return;
+    }
+
+    const amount = Number(debitAmount);
+    const selectedAccount = accounts.find(acc => acc.id === selectedAccountId);
+    
+    if (!selectedAccount) {
+      Alert.alert('Error', 'Selected account not found. Please select a valid account.');
+      return;
+    }
+
+    // Check if account is closed
+    if ((selectedAccount.status ?? 'active') === 'closed') {
+      Alert.alert('Error', 'Cannot debit from a closed account. Please select an active account.');
+      return;
+    }
+
+    // DECLARE the processDebitTransaction function FIRST
+    const processDebitTransaction = async () => {
+      try {
+        setIsProcessing(true);
+
+        // 1. Create AccountTransaction with type 'withdrawal' - NEGATIVE amount for debits
+        const newTransaction: AccountTransaction = createAccountTransaction(
+          'withdrawal',
+          -amount,  // Make debit amounts negative
+          debitDescription.trim() || `${debitCategory.toUpperCase()} expense`,
+          `Category: ${debitCategory} | Date: ${debitDate}`
+        );
+
+
+        // 2. Update the selected account with new transaction and reduced balance
+        await save(draft => {
+          const updatedAccounts = (draft.accounts ?? []).map((account: Account) => {
+            if (account.id === selectedAccountId) {
+              // Ensure transactions array exists
+              const existingTransactions = account.transactions ?? [];
+              
+              return {
+                ...account,
+                // 3. Append to selectedAccount.transactions array
+                transactions: [...existingTransactions, newTransaction],
+                // 4. Update balance - since newTransaction.amount is already negative, we ADD it
+                balance: {
+                  ...account.balance,
+                  amount: account.balance.amount + newTransaction.amount.amount  // Add negative amount
+                },
+                lastSynced: new Date(),
+              };
+            }
+            return account;
+          });
+
+          return { ...draft, accounts: updatedAccounts };
+        });
+
+        // Success feedback
+        Alert.alert(
+          'Transaction Saved', 
+          `Debit of ${formatFullINR(amount)} saved successfully to ${selectedAccount.nickname}.`,
+          [{ text: 'OK', onPress: () => {
+            // Reset form and close modal
+            setDebitAmount('');
+            setDebitDescription('');
+            setDebitCategory('other');
+            setDebitDate(new Date().toISOString().slice(0,10));
+            setSelectedAccountId('');
+            setAccountSearch('');
+            setIsDebitModalVisible(false);
+          }}]
+        );
+
+      } catch (error) {
+        console.error('Debit transaction save failed:', error);
+        Alert.alert('Error', 'Failed to save transaction. Please try again.');
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    // Check sufficient balance (optional warning) - NOW CALL the function
+    if (selectedAccount.balance.amount < amount) {
+      Alert.alert(
+        'Insufficient Balance',
+        `Account balance: ${formatFullINR(selectedAccount.balance.amount)}\nTransaction amount: ${formatFullINR(amount)}\n\nThis will result in a negative balance. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', onPress: () => processDebitTransaction() }
+        ]
+      );
+      return;
+    }
+
+    // Direct call for sufficient balance
+    processDebitTransaction();
   };
+
+
+  // Quick action handlers 2
   const handleUploadStatements = () =>
     Alert.alert('Coming Soon', 'Upload Statements flow will be implemented next.');
+  // Quick action handlers 3
   const handleScanSMS = () =>
     Alert.alert('Coming Soon', 'SMS scanning flow will be implemented next.');
+  // Quick action handlers 4
   const handleScanEmails = () =>
     Alert.alert('Coming Soon', 'Email scanning flow will be implemented next.');
 

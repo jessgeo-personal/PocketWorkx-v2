@@ -15,6 +15,23 @@ type Props = {
 
 const PAGE_SIZE = 20;
 
+// Add this helper function after imports and before getAssetIcon
+const parseAccountLabel = (label?: string) => {
+  try {
+    const obj = JSON.parse(label || '');
+    if (obj && typeof obj === 'object') {
+      return obj as { 
+        nickname?: string; 
+        accountType?: string; 
+        last4?: string; 
+        bankName?: string; 
+      };
+    }
+  } catch {}
+  return null;
+};
+
+
 // ADD these GENERIC helper functions for all asset types:
 const getAssetIcon = (assetType: string, assetLabel: string) => {
   const label = assetLabel?.toLowerCase() || '';
@@ -29,14 +46,19 @@ const getAssetIcon = (assetType: string, assetLabel: string) => {
     return 'place'; // default cash icon
   }
   
-  // Bank accounts (future)
+  // Bank accounts (updated)
   if (type === 'account') {
-    // Prefer accountType hints
-    if (label.includes('savings')) return 'savings';
-    if (label.includes('current') || label.includes('checking')) return 'account-balance';
-    // Fallback by bank name cues (kept generic)
+    // Parse JSON label from accounts.tsx
+    const parsed = parseAccountLabel(assetLabel);
+    if (parsed?.accountType) {
+      if (parsed.accountType === 'savings') return 'savings';
+      if (parsed.accountType === 'current') return 'account-balance';
+      if (parsed.accountType === 'salary') return 'work';
+      if (parsed.accountType === 'other') return 'account-balance-wallet';
+    }
     return 'account-balance';
   }
+
   
   // Loans (future)
   if (type === 'loan') {
@@ -53,14 +75,6 @@ const getAssetIcon = (assetType: string, assetLabel: string) => {
   
   // Default fallback
   return 'account-balance-wallet';
-};
-
-const parseAccountLabel = (label?: string) => {
-  try {
-    const obj = JSON.parse(label || '');
-    if (obj && typeof obj === 'object') return obj as { nickname?: string; accountType?: string; last4?: string; bankName?: string; };
-  } catch {}
-  return null;
 };
 
 // Add this function after parseAccountLabel
@@ -129,7 +143,15 @@ const getBalanceLabel = (assetType: string, filterType: string) => {
     // Asset-type-specific category/individual labels
     switch (assetType) {
       case 'cash': return 'Category Total';
-      case 'account': return 'Account Balance';
+      case 'account': {
+          // For individual accounts, show the specific account name
+          if (filterType === 'category') {
+            // Try to parse account details from assetLabel (this requires access to params)
+            // For now, return generic label - enhanced version needs params access
+            return 'Account Balance';
+          }
+          return 'Account Balance';
+        }
       case 'loan': return 'Outstanding Balance';
       case 'credit_card': return 'Card Balance';
       case 'investment': return 'Investment Value';
@@ -169,7 +191,7 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     }
 
     
-    // ACCOUNTS transactions (Enhanced with metadata)
+    // ACCOUNTS transactions - Now reading real AccountTransaction data
     else if (params.filterCriteria.assetType === 'account') {
       const accounts = (state?.accounts ?? []) as any[];
       combined = accounts.flatMap((account) => {
@@ -180,14 +202,14 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           bankName: account.bankName,
         });
 
-        // Synthesize balance row with enhanced metadata
-        return [{
-          id: `${account.id}-balance`,
-          datetime: account.lastSynced ? new Date(account.lastSynced) : new Date(),
-          amount: { amount: account.balance?.amount ?? 0, currency: 'INR' },
-          description: `Account Balance - ${account.nickname}`,
-          notes: `${account.bankName} • ${account.type.toUpperCase()} • ${account.accountNumberMasked}`,
-          type: 'balance',
+        // Get real transactions from account.transactions array
+        const realTransactions = (account.transactions ?? []).map((tx: { id: any; datetime: string | number | Date; amount: { amount: any; currency: any; }; description: any; notes: any; type: any; }) => ({
+          id: tx.id,
+          datetime: new Date(tx.datetime),
+          amount: { amount: tx.amount.amount, currency: tx.amount.currency }, // tx.amount is Money object
+          description: tx.description,
+          notes: tx.notes,
+          type: tx.type,
           assetType: 'account',
           assetId: account.id,
           assetLabel: packedLabel,
@@ -195,9 +217,30 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           bankName: account.bankName,
           accountType: account.type,
           accountStatus: account.status ?? 'active',
-        }] as unknown as TransactionRecord[];
+        })) as unknown as TransactionRecord[];
+
+        // Also include balance row for visual consistency
+        ///const balanceRow = {
+          ///id: `${account.id}-balance`,
+          ///datetime: account.lastSynced ? new Date(account.lastSynced) : new Date(),
+          ///amount: { amount: account.balance?.amount ?? 0, currency: 'INR' },
+          ///description: `Current Balance - ${account.nickname}`,
+          ///notes: `${account.bankName} • ${account.type.toUpperCase()} • ${account.accountNumberMasked}`,
+          ///type: 'balance',
+          ///assetType: 'account',
+          ///assetId: account.id,
+          ///assetLabel: packedLabel,
+          ///bankName: account.bankName,
+          ///accountType: account.type,
+          ///accountStatus: account.status ?? 'active',
+        ///} as unknown as TransactionRecord;
+
+        // Return both real transactions and balance row
+        ///return [...realTransactions, balanceRow];
+        return realTransactions;
       });
     }
+
 
     // Future asset types (loans, credit cards, etc.)
     // Add more else-if blocks here for other asset types
@@ -235,10 +278,27 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     return allTransactions;
   }, [params, allTransactions]);
 
-  //2.1) filtered balance
+  //2.1) filtered balance - Account balance should show current balance, not sum of transactions
   const filteredBalance = useMemo(() => {
-    return filtered.reduce((sum, transaction) => sum + transaction.amount.amount, 0);
-  }, [filtered]);
+    // For individual account views, show the actual account balance
+    if (params.filterCriteria.assetType === 'account' && params.filterCriteria.filterType === 'category') {
+      const accounts = (state?.accounts ?? []) as any[];
+      const account = accounts.find(acc => {
+        const packedLabel = JSON.stringify({
+          nickname: acc.nickname,
+          accountType: acc.type,
+          last4: (acc.accountNumberMasked || '').slice(-4).replace('*', ''),
+          bankName: acc.bankName,
+        });
+        return packedLabel === params.filterCriteria.assetLabel;
+      });
+      return account?.balance?.amount ?? 0;
+    }
+  
+  // For other views, sum the transactions
+  return filtered.reduce((sum, transaction) => sum + transaction.amount.amount, 0);
+}, [filtered, params.filterCriteria, state?.accounts]);
+
 
   // 3) Pagination
   const paged = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page]);
