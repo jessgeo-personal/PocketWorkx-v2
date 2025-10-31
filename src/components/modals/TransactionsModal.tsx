@@ -4,7 +4,7 @@ import { Modal, View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../../utils/theme';
 import { useStorage } from '../../services/storage/StorageProvider';
-import type { TransactionRecord, FilterCriteria, TransactionModalParams } from '../../types/transactions';
+import type { TransactionRecord, FilterCriteria, TransactionModalParams, AccountTransaction } from '../../types/transactions';
 import { exportTransactionsToCSV } from '../../utils/csvExport';
 
 type Props = {

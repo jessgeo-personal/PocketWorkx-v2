@@ -18,10 +18,11 @@ import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
 import { formatCompactCurrency } from '../utils/currency';
 import { formatFullINR } from '../utils/currency';
-import type { TransactionRecord, FilterCriteria } from '../types/transactions';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import { useStorage } from '../services/storage/StorageProvider';
 import { StatusBar } from 'expo-status-bar';
+import type { TransactionRecord, FilterCriteria, AccountTransaction } from '../types/transactions';
+
 
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
@@ -41,7 +42,9 @@ type Account = {
   balance: Money;
   lastSynced?: Date | null;
   status?: 'active' | 'closed';
+  transactions?: AccountTransaction[]; // NEW: ready for persistence
 };
+
 
 
 // Add this helper function after imports and before getAssetIcon
@@ -70,6 +73,23 @@ const getBankBadgeColor = (bankName: string) => {
   if (b.includes('kotak')) return '#0066CC';
   return '#666666';
 };
+
+// Helper for future transaction management
+const createAccountTransaction = (
+  type: AccountTransaction['type'],
+  amount: number,
+  description: string,
+  notes?: string
+): AccountTransaction => ({
+  id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  datetime: new Date(),
+  amount: { amount, currency: 'INR' },
+  description,
+  type,
+  notes,
+  source: 'manual',
+  status: 'completed',
+});
 
 // Add this function after getBankBadgeColor
 ///const formatFullINR = (value: number): string => {

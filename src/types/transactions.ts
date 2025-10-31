@@ -83,3 +83,20 @@ export interface TransactionModalParams {
   assetSpecificFields?: AssetSpecificField[];
   onDismiss?: () => void;
 }
+
+// Account-specific transaction type
+export interface AccountTransaction {
+  id: string;
+  datetime: Date;
+  amount: { amount: number; currency: string };
+  description: string;
+  type: 'opening_balance' | 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out' | 'fee' | 'interest' | 'adjustment' | 'balance_correction';
+  notes?: string;
+  // Optional metadata for account transactions
+  transactionId?: string; // Bank's transaction reference
+  category?: string; // expense/income category
+  balance?: number; // Running balance after transaction
+  isReconciled?: boolean; // Whether transaction matches bank statement
+  source: 'manual' | 'sms' | 'statement' | 'api';
+  status: 'pending' | 'completed' | 'failed';
+}
