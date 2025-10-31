@@ -128,3 +128,16 @@ export const formatCompactCurrency = (amount: number, currency: Currency['code']
   
   return `${symbol}${amount.toLocaleString()}`;
 };
+
+// Full, non-compact currency display, whole amounts by default
+export const formatFullCurrency = (
+  amount: number,
+  currency: Currency['code'] = 'INR',
+  showSymbol: boolean = true
+): string => {
+  // Reuse the existing service path to ensure consistent Indian vs international grouping
+  return CurrencyService.formatMoney({ amount, currency }, showSymbol);
+};
+
+// Backward-compat convenience for current code paths
+export const formatFullINR = (amount: number) => formatFullCurrency(amount, 'INR', true);

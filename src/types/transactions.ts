@@ -5,6 +5,7 @@
  * Fields marked as optional are for asset-specific use (bank, loan, credit card)
  */
 export interface TransactionRecord {
+  bankName: any;
   // Core transaction fields (all assets)
   id: string;
   datetime: Date;

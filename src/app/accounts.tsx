@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
 import { formatCompactCurrency } from '../utils/currency';
+import { formatFullINR } from '../utils/currency';
 import type { TransactionRecord, FilterCriteria } from '../types/transactions';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import { useStorage } from '../services/storage/StorageProvider';
@@ -30,12 +31,18 @@ type Account = {
   id: string;
   bankName: string;
   nickname: string;
-  accountNumberMasked: string;
+  accountNumberMasked: string; // Keep for backward compatibility
+  accountNumberFull?: string; // NEW: full account number or IBAN
+  ifscCode?: string; // NEW
+  swiftCode?: string; // NEW
+  upiId?: string; // NEW
+  accountHolderName?: string; // NEW
   type: AccountType;
   balance: Money;
   lastSynced?: Date | null;
   status?: 'active' | 'closed';
 };
+
 
 // Add this helper function after imports and before getAssetIcon
 const parseAccountLabel = (label?: string) => {
@@ -65,27 +72,27 @@ const getBankBadgeColor = (bankName: string) => {
 };
 
 // Add this function after getBankBadgeColor
-const formatFullINR = (value: number): string => {
-  try {
-    const formatter = new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-      minimumFractionDigits: 0,
-    });
-    return formatter.format(Math.round(value));
-  } catch {
+///const formatFullINR = (value: number): string => {
+  ///try {
+    ///const formatter = new Intl.NumberFormat('en-IN', {
+      ///style: 'currency',
+      ///currency: 'INR',
+      ///maximumFractionDigits: 0,
+      ///minimumFractionDigits: 0,
+    ///});
+    ///return formatter.format(Math.round(value));
+  ///} catch {
     // Fallback if Intl not available
-    const abs = Math.abs(Math.round(value));
-    const sign = value < 0 ? '-' : '';
-    const str = abs.toString();
-    const lastThree = str.substring(str.length - 3);
-    const otherNumbers = str.substring(0, str.length - 3);
-    const result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + 
-                  (otherNumbers ? ',' : '') + lastThree;
-    return `${sign}₹${result}`;
-  }
-};
+    ///const abs = Math.abs(Math.round(value));
+    ///const sign = value < 0 ? '-' : '';
+    ///const str = abs.toString();
+    ///const lastThree = str.substring(str.length - 3);
+    ///const otherNumbers = str.substring(0, str.length - 3);
+    ///const result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + 
+       ///           (otherNumbers ? ',' : '') + lastThree;
+    ///return `${sign}₹${result}`;
+  ///}
+///};
 
 
 
@@ -101,6 +108,13 @@ const AccountsScreen: React.FC = () => {
   const [type, setType] = useState<AccountType>('savings');
   const [balanceAmount, setBalanceAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [accountNumberFull, setAccountNumberFull] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
+  const [swiftCode, setSwiftCode] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [accountHolderName, setAccountHolderName] = useState('');
+
+
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -143,6 +157,11 @@ const AccountsScreen: React.FC = () => {
     setBankName('');
     setNickname('');
     setAccountNumberMasked('');
+    setAccountNumberFull('');
+    setIfscCode('');
+    setSwiftCode('');
+    setUpiId('');
+    setAccountHolderName('');
     setType('savings');
     setBalanceAmount('');
   };
@@ -151,8 +170,8 @@ const AccountsScreen: React.FC = () => {
   const handleAddAccount = async () => {
     if (isProcessing) return;
 
-    if (!bankName.trim() || !nickname.trim() || !balanceAmount.trim()) {
-      Alert.alert('Error', 'Bank, Nickname, and Balance are required.');
+    if (!bankName.trim() || !accountNumberFull.trim() || !balanceAmount.trim()) {
+      Alert.alert('Error', 'Bank Name, Full Account Number, and Opening Balance are required.');
       return;
     }
 
@@ -164,16 +183,31 @@ const AccountsScreen: React.FC = () => {
 
     setIsProcessing(true);
     try {
+      // Auto-derive last 4 digits and generate nickname if not provided
+      const fullNumber = accountNumberFull.trim();
+      const last4 = fullNumber.slice(-4);
+      const derivedMasked = fullNumber.length >= 4 ? `****${last4}` : '****XXXX';
+
+      // Auto-generate nickname if not provided
+      const finalNickname = nickname.trim() || 
+        `${bankName.trim()} ${type.charAt(0).toUpperCase() + type.slice(1)} ${last4}`;
+
       const newAccount: Account = {
         id: Date.now().toString(),
         bankName: bankName.trim(),
-        nickname: nickname.trim(),
-        accountNumberMasked: accountNumberMasked.trim() || '****XXXX',
+        nickname: finalNickname,
+        accountNumberMasked: derivedMasked,
+        accountNumberFull: fullNumber,
+        ifscCode: ifscCode.trim() || undefined,
+        swiftCode: swiftCode.trim() || undefined,
+        upiId: upiId.trim() || undefined,
+        accountHolderName: accountHolderName.trim() || undefined,
         type,
         balance: { amount: amt, currency: 'INR' },
         lastSynced: new Date(),
         status: 'active',
       };
+
 
       await save(draft => {
         const next = draft.accounts ? [...draft.accounts] : [];
@@ -474,23 +508,14 @@ const AccountsScreen: React.FC = () => {
               </View>
               
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Account Nickname *</Text>
+                <Text style={styles.inputLabel}>Full Account Number / IBAN *</Text>
                 <TextInput
                   style={styles.textInput}
-                  value={nickname}
-                  onChangeText={setNickname}
-                  placeholder="e.g., HDFC Savings, Salary Account"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Account Number (Last 4 digits)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={accountNumberMasked}
-                  onChangeText={setAccountNumberMasked}
-                  placeholder="****1234"
-                  maxLength={8}
+                  value={accountNumberFull}
+                  onChangeText={setAccountNumberFull}
+                  placeholder="Complete account number or IBAN"
+                  keyboardType="default"
+                  autoCapitalize="characters"
                 />
               </View>
 
@@ -518,7 +543,7 @@ const AccountsScreen: React.FC = () => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Current Balance (₹) *</Text>
+                <Text style={styles.inputLabel}>Opening Balance (₹) *</Text>
                 <TextInput
                   style={styles.textInput}
                   value={balanceAmount}
@@ -527,6 +552,64 @@ const AccountsScreen: React.FC = () => {
                   keyboardType="numeric"
                 />
               </View>
+I     
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Holder Name</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={accountHolderName}
+                  onChangeText={setAccountHolderName}
+                  placeholder="Name as per bank records"
+                  autoCapitalize="words"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Nickname (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={nickname}
+                  onChangeText={setNickname}
+                  placeholder="Auto-generated if left blank"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>IFSC Code</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={ifscCode}
+                  onChangeText={(text) => setIfscCode(text.toUpperCase())}
+                  placeholder="e.g., HDFC0001234"
+                  autoCapitalize="characters"
+                  maxLength={11}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Swift Code</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={swiftCode}
+                  onChangeText={(text) => setSwiftCode(text.toUpperCase())}
+                  placeholder="e.g., HDFCINBB"
+                  autoCapitalize="characters"
+                  maxLength={11}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>UPI ID</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={upiId}
+                  onChangeText={setUpiId}
+                  placeholder="e.g., yourname@paytm"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+    
             </View>
           </ScrollView>
           

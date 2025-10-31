@@ -169,7 +169,7 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     }
 
     
-    // ACCOUNTS transactions (NEW - ready for account transaction data)
+    // ACCOUNTS transactions (Enhanced with metadata)
     else if (params.filterCriteria.assetType === 'account') {
       const accounts = (state?.accounts ?? []) as any[];
       combined = accounts.flatMap((account) => {
@@ -180,17 +180,21 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           bankName: account.bankName,
         });
 
-        // Until real transactions exist, expose a balance row
+        // Synthesize balance row with enhanced metadata
         return [{
           id: `${account.id}-balance`,
           datetime: account.lastSynced ? new Date(account.lastSynced) : new Date(),
           amount: { amount: account.balance?.amount ?? 0, currency: 'INR' },
-          description: `Current balance - ${account.nickname}`,
-          notes: `${account.bankName} • ${account.accountNumberMasked}`,
+          description: `Account Balance - ${account.nickname}`,
+          notes: `${account.bankName} • ${account.type.toUpperCase()} • ${account.accountNumberMasked}`,
           type: 'balance',
           assetType: 'account',
           assetId: account.id,
-          assetLabel: packedLabel, // critical for filter and display
+          assetLabel: packedLabel,
+          // Add account-specific metadata
+          bankName: account.bankName,
+          accountType: account.type,
+          accountStatus: account.status ?? 'active',
         }] as unknown as TransactionRecord[];
       });
     }
@@ -291,6 +295,11 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           {!!item.cashCategory && (
             <View style={styles.chip}>
               <Text style={styles.chipText}>{item.cashCategory}</Text>
+            </View>
+          )}
+          {!!item.bankName && (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{item.bankName}</Text>
             </View>
           )}
         </View>
