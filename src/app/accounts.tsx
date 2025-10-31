@@ -133,6 +133,7 @@ const AccountsScreen: React.FC = () => {
   const [swiftCode, setSwiftCode] = useState('');
   const [upiId, setUpiId] = useState('');
   const [accountHolderName, setAccountHolderName] = useState('');
+  const [isDebitModalVisible, setIsDebitModalVisible] = useState(false);
 
 
 
@@ -150,6 +151,13 @@ const AccountsScreen: React.FC = () => {
   const [editSwiftCode, setEditSwiftCode] = useState('');
   const [editUpiId, setEditUpiId] = useState('');
   const [editAccountHolderName, setEditAccountHolderName] = useState('');
+
+  const [debitAmount, setDebitAmount] = useState('');
+  const [debitDescription, setDebitDescription] = useState('');
+  const [debitCategory, setDebitCategory] = useState<string>('other');
+  const [debitDate, setDebitDate] = useState<string>(new Date().toISOString().slice(0,10));
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  const [accountSearch, setAccountSearch] = useState('');
 
 
   // TransactionsModal states
@@ -366,6 +374,11 @@ const AccountsScreen: React.FC = () => {
     ]);
 
   // Quick action handlers
+  // Debit expense handler (placeholder for HP-4)
+  const handleSaveDebitExpense = () => {
+    Alert.alert('Ready', 'Save functionality will be implemented in HP-4.');
+    // Keep modal open for testing - remove this line in HP-4
+  };
   const handleUploadStatements = () =>
     Alert.alert('Coming Soon', 'Upload Statements flow will be implemented next.');
   const handleScanSMS = () =>
@@ -417,21 +430,24 @@ const AccountsScreen: React.FC = () => {
     <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionGrid}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleUploadStatements}>
-          <MaterialIcons name="upload-file" size={24} color="#8B5CF6" />
-          <Text style={styles.actionText}>Upload Statements</Text>
+        <TouchableOpacity style={styles.actionButton} onPress={() => setIsDebitModalVisible(true)}>
+          <MaterialIcons name="point-of-sale" size={24} color="#8B5CF6" />
+          <Text style={styles.actionText}>Add Debit Card/UPI Expense</Text>
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.actionButton} onPress={handleScanSMS}>
           <MaterialIcons name="sms" size={24} color="#8B5CF6" />
           <Text style={styles.actionText}>Scan SMS</Text>
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.actionButton} onPress={handleScanEmails}>
           <MaterialIcons name="email" size={24} color="#8B5CF6" />
           <Text style={styles.actionText}>Scan Emails</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddModalVisible(true)}>
-          <MaterialIcons name="add-circle-outline" size={24} color="#8B5CF6" />
-          <Text style={styles.actionText}>Add Account</Text>
+
+        <TouchableOpacity style={styles.actionButton} onPress={handleUploadStatements}>
+          <MaterialIcons name="upload-file" size={24} color="#8B5CF6" />
+          <Text style={styles.actionText}>Upload Statements</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -903,6 +919,125 @@ const AccountsScreen: React.FC = () => {
     </Modal>
   );
 
+  const renderDebitModal = () => {
+    const accountsList = accounts.filter(a => (a.status ?? 'active') === 'active');
+
+    return (
+      <Modal
+        visible={isDebitModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsDebitModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Debit Card/UPI Expense</Text>
+              <TouchableOpacity onPress={() => setIsDebitModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalBody}>
+                {/* Amount */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={debitAmount}
+                    onChangeText={setDebitAmount}
+                    placeholder="0"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                {/* Description */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Description (Optional)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={debitDescription}
+                    onChangeText={setDebitDescription}
+                    placeholder="e.g., Grocery, Fuel, Food"
+                  />
+                </View>
+
+                {/* Category - reuse cash categories style */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Debit Category</Text>
+                  <View style={styles.pickerContainer}>
+                    {['grocery','fuel','food','bills','shopping','travel','other'].map(option => (
+                      <TouchableOpacity
+                        key={option}
+                        style={[styles.pickerOption, debitCategory === option && styles.pickerOptionSelected]}
+                        onPress={() => setDebitCategory(option)}
+                      >
+                        <Text style={[styles.pickerOptionText, debitCategory === option && styles.pickerOptionTextSelected]}>
+                          {option.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Date selector */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Transaction Date *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={debitDate}
+                    onChangeText={setDebitDate}
+                    placeholder={new Date().toISOString().slice(0,10)}
+                  />
+                </View>
+
+                {/* Account picker with dropdown switch */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Debit Account *</Text>
+                  <View style={styles.pickerContainer}>
+                    {(accountsList.length <= 5 ? accountsList : accountsList.slice(0,5)).map((acc) => (
+                      <TouchableOpacity
+                        key={acc.id}
+                        style={[styles.pickerOption, selectedAccountId === acc.id && styles.pickerOptionSelected]}
+                        onPress={() => setSelectedAccountId(acc.id)}
+                      >
+                        <Text style={[styles.pickerOptionText, selectedAccountId === acc.id && styles.pickerOptionTextSelected]}>
+                          {acc.nickname}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  {accountsList.length > 5 && (
+                    <View style={{ marginTop: 8 }}>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="Search/select account"
+                        value={accountSearch}
+                        onChangeText={setAccountSearch}
+                      />
+                    </View>
+                  )}
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsDebitModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleSaveDebitExpense} // To be added in HP-4
+              >
+                <Text style={styles.addButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
 
 
@@ -956,7 +1091,8 @@ const AccountsScreen: React.FC = () => {
 
       {renderAddModal()}
       {renderEditModal()}
-      
+      {renderDebitModal()}
+
       {/* TransactionsModal Integration */}
       {txFilter ? (
         <TransactionsModal
