@@ -223,7 +223,12 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
         const isSpecificAccountView =
           params.filterCriteria.assetType === 'account' &&
           params.filterCriteria.filterType === 'category' &&
-          params.filterCriteria.assetLabel === packedLabel;
+          (
+            // Prefer stable assetId matching
+            (params.filterCriteria.assetId && params.filterCriteria.assetId === account.id) ||
+            // Fallback to legacy label match when assetId is absent
+            (params.filterCriteria.assetLabel && params.filterCriteria.assetLabel === packedLabel)
+          );
 
         // Compute opening only for the requested account
         if (isSpecificAccountView) {
