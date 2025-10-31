@@ -202,42 +202,67 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           bankName: account.bankName,
         });
 
-        // Get real transactions from account.transactions array
-        const realTransactions = (account.transactions ?? []).map((tx: { id: any; datetime: string | number | Date; amount: { amount: any; currency: any; }; description: any; notes: any; type: any; }) => ({
+        // Build base real transaction rows for this account
+        const realTransactions = (account.transactions ?? []).map((tx: any) => ({
           id: tx.id,
           datetime: new Date(tx.datetime),
-          amount: { amount: tx.amount.amount, currency: tx.amount.currency }, // tx.amount is Money object
+          amount: { amount: tx.amount.amount, currency: tx.amount.currency },
           description: tx.description,
           notes: tx.notes,
           type: tx.type,
           assetType: 'account',
           assetId: account.id,
           assetLabel: packedLabel,
-          // Add account-specific metadata
           bankName: account.bankName,
           accountType: account.type,
           accountStatus: account.status ?? 'active',
         })) as unknown as TransactionRecord[];
 
-        // Also include balance row for visual consistency
-        ///const balanceRow = {
-          ///id: `${account.id}-balance`,
-          ///datetime: account.lastSynced ? new Date(account.lastSynced) : new Date(),
-          ///amount: { amount: account.balance?.amount ?? 0, currency: 'INR' },
-          ///description: `Current Balance - ${account.nickname}`,
-          ///notes: `${account.bankName} • ${account.type.toUpperCase()} • ${account.accountNumberMasked}`,
-          ///type: 'balance',
-          ///assetType: 'account',
-          ///assetId: account.id,
-          ///assetLabel: packedLabel,
-          ///bankName: account.bankName,
-          ///accountType: account.type,
-          ///accountStatus: account.status ?? 'active',
-        ///} as unknown as TransactionRecord;
+        // If the current modal view is for a specific account (category filter),
+        // include a synthetic Opening Balance row as the earliest transaction if missing.
+        const isSpecificAccountView =
+          params.filterCriteria.assetType === 'account' &&
+          params.filterCriteria.filterType === 'category' &&
+          params.filterCriteria.assetLabel === packedLabel;
 
-        // Return both real transactions and balance row
-        ///return [...realTransactions, balanceRow];
+        // Compute opening only for the requested account
+        if (isSpecificAccountView) {
+          // Sum all transactions amounts (they can be pos/neg)
+          const txSum = realTransactions.reduce((sum, t) => sum + (t.amount?.amount ?? 0), 0);
+          const currentBalance = account.balance?.amount ?? 0;
+          const openingAmount = currentBalance - txSum;
+
+          // Only add Opening Balance row if it does not already exist by description/type
+          const hasOpeningRow = realTransactions.some(
+            t => t.type === 'ACCT_OPENING_BAL' || (t.description ?? '').toLowerCase().includes('opening balance')
+          );
+
+          if (!hasOpeningRow) {
+            const openingRow = {
+            id: ${account.id}-opening-balance,
+            datetime: realTransactions.length > 0
+            ? new Date(new Date(realTransactions[realTransactions.length - 1].datetime).getTime() - 1000)
+            : new Date(account.lastSynced ? new Date(account.lastSynced).getTime() - 1000 : Date.now() - 1000),
+            amount: { amount: openingAmount, currency: 'INR' },
+            description: 'Opening Balance',
+            notes: ${account.bankName} - ${account.type?.toUpperCase?.()} - ${account.accountNumberMasked},
+            type: 'ACCT_OPENING_BAL', // new canonical type
+            assetType: 'account',
+            assetId: account.id,
+            assetLabel: packedLabel,
+            bankName: account.bankName,
+            accountType: account.type,
+            accountStatus: account.status ?? 'active',
+            } as TransactionRecord;
+
+            // Include opening row at the end; the global sorter will handle order
+            return [...realTransactions, openingRow];
+          }
+        }
+
+        // Default return: only real transactions
         return realTransactions;
+
       });
     }
 

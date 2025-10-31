@@ -1180,23 +1180,28 @@ const CashScreen: React.FC = () => {
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>To Bank Account *</Text>
                   <View style={styles.pickerContainer}>
-                    {availableBankAccounts.map((account, index) => (
-                      <TouchableOpacity
-                        key={`bank-${index}`}
-                        style={[
-                          styles.pickerOption,
-                          selectedBankAccount === account.id && styles.pickerOptionSelected
-                        ]}
-                        onPress={() => setSelectedBankAccount(account.id)}
-                      >
-                        <Text style={[
-                          styles.pickerOptionText,
-                          selectedBankAccount === account.id && styles.pickerOptionTextSelected
-                        ]}>
-                          {account.bankName} - {account.accountType}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {availableBankAccounts.map((account, index) => {
+                      const nickname = account.nickname || account.bankName || 'Bank';
+                      const last4 = (account.accountNumberMasked || '').slice(-4).replace('*', '');
+                      const label = `${nickname} - ${last4 || 'XXXX'}`;
+                      return (
+                        <TouchableOpacity
+                          key={`bank-${index}`}
+                          style={[
+                            styles.pickerOption,
+                            selectedBankAccount === account.id && styles.pickerOptionSelected
+                          ]}
+                          onPress={() => setSelectedBankAccount(account.id)}
+                        >
+                          <Text style={[
+                            styles.pickerOptionText,
+                            selectedBankAccount === account.id && styles.pickerOptionTextSelected
+                          ]}>
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </View>
               ) : (
