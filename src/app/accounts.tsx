@@ -443,16 +443,6 @@ const AccountsScreen: React.FC = () => {
           <Text style={styles.rowActionText}>Edit</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.rowAction}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleDeleteAccountConfirm(acc);
-          }}
-        >
-          <MaterialIcons name="delete-outline" size={18} color="#E74C3C" />
-          <Text style={[styles.rowActionText, { color: '#E74C3C' }]}>Delete</Text>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );}
@@ -569,9 +559,19 @@ const AccountsScreen: React.FC = () => {
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Bank Account</Text>
-            <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-              <MaterialIcons name="close" size={24} color="#666" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (editingAccount) handleDeleteAccountConfirm(editingAccount);
+                }}
+                style={{ marginRight: 12 }}
+              >
+                <MaterialIcons name="delete" size={22} color="#E74C3C" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
           </View>
           <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
             <View style={styles.modalBody}>
