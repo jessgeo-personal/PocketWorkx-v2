@@ -182,7 +182,7 @@ const HomeScreen: React.FC = () => {
       <View style={styles.topQuickActionsGrid}>
         <TouchableOpacity 
           style={styles.topQuickActionButton}
-          onPress={() => router.push('/cash?openModal=expense')}
+          onPress={() => router.push({ pathname: '/cash', params: { openModal: 'expense' } })}
         >
           <Feather name="credit-card" size={24} color="#FFFFFF" />
           <Text style={styles.topQuickActionText}>Record Expense</Text>
@@ -190,7 +190,7 @@ const HomeScreen: React.FC = () => {
         
         <TouchableOpacity 
           style={styles.topQuickActionButton}
-          onPress={() => router.push('/accounts?openModal=debit')}
+          onPress={() => router.push({ pathname: '/accounts', params: { openModal: 'debit' } })}
         >
           <Feather name="minus-circle" size={24} color="#FFFFFF" />
           <Text style={styles.topQuickActionText}>Add Debit Card/UPI Expense</Text>
@@ -324,7 +324,7 @@ const HomeScreen: React.FC = () => {
         
         <TouchableOpacity 
           style={[styles.quickActionItem, styles.primaryAction]}
-          onPress={() => router.push('/cash')}
+          onPress={() => router.push({ pathname: '/cash', params: { openModal: 'add' } })}
         >
           <Feather name="plus" size={20} color={Colors.white} />
           <Text style={[styles.quickActionText, { color: Colors.white }]}>Add Cash</Text>

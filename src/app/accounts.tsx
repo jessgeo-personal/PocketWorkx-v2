@@ -11,7 +11,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams,useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
@@ -185,20 +185,15 @@ const AccountsScreen: React.FC = () => {
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
 
-  // Auto-open debit modal when navigated with query param: /accounts?openModal=debit
-  useEffect(() => {
-    try {
-      // Parse URL for openModal parameter
-      const url = (typeof window !== 'undefined' && window.location?.href) || '';
-      const hasDebit = url.includes('openModal=debit');
-      if (hasDebit) {
-        setIsDebitModalVisible(true);
-      }
-    } catch (e) {
-      // Silent fallback if URL is not available (native)
-    }
-  }, []);
+// Get navigation parameters for auto-opening modals
+const searchParams = useLocalSearchParams<{ openModal?: string }>();
 
+  // Auto-open debit modal when navigated from home quick actions
+  useEffect(() => {
+    if (searchParams?.openModal === 'debit') {
+      setIsDebitModalVisible(true);
+    }
+  }, [searchParams?.openModal]);
 
   // Get accounts from storage
   const accounts: Account[] = (state?.accounts as Account[] | undefined) ?? [];

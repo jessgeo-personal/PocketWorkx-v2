@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
@@ -120,19 +120,18 @@ const CashScreen: React.FC = () => {
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
 
   // Auto-open expense modal when navigated with query param: /cash?openModal=expense
+  // Get navigation parameters for auto-opening modals
+  const searchParams = useLocalSearchParams<{ openModal?: string }>();
+
+  // Auto-open expense modal when navigated from home quick actions
   useEffect(() => {
-    // expo-router exposes segments and params differently depending on version; use global location as fallback
-    try {
-      // If using expo-router v3+, use useLocalSearchParams, but for now parse from window-like APIs:
-      const url = (typeof window !== 'undefined' && window.location?.href) || '';
-      const hasExpense = url.includes('openModal=expense');
-      if (hasExpense) {
-        setIsExpenseModalVisible(true);
+    if (searchParams?.openModal === 'expense') {
+      setIsExpenseModalVisible(true);
+      } else if (searchParams?.openModal === 'add') {
+        setIsAddModalVisible(true);
       }
-    } catch (e) {
-      // Silent fallback if URL is not available (native)
-    }
-  }, []);
+  }, [searchParams?.openModal]);
+
 
 
   // ADD router hook in component
