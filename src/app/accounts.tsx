@@ -178,6 +178,45 @@ const AccountsScreen: React.FC = () => {
     );
   };
 
+  // Edit form validation (inside component)
+  const editFormValidation = useMemo(() => {
+    if (!editingAccount) return { hasChanges: false, isValid: false };
+    
+    const currentBalance = Number(editBalanceAmount);
+    const isBalanceValid = Number.isFinite(currentBalance) && currentBalance >= 0;
+    
+    const hasChanges = (
+      editBankName.trim() !== editingAccount.bankName ||
+      editNickname.trim() !== editingAccount.nickname ||
+      editAccountNumberFull.trim() !== (editingAccount.accountNumberFull || '') ||
+      editIfscCode.trim() !== (editingAccount.ifscCode || '') ||
+      editSwiftCode.trim() !== (editingAccount.swiftCode || '') ||
+      editUpiId.trim() !== (editingAccount.upiId || '') ||
+      editAccountHolderName.trim() !== (editingAccount.accountHolderName || '') ||
+      editType !== editingAccount.type ||
+      currentBalance !== editingAccount.balance.amount
+    );
+    
+    const isValid = (
+      editBankName.trim().length > 0 && 
+      editNickname.trim().length > 0 &&
+      isBalanceValid
+    );
+    
+    return { hasChanges, isValid };
+  }, [
+    editingAccount,
+    editBankName,
+    editNickname,
+    editAccountNumberFull,
+    editIfscCode,
+    editSwiftCode,
+    editUpiId,
+    editAccountHolderName,
+    editType,
+    editBalanceAmount
+  ]);
+
   // Reset form helper
   const resetAddForm = () => {
     setBankName('');
@@ -267,17 +306,22 @@ const AccountsScreen: React.FC = () => {
 
   const handleSaveEdit = async () => {
     if (!editingAccount) return;
-    const amt = Number(editBalanceAmount);
-    if (!Number.isFinite(amt) || amt < 0) {
-      Alert.alert('Error', 'Enter a valid non-negative balance.');
+    
+    if (!editFormValidation.isValid) {
+      Alert.alert('Error', 'Bank Name, Account Nickname, and a valid non-negative balance are required.');
       return;
     }
-
-    // Auto-derive last 4 if full account number is provided
+    
+    if (!editFormValidation.hasChanges) {
+      Alert.alert('Info', 'No changes to save.');
+      return;
+    }
+    
+    const amt = Number(editBalanceAmount);
     const fullNumber = editAccountNumberFull.trim();
-    const derivedMasked = fullNumber 
+    const derivedMasked = fullNumber
       ? (fullNumber.length >= 4 ? `****${fullNumber.slice(-4)}` : '****XXXX')
-      : editAccountNumberMasked.trim() || editingAccount.accountNumberMasked;
+      : editingAccount.accountNumberMasked;
 
     await save(draft => {
       const next = (draft.accounts ?? []).map((a: Account) =>
@@ -303,8 +347,6 @@ const AccountsScreen: React.FC = () => {
     setIsEditModalVisible(false);
     setEditingAccount(null);
   };
-
-
 
 
   // Delete account handler
@@ -845,7 +887,14 @@ const AccountsScreen: React.FC = () => {
             <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditModalVisible(false)}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.addButton} onPress={handleSaveEdit}>
+            <TouchableOpacity 
+              style={[
+                styles.addButton, 
+                (!editFormValidation.hasChanges || !editFormValidation.isValid) && styles.disabledButton
+              ]} 
+              onPress={handleSaveEdit}
+              disabled={!editFormValidation.hasChanges || !editFormValidation.isValid}
+            >
               <Text style={styles.addButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
