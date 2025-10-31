@@ -19,7 +19,12 @@ import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
 import { formatCompactCurrency } from '../utils/currency';
 import type { TransactionRecord, FilterCriteria } from '../types/transactions';
-
+import { 
+  CashCategoryType, 
+  ExpenseCategoryType,
+  getcashCategoryOptions,
+  getExpenseCategoryOptions 
+} from '../types/categories';
 import TransactionsModal from '../components/modals/TransactionsModal';
 
 
@@ -33,27 +38,6 @@ import { useStorage } from '../services/storage/StorageProvider';
 // Otherwise, define a minimal local type here (compatible with your previous structure):
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
-
-enum CashCategoryType {
-  WALLET = 'Wallet',
-  HOME_SAFE = 'Home Safe', 
-  LOOSE_CHANGE_CAR = 'Loose change (car)',
-  LOOSE_CHANGE_HOME = 'Loose Change (home)'
-}
-
-enum ExpenseCategoryType {
-  FOOD = 'Food',
-  GROCERY = 'Grocery',
-  HOME_EXPENSES = 'Home expenses',
-  SHOPPING = 'Shopping',
-  JEWELERY = 'Jewelery',
-  FUEL = 'Fuel',
-  CAR_EXPENDITURE = 'Car expenditure',
-  UTILITIES = 'utilities',
-  SUBSCRIPTIONS = 'subscriptions',
-  PHONE_INTERNET = 'Phone & Internet',
-  INVESTMENTS = 'Investments'
-}
 
 // CashEntry type (cashTransactions format)
 type CashEntry = {
@@ -141,14 +125,14 @@ const CashScreen: React.FC = () => {
   const router = useRouter();
 
   // ADD dropdown helper
-  const getcashCategoryOptions = (): string[] => {
-    return Object.values(CashCategoryType);
-  };
+  ///const getcashCategoryOptions = (): string[] => {
+    ///return Object.values(CashCategoryType);
+  ///};
 
   // ADD helper function for expense categories
-  const getExpenseCategoryOptions = (): string[] => {
-    return Object.values(ExpenseCategoryType);
-  };
+  ///const getExpenseCategoryOptions = (): string[] => {
+    ///return Object.values(ExpenseCategoryType);
+  ///};
 
     // Read cash entries from the shared store (backed by local JSON file)
   const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];

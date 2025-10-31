@@ -28,7 +28,7 @@ export interface TransactionRecord {
   | 'LOAN' 
   | 'CREDIT_CARD'
   | 'ACCT_OPENING_BAL';
-  
+
   // Bank account-specific fields (optional)
   merchant?: string;
   balance?: number; // Balance after transaction
@@ -54,7 +54,7 @@ export interface TransactionRecord {
  * Supports filtering by asset type, category, and future date range
  */
 export interface FilterCriteria {
-  assetType: 'cash' | 'account' | 'loan' | 'credit_card';
+  assetType: 'cash' | 'account' | 'loan' | 'creditcard' | 'investment' | 'crypto';
   filterType: 'all' | 'category'; // 'all' = all transactions, 'category' = specific category/account
   assetId?: string; // Specific category/account ID (required if filterType === 'category')
   assetLabel: string; // Display label for header ('All Liquid Cash', 'Wallet', 'HDFC Savings', etc.)

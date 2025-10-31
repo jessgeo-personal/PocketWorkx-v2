@@ -11,13 +11,66 @@ import WelcomeHeader from '../components/dashboard/WelcomeHeader';
 import SummaryCard from '../components/dashboard/SummaryCard';
 import LatestTransactions, { Txn } from '../components/dashboard/LatestTransactions';
 import QuickActions from '../components/dashboard/QuickActions';
+import { useStorage } from '../services/storage/StorageProvider';
+import type { TransactionRecord } from '../types/transactions';
+
 
 export default function DashboardScreen() {
-  // Demo financial data - replace with live calculations from services later
-  const liquidCashINR = 2345300;       // ₹ 23,45,300
-  const netWorthINR = 10325550;        // ₹ 1,03,25,550
-  const liabilitiesINR = 7500550;      // ₹ 75,00,550
-  const invAndRecvINR = 17832550;      // ₹ 1,78,32,550
+  // Hook into global storage
+  const { state } = useStorage();
+
+  // 1) Cash totals
+  const cashEntries = (state?.cashEntries ?? []) as Array<{
+    amount: { amount: number; currency: string };
+    type: string;
+    timestamp: string | Date;
+    description?: string;
+    cashCategory?: string;
+    expenseCategory?: string;
+    notes?: string;
+    id: string;
+  }>;
+  const liquidCashINR = useMemo(
+    () => cashEntries.reduce((sum, e) => sum + (e.amount?.amount ?? 0), 0),
+    [cashEntries]
+  );
+
+  // 2) Bank accounts total balance
+  const accounts = (state?.accounts ?? []) as Array<{
+    id: string;
+    nickname: string;
+    bankName: string;
+    accountNumberMasked: string;
+    type: string;
+    balance: { amount: number; currency: string };
+    transactions?: Array<{
+      id: string;
+      datetime: string | Date;
+      amount: { amount: number; currency: string };
+      description: string;
+      type: string;
+      notes?: string;
+      source?: string;
+      status?: string;
+    }>;
+  }>;
+  const accountsTotalINR = useMemo(
+    () => accounts.reduce((sum, a) => sum + (a.balance?.amount ?? 0), 0),
+    [accounts]
+  );
+
+  // 3) For now, liabilities and investments placeholders (to be wired in later phases)
+  const liabilitiesINR = 0;     // loans + credit cards totals will fill this
+  const invAndRecvINR = 0;      // investments + receivables totals will fill this
+
+  // 4) Net worth per verified formula:
+  // Net Worth = (bankAccounts + crypto + investments + physicalAssets) - (loans + creditCardBalances)
+  // For now, only bank accounts contribute positively; others will be added when ready
+  const netWorthINR = useMemo(
+    () => accountsTotalINR - liabilitiesINR + invAndRecvINR, 
+    [accountsTotalINR, liabilitiesINR, invAndRecvINR]
+  );
+
 
   const summaryData = useMemo(() => [
     { 
@@ -46,24 +99,32 @@ export default function DashboardScreen() {
     },
   ], [liquidCashINR, netWorthINR, liabilitiesINR, invAndRecvINR]);
 
-  const latestTxns: Txn[] = [
-    { 
-      id: 't1', 
-      title: 'Borcelle Store', 
-      date: 'Fri, 10 Sep 2026', 
-      status: 'Success', 
-      amount: -3500, 
-      currency: 'INR' 
-    },
-    { 
-      id: 't2', 
-      title: 'Timmerman Industries', 
-      date: 'Sat, 12 Jun 2026', 
-      status: 'Success', 
-      amount: -6500, 
-      currency: 'INR' 
-    },
-  ];
+  // Build a unified last N transactions view from cash + accounts
+  const latestTxns: Txn[] = useMemo(() => {
+    const cashTxns = cashEntries.map(e => ({
+      id: e.id,
+      title: e.description || e.cashCategory || 'Cash',
+      date: new Date(e.timestamp).toDateString(),
+      status: 'Success' as const,
+      amount: e.amount.amount,
+      currency: 'INR' as const, // Force literal type
+    }));
+
+    const accountTxns = accounts.flatMap(acc => (acc.transactions ?? []).map(tx => ({
+      id: tx.id,
+      title: tx.description || `${acc.nickname} ${acc.accountNumberMasked}`,
+      date: new Date(tx.datetime).toDateString(),
+      status: (tx.status as 'Success' | 'Pending' | 'Failed') || 'Success',
+      amount: tx.amount.amount,
+      currency: 'INR' as const, // Force literal type
+    })));
+
+    return [...cashTxns, ...accountTxns]
+      .sort((a, b) => +new Date(b.date) - +new Date(a.date))
+      .slice(0, 6);
+  }, [cashEntries, accounts]);
+
+
 
   const quickActions = [
     { id: 'qa1', icon: 'document-scanner', label: 'Scan receipts' },

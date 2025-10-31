@@ -24,6 +24,7 @@ import TransactionsModal from '../components/modals/TransactionsModal';
 import { useStorage } from '../services/storage/StorageProvider';
 import { StatusBar } from 'expo-status-bar';
 import type { TransactionRecord, FilterCriteria, AccountTransaction } from '../types/transactions';
+import { DebitCategoryType, getDebitCategoryOptions } from '../types/categories';
 
 
 type Currency = 'INR';
@@ -214,21 +215,23 @@ const AccountsScreen: React.FC = () => {
     const isBalanceValid = Number.isFinite(currentBalance) && currentBalance >= 0;
     
     const hasChanges = (
-      editBankName.trim() !== editingAccount.bankName ||
+      //editBankName.trim() !== editingAccount.bankName ||
       editNickname.trim() !== editingAccount.nickname ||
-      editAccountNumberFull.trim() !== (editingAccount.accountNumberFull || '') ||
+      //editAccountNumberFull.trim() !== (editingAccount.accountNumberFull || '') ||
       editIfscCode.trim() !== (editingAccount.ifscCode || '') ||
       editSwiftCode.trim() !== (editingAccount.swiftCode || '') ||
       editUpiId.trim() !== (editingAccount.upiId || '') ||
-      editAccountHolderName.trim() !== (editingAccount.accountHolderName || '') ||
-      editType !== editingAccount.type ||
-      currentBalance !== editingAccount.balance.amount
+      editAccountHolderName.trim() !== (editingAccount.accountHolderName || '') 
+      //||
+      //editType !== editingAccount.type ||
+      //currentBalance !== editingAccount.balance.amount
     );
     
     const isValid = (
-      editBankName.trim().length > 0 && 
-      editNickname.trim().length > 0 &&
-      isBalanceValid
+      //editBankName.trim().length > 0 && 
+      editNickname.trim().length > 0 
+      //&&
+      //isBalanceValid
     );
     
     return { hasChanges, isValid };
@@ -402,16 +405,17 @@ const AccountsScreen: React.FC = () => {
         a.id === editingAccount.id
           ? {
               ...a,
-              bankName: editBankName.trim(),
+               // Core fields remain unchanged:
+              //bankName: editBankName.trim(),
               nickname: editNickname.trim(),
               accountNumberMasked: derivedMasked,
-              accountNumberFull: fullNumber || undefined,
+              //accountNumberFull: fullNumber || undefined,
               ifscCode: editIfscCode.trim() || undefined,
               swiftCode: editSwiftCode.trim() || undefined,
               upiId: editUpiId.trim() || undefined,
               accountHolderName: editAccountHolderName.trim() || undefined,
-              type: editType,
-              balance: { amount: amt, currency: 'INR' },
+              //type: editType,
+              //balance: { amount: amt, currency: 'INR' },
               lastSynced: new Date(),
             }
           : a
@@ -949,56 +953,42 @@ const AccountsScreen: React.FC = () => {
             <View style={styles.modalBody}>
               {/* Required fields only */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Bank Name *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editBankName}
-                  onChangeText={setEditBankName}
-                  placeholder="e.g., HDFC Bank, ICICI Bank"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Full Account Number / IBAN</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editAccountNumberFull}
-                  onChangeText={setEditAccountNumberFull}
-                  placeholder="Complete account number or IBAN"
-                  keyboardType="default"
-                  autoCapitalize="characters"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Account Type *</Text>
-                <View style={styles.pickerContainer}>
-                  {(['savings', 'current', 'salary', 'other'] as AccountType[]).map((option) => (
-                    <TouchableOpacity
-                      key={`edit-${option}`}
-                      style={[styles.pickerOption, editType === option && styles.pickerOptionSelected]}
-                      onPress={() => setEditType(option)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Select ${option} account type`}
-                    >
-                      <Text style={[styles.pickerOptionText, editType === option && styles.pickerOptionTextSelected]}>
-                        {option.toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                <Text style={styles.inputLabel}>Bank Name</Text>
+                <View style={[styles.textInput, styles.readOnlyInput]}>
+                  <Text style={styles.readOnlyText}>{editingAccount?.bankName}</Text>
                 </View>
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Current Balance (₹) *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={editBalanceAmount}
-                  onChangeText={setEditBalanceAmount}
-                  keyboardType="numeric"
-                  placeholder="0"
-                />
+                <Text style={styles.inputLabel}>Account Number / IBAN</Text>
+                <View style={[styles.textInput, styles.readOnlyInput]}>
+                  <Text style={styles.readOnlyText}>
+                    {editingAccount?.accountNumberFull || 'Not provided'}
+                  </Text>
+                </View>
               </View>
+
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Type</Text>
+                <View style={[styles.textInput, styles.readOnlyInput]}>
+                  <Text style={styles.readOnlyText}>{editingAccount?.type?.toUpperCase()}</Text>
+                </View>
+              </View>
+
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Opening Balance (₹)</Text>
+                <View style={[styles.textInput, styles.readOnlyInput]}>
+                  <Text style={styles.readOnlyText}>
+                    {formatFullINR(editingAccount?.balance?.amount || 0)}
+                  </Text>
+                </View>
+                <Text style={styles.readOnlyHint}>
+                  Balance is updated automatically by transactions
+                </Text>
+              </View>
+
 
               {/* Optional Fields Divider */}
               <View style={styles.optionalFieldsDivider}>
@@ -1134,7 +1124,7 @@ const AccountsScreen: React.FC = () => {
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Debit Category</Text>
                   <View style={styles.pickerContainer}>
-                    {['grocery','fuel','food','bills','shopping','travel','other'].map(option => (
+                    {getDebitCategoryOptions().map(option => (
                       <TouchableOpacity
                         key={option}
                         style={[styles.pickerOption, debitCategory === option && styles.pickerOptionSelected]}
@@ -1540,6 +1530,22 @@ const styles = StyleSheet.create({
     color: '#999999',
     fontWeight: '500',
     textAlign: 'right',
+  },
+  readOnlyInput: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#E0E0E0',
+    justifyContent: 'center',
+  },
+  readOnlyText: {
+    fontSize: 16,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  readOnlyHint: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 
 });

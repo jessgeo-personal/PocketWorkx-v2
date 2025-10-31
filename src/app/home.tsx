@@ -1,5 +1,5 @@
 // src/app/home.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import { useRouter } from 'expo-router';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
+import { useStorage } from '../services/storage/StorageProvider';
+
 
 // Import the logo image
 const LogoImage = require('../assets/logo.png');
@@ -34,36 +36,110 @@ interface Transaction {
   amount: number;
   status: 'success' | 'pending' | 'failed';
   type: 'debit' | 'credit';
+  assetType: 'cash' | 'account' | 'loan' | 'credit_card'; // NEW
+  assetSource: string; // NEW: e.g., "Wallet", "HDFC Salary ****1234"
 }
+
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
-    liquidCash: 2345300,
-    netWorth: 10325550,
-    totalLiabilities: 7500550,
-    investmentsReceivables: 17832550,
-    userName: 'Donna',
-    userEmail: 'hello@reallygreatsite.com',
-  });
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      merchant: 'Borcelle Store',
-      date: new Date('2024-09-10'),
-      amount: -3500,
-      status: 'success',
-      type: 'debit',
-    },
-    {
-      id: '2', 
-      merchant: 'Timmerman Industries',
-      date: new Date('2024-06-12'),
-      amount: -6500,
-      status: 'success',
-      type: 'debit',
-    },
-  ]);
+  // Hook into global storage
+  const { state } = useStorage();
+
+  // Live calculations from actual data
+  const dashboardData = useMemo((): DashboardData => {
+    // 1) Cash totals
+    const cashEntries = (state?.cashEntries ?? []) as Array<{
+      amount: { amount: number; currency: string };
+      type: string;
+      timestamp: string | Date;
+      description?: string;
+      cashCategory?: string;
+    }>;
+    const liquidCash = cashEntries.reduce((sum, e) => sum + (e.amount?.amount ?? 0), 0);
+
+    // 2) Bank accounts total balance  
+    const accounts = (state?.accounts ?? []) as Array<{
+      id: string;
+      nickname: string;
+      bankName: string;
+      type: string;
+      balance: { amount: number; currency: string };
+    }>;
+    const accountsTotal = accounts.reduce((sum, a) => sum + (a.balance?.amount ?? 0), 0);
+
+    // 3) For now, liabilities and investments placeholders (to be wired in later phases)
+    const totalLiabilities = 0;     // loans + credit cards totals will fill this
+    const investmentsReceivables = 0;      // investments + receivables totals will fill this
+
+    // 4) Net worth per verified formula: accounts + liquidCash - liabilities + investments
+    const netWorth = accountsTotal + liquidCash - totalLiabilities + investmentsReceivables;
+
+    return {
+      liquidCash,
+      netWorth,
+      totalLiabilities,
+      investmentsReceivables,
+      userName: 'Donna',
+      userEmail: 'hello@reallygreatsite.com',
+    };
+  }, [state]);
+
+  // Build unified recent transactions from cash + accounts
+  const recentTransactions = useMemo((): Transaction[] => {
+    const cashEntries = (state?.cashEntries ?? []) as Array<{
+      id: string;
+      description?: string;
+      amount: { amount: number; currency: string };
+      timestamp: string | Date;
+      cashCategory?: string;
+      type: string;
+    }>;
+
+    const accounts = (state?.accounts ?? []) as Array<{
+      id: string;
+      nickname: string;
+      accountNumberMasked: string;
+      transactions?: Array<{
+        id: string;
+        datetime: string | Date;
+        amount: { amount: number; currency: string };
+        description: string;
+        type: string;
+        status?: string;
+      }>;
+    }>;
+
+    const cashTxns = cashEntries.map(e => ({
+      id: e.id,
+      merchant: e.description || 'Cash Transaction',
+      date: new Date(e.timestamp),
+      amount: e.amount.amount,
+      status: 'success' as const,
+      type: e.amount.amount >= 0 ? 'credit' as const : 'debit' as const,
+      assetType: 'cash' as const,
+      assetSource: e.cashCategory || 'Cash', // Show which cash category
+    }));
+
+    const accountTxns = accounts.flatMap(acc => 
+      (acc.transactions ?? []).map(tx => ({
+        id: tx.id,
+        merchant: tx.description || 'Bank Transaction',
+        date: new Date(tx.datetime),
+        amount: tx.amount.amount,
+        status: (tx.status === 'completed' ? 'success' : 'pending') as 'success' | 'pending' | 'failed',
+        type: tx.amount.amount >= 0 ? 'credit' as const : 'debit' as const,
+        assetType: 'account' as const,
+        assetSource: `${acc.nickname} ${acc.accountNumberMasked}`, // Show which account
+      }))
+    );
+
+    return [...cashTxns, ...accountTxns]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 6); // Latest 6 transactions
+  }, [state]);
+
+
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -86,20 +162,42 @@ const HomeScreen: React.FC = () => {
 
   const renderWelcomeHeader = () => (
     <View style={styles.headerContainer}>
-      <View style={styles.logoPositioned}>
+      <View style={styles.welcomeHeaderCompact}>
+        <Text style={styles.welcomeTextCompact}>Welcome Back, {dashboardData.userName}</Text>
+        <Text style={styles.emailTextCompact}>{dashboardData.userEmail}</Text>
+      </View>
+      <View style={styles.logoPositionedCompact}>
         <Image 
           source={LogoImage} 
-          style={styles.logoLarge}
+          style={styles.logoCompact}
           resizeMode="contain"
         />
-      </View>
-      <View style={styles.welcomeHeader}>
-        <Text style={styles.welcomeText}>Welcome Back, {dashboardData.userName}</Text>
-        <Text style={styles.emailText}>{dashboardData.userEmail}</Text>
       </View>
     </View>
   );
 
+  const renderTopQuickActions = () => (
+    <View style={styles.topQuickActionsContainer}>
+      <Text style={styles.topQuickActionsTitle}>Quick Actions</Text>
+      <View style={styles.topQuickActionsGrid}>
+        <TouchableOpacity 
+          style={styles.topQuickActionButton}
+          onPress={() => router.push('/cash?openModal=expense')}
+        >
+          <Feather name="credit-card" size={24} color="#FFFFFF" />
+          <Text style={styles.topQuickActionText}>Record Expense</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.topQuickActionButton}
+          onPress={() => router.push('/accounts?openModal=debit')}
+        >
+          <Feather name="minus-circle" size={24} color="#FFFFFF" />
+          <Text style={styles.topQuickActionText}>Add Debit Card/UPI Expense</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
 
   const renderPrimaryBalance = () => (
@@ -155,11 +253,15 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.merchantName}>{transaction.merchant}</Text>
               <Text style={styles.transactionDate}>
                 {transaction.date.toLocaleDateString('en-IN', {
-                  weekday: 'long',
+                  weekday: 'short',
                   day: 'numeric',
-                  month: 'long',
+                  month: 'short',
                   year: 'numeric',
                 })}
+              </Text>
+              {/* NEW: Asset type and source */}
+              <Text style={styles.assetInfo}>
+                {transaction.assetType === 'cash' ? '💰 ' : '🏦 '}{transaction.assetSource}
               </Text>
             </View>
             <View style={styles.transactionRight}>
@@ -175,10 +277,19 @@ const HomeScreen: React.FC = () => {
                     { color: transaction.status === 'success' ? Colors.success.dark : Colors.error.dark }
                   ]}
                 >
-                  {transaction.status === 'success' ? 'Success' : 'Failed'}
+                  {transaction.status === 'success' ? 'Success' : transaction.status === 'pending' ? 'Pending' : 'Failed'}
                 </Text>
               </View>
-              <Text style={[styles.transactionAmount, { color: Colors.error.main }]}>
+              {/* NEW: Color-coded amounts with proper sign */}
+              <Text 
+                style={[
+                  styles.transactionAmount, 
+                  { 
+                    color: transaction.type === 'credit' ? '#27AE60' : '#E74C3C' // Green for credit, red for debit
+                  }
+                ]}
+              >
+                {transaction.type === 'debit' ? '-' : '+'}
                 {formatCurrency(Math.abs(transaction.amount), 'INR')}
               </Text>
             </View>
@@ -232,6 +343,7 @@ const HomeScreen: React.FC = () => {
         }
       >
         {renderWelcomeHeader()}
+        {renderTopQuickActions()}
         {renderPrimaryBalance()}
         {renderMetricsGrid()}
         {renderLatestTransactions()}
@@ -249,44 +361,61 @@ const styles = StyleSheet.create({
   
   headerContainer: {
     paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  logoPositioned: {
-    alignItems: 'flex-start',
-    marginBottom: Spacing.md,
-  },
-  logoLarge: {
-    width: 400,
-    height: 250,
-  },
-  welcomeHeader: {
-    backgroundColor: Colors.background.card,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.base,
+    paddingTop: Spacing.sm, // Reduced top padding
+    marginBottom: Spacing.md, // Reduced bottom margin
   },
 
-  welcomeText: {
-    fontSize: Typography.fontSize.xl,
+  // NEW: Compact welcome card - smaller, right-aligned, above logo
+  welcomeHeaderCompact: {
+    backgroundColor: Colors.background.card,
+    padding: Spacing.md, // Reduced padding
+    borderRadius: BorderRadius.lg,
+    alignSelf: 'flex-end', // Right-aligned
+    marginBottom: Spacing.sm,
+    maxWidth: '70%', // Limit width to make it compact
+    ...Shadows.base,
+  },
+  welcomeTextCompact: {
+    fontSize: Typography.fontSize.base, // Smaller than original
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
+    textAlign: 'right', // Right-aligned text
   },
-  emailText: {
-    fontSize: Typography.fontSize.sm,
+  emailTextCompact: {
+    fontSize: Typography.fontSize.xs, // Smaller than original
     color: Colors.text.secondary,
+    textAlign: 'right', // Right-aligned text
   },
+
+  // UPDATED: Logo section - reduced height and spacing
+  logoPositionedCompact: {
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xs, // Much smaller bottom margin
+  },
+  logoCompact: {
+    width: 400, // Reduced from 400
+    height: 250, // Reduced from 250
+  },
+
+  // Remove these old styles (they're replaced by compact versions):
+  // logoPositioned: { ... },
+  // logoLarge: { ... },
+  // welcomeHeader: { ... },
+  // welcomeText: { ... },
+  // emailText: { ... },
+
   primaryBalanceCard: {
     backgroundColor: Colors.background.card,
     marginHorizontal: Spacing.base,
     marginBottom: Spacing.xl,
-    marginTop: 0,
+    marginTop: Spacing.sm, // Small top margin since header is compact
     padding: Spacing.xl,
     borderRadius: BorderRadius.xl,
     alignItems: 'center',
     ...Shadows.md,
   },
+
   primaryAmount: {
     fontSize: Typography.fontSize['5xl'],
     fontWeight: Typography.fontWeight.bold,
@@ -405,6 +534,47 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 100, // Space for bottom menu
   },
+  assetInfo: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    marginTop: Spacing.xs,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  topQuickActionsContainer: {
+    paddingHorizontal: Spacing.base,
+    marginBottom: Spacing.lg,
+  },
+  topQuickActionsTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.base,
+    textAlign: 'center',
+  },
+  topQuickActionsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  topQuickActionButton: {
+    flex: 1,
+    backgroundColor: '#8B5CF6', // Purple accent per design guidelines
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    ...Shadows.md,
+    minHeight: 80,
+    justifyContent: 'center',
+  },
+  topQuickActionText: {
+    color: '#FFFFFF',
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    lineHeight: 16, // Better text wrapping for long button text
+  },
+
 });
 
 export default HomeScreen;
