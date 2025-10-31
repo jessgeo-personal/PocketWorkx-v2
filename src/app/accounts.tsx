@@ -832,17 +832,6 @@ const AccountsScreen: React.FC = () => {
                 />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Opening Balance (₹) *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={balanceAmount}
-                  onChangeText={setBalanceAmount}
-                  placeholder="0"
-                  keyboardType="numeric"
-                />
-              </View>
-
               {/* Optional Fields Divider */}
               <View style={styles.optionalFieldsDivider}>
                 <View style={styles.dividerLine} />
