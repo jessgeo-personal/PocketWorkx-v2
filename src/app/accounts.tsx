@@ -552,7 +552,24 @@ const AccountsScreen: React.FC = () => {
                   keyboardType="numeric"
                 />
               </View>
-I     
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Opening Balance (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={balanceAmount}
+                  onChangeText={setBalanceAmount}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Optional Fields Divider */}
+              <View style={styles.optionalFieldsDivider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Optional fields</Text>
+              </View>
+
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Account Holder Name</Text>
                 <TextInput
@@ -1023,6 +1040,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginTop: 12,
+  },
+  optionalFieldsDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    marginHorizontal: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E0E0E0',
+    marginRight: 12,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: '#999999',
+    fontWeight: '500',
+    textAlign: 'right',
   },
 
 });
