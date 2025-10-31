@@ -463,7 +463,7 @@ const CashScreen: React.FC = () => {
   };
 
 
-  // ADD below handleMoveCash()
+  // ADD below handleMoveCash() - ENHANCED VERSION
   const handleDepositToBank = async () => {
     if (!depositAmount.trim()) {
       Alert.alert('Error', 'Please enter deposit amount');
@@ -480,59 +480,115 @@ const CashScreen: React.FC = () => {
       return;
     }
 
-    const now = new Date();
-    const amount = Math.round(raw) * -1; // negative for deposit (reduces cash)
-    
-    const selectedAccount = availableBankAccounts.find(acc => acc.id === selectedBankAccount);
-    const bankDisplayName = selectedAccount ? 
-      `${selectedAccount.bankName} (${selectedAccount.accountType})` : 
-      'Selected Bank';
+    setIsProcessing(true);
+    try {
+      const now = new Date();
+      const amount = Math.round(raw);
+      
+      const selectedAccount = availableBankAccounts.find(acc => acc.id === selectedBankAccount);
+      if (!selectedAccount) {
+        Alert.alert('Error', 'Selected bank account not found.');
+        return;
+      }
 
-    const depositEntry: CashEntry = {
-      id: `${Date.now()}-deposit`,
-      description: `Bank deposit to ${bankDisplayName}`,
-      amount: { amount, currency: 'INR' },
-      type: 'RECORD_EXPENSE',
-      cashCategory: depositFromCategory,
-      expenseCategory: 'Bank Deposit',
-      notes: depositNotes?.trim() || undefined,
-      timestamp: now,
-      encryptedData: {
-        encryptionKey: '',
-        encryptionAlgorithm: 'AES-256',
-        lastEncrypted: now,
-        isEncrypted: false,
-      },
-      auditTrail: {
-        createdBy: 'user',
-        createdAt: now,
-        updatedBy: 'user',
-        updatedAt: now,
-        version: 1,
-        changes: [{
-          action: 'DEPOSIT_TO_BANK',
-          timestamp: now,
-          amount,
-          cashCategory: depositFromCategory,
-          bankAccount: selectedBankAccount,
-        }],
-      },
-      linkedTransactions: [],
-    };
+      const bankDisplayName = `${selectedAccount.bankName} (${selectedAccount.type})`;
 
-    await save(draft => {
-      const next = draft.cashEntries ? [...draft.cashEntries] : [];
-      next.push(depositEntry);
-      return { ...draft, cashEntries: next };
-    });
+      // 1. Create cash debit transaction (reduces cash)
+      const cashDebitEntry: CashEntry = {
+        id: `${Date.now()}-cash-debit`,
+        description: `Bank deposit to ${bankDisplayName}`,
+        amount: { amount: -amount, currency: 'INR' }, // negative for cash reduction
+        type: 'RECORD_EXPENSE',
+        cashCategory: depositFromCategory,
+        expenseCategory: 'Bank Deposit',
+        notes: depositNotes?.trim() || undefined,
+        timestamp: now,
+        encryptedData: {
+          encryptionKey: '',
+          encryptionAlgorithm: 'AES-256',
+          lastEncrypted: now,
+          isEncrypted: false,
+        },
+        auditTrail: {
+          createdBy: 'user',
+          createdAt: now,
+          updatedBy: 'user',
+          updatedAt: now,
+          version: 1,
+          changes: [{
+            action: 'DEPOSIT_TO_BANK',
+            timestamp: now,
+            amount: -amount,
+            cashCategory: depositFromCategory,
+            bankAccount: selectedBankAccount,
+          }],
+        },
+        linkedTransactions: [],
+      };
 
-    // Reset form and close modal
-    setDepositAmount('');
-    setDepositFromCategory(CashCategoryType.WALLET);
-    setSelectedBankAccount('');
-    setDepositNotes('');
-    setIsDepositModalVisible(false);
+      // 2. Create bank account credit transaction (increases bank balance)
+      const bankCreditTransaction = {
+        id: `${Date.now()}-bank-credit`,
+        datetime: now,
+        amount: { amount: amount, currency: 'INR' }, // positive for bank increase
+        description: `Cash deposit from ${depositFromCategory}`,
+        type: 'deposit',
+        notes: depositNotes?.trim() || `Deposited from ${depositFromCategory}`,
+        source: 'manual',
+        status: 'completed',
+      };
+
+      // 3. Update both cash entries and bank account in one save operation
+      await save(draft => {
+        // Add cash debit entry
+        const nextCashEntries = draft.cashEntries ? [...draft.cashEntries] : [];
+        nextCashEntries.push(cashDebitEntry);
+
+        // Update bank account with credit transaction and increased balance
+        const nextAccounts = (draft.accounts ?? []).map((account: any) => {
+          if (account.id === selectedBankAccount) {
+            const existingTransactions = account.transactions ?? [];
+            return {
+              ...account,
+              transactions: [...existingTransactions, bankCreditTransaction],
+              balance: {
+                ...account.balance,
+                amount: account.balance.amount + amount // increase bank balance
+              },
+              lastSynced: now,
+            };
+          }
+          return account;
+        });
+
+        return { 
+          ...draft, 
+          cashEntries: nextCashEntries,
+          accounts: nextAccounts 
+        };
+      });
+
+      // Success feedback
+      Alert.alert(
+        'Deposit Complete', 
+        `Successfully deposited ${formatFullINR(amount)} from ${depositFromCategory} to ${selectedAccount.nickname}.`
+      );
+
+      // Reset form and close modal
+      setDepositAmount('');
+      setDepositFromCategory(CashCategoryType.WALLET);
+      setSelectedBankAccount('');
+      setDepositNotes('');
+      setIsDepositModalVisible(false);
+
+    } catch (error) {
+      console.error('Deposit to bank failed:', error);
+      Alert.alert('Error', 'Failed to complete deposit. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
+
 
 
 
