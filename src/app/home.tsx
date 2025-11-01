@@ -8,6 +8,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Image,
+  Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -143,6 +144,10 @@ const HomeScreen: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  // Add help modal state
+  const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
+
+
   const onRefresh = async () => {
     setRefreshing(true);
     // Simulate data refresh
@@ -163,10 +168,16 @@ const HomeScreen: React.FC = () => {
 
   const renderWelcomeHeader = () => (
     <View style={styles.headerContainer}>
-      <View style={styles.welcomeHeaderCompact}>
-        <Text style={styles.welcomeTextCompact}>Welcome Back, {dashboardData.userName}</Text>
-        <Text style={styles.emailTextCompact}>{dashboardData.userEmail}</Text>
-      </View>
+      {/* Need Help card - clickable */}
+      <TouchableOpacity 
+        style={styles.helpCardCompact}
+        onPress={() => setIsHelpModalVisible(true)}
+      >
+        <Text style={styles.helpTextCompact}>Need Help?</Text>
+        <Text style={styles.helpSubtextCompact}>Quick start guide</Text>
+      </TouchableOpacity>
+      
+      {/* Logo section */}
       <View style={styles.logoPositionedCompact}>
         <Image 
           source={LogoImage} 
@@ -176,6 +187,7 @@ const HomeScreen: React.FC = () => {
       </View>
     </View>
   );
+
 
   const renderTopQuickActions = () => (
     <View style={styles.topQuickActionsContainer}>
@@ -334,6 +346,72 @@ const HomeScreen: React.FC = () => {
     </View>
   );
 
+  const renderHelpModal = () => (
+    <Modal
+      visible={isHelpModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsHelpModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.helpModalContent}>
+          <View style={styles.helpModalHeader}>
+            <Text style={styles.helpModalTitle}>Welcome to PocketWorkx! 💰</Text>
+            <TouchableOpacity onPress={() => setIsHelpModalVisible(false)}>
+              <Feather name="x" size={24} color={Colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.helpModalScroll}>
+            <View style={styles.helpModalBody}>
+              <Text style={styles.helpIntro}>
+                Track your cash, bank accounts & net worth in one place
+              </Text>
+              
+              <View style={styles.helpSection}>
+                <Text style={styles.helpSectionTitle}>🏠 Home Screen Guide:</Text>
+                <Text style={styles.helpBullet}>• Use Quick Actions to record expenses or add cash instantly</Text>
+                <Text style={styles.helpBullet}>• Tap any balance card to see detailed transactions</Text>
+                <Text style={styles.helpBullet}>• Your net worth is calculated automatically</Text>
+              </View>
+              
+              <View style={styles.helpSection}>
+                <Text style={styles.helpSectionTitle}>💵 Cash Management:</Text>
+                <Text style={styles.helpBullet}>• Add physical cash you have (wallet, home safe, car)</Text>
+                <Text style={styles.helpBullet}>• Record expenses when you spend cash</Text>
+                <Text style={styles.helpBullet}>• Move cash between locations</Text>
+                <Text style={styles.helpBullet}>• Deposit cash to your bank accounts</Text>
+              </View>
+              
+              <View style={styles.helpSection}>
+                <Text style={styles.helpSectionTitle}>🏦 Bank Accounts:</Text>
+                <Text style={styles.helpBullet}>• Add all your bank accounts for complete tracking</Text>
+                <Text style={styles.helpBullet}>• Record debit card & UPI expenses directly</Text>
+                <Text style={styles.helpBullet}>• View transaction history and export to CSV</Text>
+              </View>
+              
+              <View style={styles.helpTip}>
+                <Text style={styles.helpTipText}>
+                  💡 Tip: Start by adding some cash and a bank account, then record a few transactions to see how it works!
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+          
+          <View style={styles.helpModalFooter}>
+            <TouchableOpacity
+              style={styles.helpGotItButton}
+              onPress={() => setIsHelpModalVisible(false)}
+            >
+              <Text style={styles.helpGotItText}>Got it!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+
   return (
     <ScreenLayout>
       <ScrollView 
@@ -352,6 +430,7 @@ const HomeScreen: React.FC = () => {
         <AppFooter />
         <View style={styles.bottomSpacing} />
       </ScrollView>
+      {renderHelpModal()}
     </ScreenLayout>
   );
 };
@@ -367,28 +446,29 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md, // Reduced bottom margin
   },
 
-  // NEW: Compact welcome card - smaller, right-aligned, above logo
-  welcomeHeaderCompact: {
+  // NEW: Compact Help card - smaller, right-aligned, above logo
+  helpCardCompact: {
     backgroundColor: Colors.background.card,
-    padding: Spacing.md, // Reduced padding
+    padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    alignSelf: 'flex-end', // Right-aligned
+    alignSelf: 'flex-end',
     marginBottom: Spacing.sm,
-    maxWidth: '70%', // Limit width to make it compact
+    maxWidth: '60%',
     ...Shadows.base,
   },
-  welcomeTextCompact: {
-    fontSize: Typography.fontSize.base, // Smaller than original
+  helpTextCompact: {
+    fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
+    color: '#8B5CF6',
     marginBottom: Spacing.xs,
-    textAlign: 'right', // Right-aligned text
+    textAlign: 'right',
   },
-  emailTextCompact: {
-    fontSize: Typography.fontSize.xs, // Smaller than original
+  helpSubtextCompact: {
+    fontSize: Typography.fontSize.xs,
     color: Colors.text.secondary,
-    textAlign: 'right', // Right-aligned text
+    textAlign: 'right',
   },
+
 
   // UPDATED: Logo section - reduced height and spacing
   logoPositionedCompact: {
@@ -575,6 +655,90 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: 'center',
     lineHeight: 16, // Better text wrapping for long button text
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  helpModalContent: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.xl,
+    width: '90%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
+  helpModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border.light,
+  },
+  helpModalTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+  },
+  helpModalScroll: {
+    flex: 1,
+  },
+  helpModalBody: {
+    padding: Spacing.lg,
+  },
+  helpIntro: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: '#8B5CF6',
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+  },
+  helpSection: {
+    marginBottom: Spacing.lg,
+  },
+  helpSectionTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+  },
+  helpBullet: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.xs,
+    lineHeight: 20,
+  },
+  helpTip: {
+    backgroundColor: '#F7D94C',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.md,
+  },
+  helpTipText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.medium,
+    textAlign: 'center',
+  },
+  helpModalFooter: {
+    padding: Spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border.light,
+  },
+  helpGotItButton: {
+    backgroundColor: '#8B5CF6',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.md,
+    alignSelf: 'center',
+  },
+  helpGotItText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
   },
 
 });
