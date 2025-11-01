@@ -31,6 +31,71 @@ type PocketWorkxState = {
     receiptPhoto?: string;
     notes?: string;
   }>;
+// NEW: credit cards domain
+  creditCardEntries?: Array<{
+    id: string;
+    bank: string;
+    cardNumber: string;
+    cardType: 'visa' | 'mastercard' | 'amex' | 'rupay' | 'diners';
+    cardName: string;
+    creditLimit: { amount: number; currency: 'INR' };
+    currentBalance: { amount: number; currency: 'INR' };
+    availableCredit: { amount: number; currency: 'INR' };
+    minimumPayment: { amount: number; currency: 'INR' };
+    paymentDueDate?: string | Date;
+    statementDate?: string | Date;
+    interestRate: number;
+    annualFee?: { amount: number; currency: 'INR' };
+    rewardProgram?: {
+      type: 'cashback' | 'points' | 'miles';
+      rate: number;
+      currentBalance: number;
+    };
+    isActive: boolean;
+    timestamp?: string | Date;
+    encryptedData?: {
+      encryptionKey: string;
+      encryptionAlgorithm: string;
+      lastEncrypted: string | Date;
+      isEncrypted: boolean;
+    };
+    auditTrail?: {
+      createdBy: string;
+      createdAt?: string | Date;
+      updatedBy: string;
+      updatedAt?: string | Date;
+      version: number;
+      changes: any[];
+    };
+    linkedTransactions?: any[];
+  }>;
+
+  creditCardTransactions?: Array<{
+    id: string;
+    description: string;
+    amount: { amount: number; currency: 'INR' };
+    type: 'CHARGE' | 'PAYMENT' | 'CREDIT' | 'FEE';
+    category: string;
+    cardId: string;
+    merchantName?: string;
+    notes?: string;
+    timestamp?: string | Date;
+    encryptedData?: {
+      encryptionKey: string;
+      encryptionAlgorithm: string;
+      lastEncrypted: string | Date;
+      isEncrypted: boolean;
+    };
+    auditTrail?: {
+      createdBy: string;
+      createdAt?: string | Date;
+      updatedBy: string;
+      updatedAt?: string | Date;
+      version: number;
+      changes: any[];
+    };
+    linkedTransactions?: any[];
+  }>;
 
   // meta
   _version?: number;
@@ -60,6 +125,9 @@ async function ensureDataFile(): Promise<void> {
             // new fields
             cashCategories: [],         // ensure present in file
             cashTransactions: [],       // ensure present in file
+              // NEW: credit cards
+            creditCardEntries: [],
+            creditCardTransactions: [],
             _version: 1,
             _updatedAt: new Date().toISOString(),
         };
@@ -89,6 +157,9 @@ export async function getState(): Promise<PocketWorkxState> {
         receivables: [],
         cashCategories: [],       // include
         cashTransactions: [],     // include
+        // NEW: credit cards
+        creditCardEntries: [],
+        creditCardTransactions: [],
         _version: 1,
         _updatedAt: new Date().toISOString(),
     };

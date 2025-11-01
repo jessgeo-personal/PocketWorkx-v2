@@ -24,13 +24,87 @@ export interface CashTransaction {
   notes?: string;
 }
 
+// ===== Credit Cards domain types =====
+// ===== Credit Cards domain types =====
+export interface CreditCardEntry {
+  id: string;
+  bank: string;
+  cardNumber: string; // masked (****1234)
+  cardType: 'visa' | 'mastercard' | 'amex' | 'rupay' | 'diners';
+  cardName: string;
+  creditLimit: { amount: number; currency: 'INR' };
+  currentBalance: { amount: number; currency: 'INR' };
+  availableCredit: { amount: number; currency: 'INR' };
+  minimumPayment: { amount: number; currency: 'INR' };
+  paymentDueDate: Date; // CHANGE: make non-optional - StorageProvider normalizes
+  statementDate: Date;  // CHANGE: make non-optional - StorageProvider normalizes  
+  interestRate: number;
+  annualFee?: { amount: number; currency: 'INR' };
+  rewardProgram?: {
+    type: 'cashback' | 'points' | 'miles';
+    rate: number;
+    currentBalance: number;
+  };
+  isActive: boolean;
+  timestamp: Date; // CHANGE: make non-optional - StorageProvider normalizes
+  encryptedData?: {
+    encryptionKey: string;
+    encryptionAlgorithm: string;
+    lastEncrypted: Date; // CHANGE: make Date - StorageProvider normalizes
+    isEncrypted: boolean;
+  };
+  auditTrail?: {
+    createdBy: string;
+    createdAt: Date;    // CHANGE: make Date - StorageProvider normalizes
+    updatedBy: string;
+    updatedAt: Date;    // CHANGE: make Date - StorageProvider normalizes  
+    version: number;
+    changes: any[];
+  };
+  linkedTransactions?: any[];
+}
+
+export interface CreditCardTransaction {
+  id: string;
+  description: string;
+  amount: { amount: number; currency: 'INR' }; 
+  type: 'CHARGE' | 'PAYMENT' | 'CREDIT' | 'FEE';
+  category: string;
+  cardId: string;
+  merchantName?: string;
+  notes?: string;
+  timestamp: Date; // CHANGE: make non-optional - StorageProvider normalizes
+  encryptedData?: {
+    encryptionKey: string;
+    encryptionAlgorithm: string;
+    lastEncrypted: Date; // CHANGE: make Date - StorageProvider normalizes
+    isEncrypted: boolean;
+  };
+  auditTrail?: {
+    createdBy: string;
+    createdAt: Date;   // CHANGE: make Date - StorageProvider normalizes
+    updatedBy: string;
+    updatedAt: Date;   // CHANGE: make Date - StorageProvider normalizes
+    version: number;
+    changes: any[];
+  };
+  linkedTransactions?: any[];
+}
+
+
+
 // ===== Persisted AppModel from localFileStore =====
 // getState() returns a JSON object. It may or may not have the new cash fields yet.
 // Make them optional to remain backward compatible with existing files.
 export type AppModel = Awaited<ReturnType<typeof getState>> & {
   cashCategories?: CashCategory[];
   cashTransactions?: CashTransaction[];
+
+  // NEW: Credit cards
+  creditCardEntries?: CreditCardEntry[];
+  creditCardTransactions?: CreditCardTransaction[];
 };
+
 
 // ===== Context shape =====
 type StorageContextValue = {
@@ -71,16 +145,42 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
         ...s,
         cashCategories: s.cashCategories ?? [],
         cashTransactions: (s.cashTransactions as any[] | undefined)?.map((t) => ({
-            ...t,
-            // Ensure timestamp is always a Date, never undefined
-            timestamp: t.timestamp instanceof Date 
-                ? t.timestamp 
-                : t.timestamp 
-                    ? new Date(t.timestamp) 
-                    : new Date(), // fallback to current date if missing
+          ...t,
+          timestamp: t.timestamp instanceof Date 
+            ? t.timestamp 
+            : t.timestamp 
+              ? new Date(t.timestamp) 
+              : new Date(),
         })) ?? [],
 
+        // NEW: initialize credit card arrays with date normalization
+        creditCardEntries: (s.creditCardEntries as any[] | undefined)?.map((c) => ({
+          ...c,
+          paymentDueDate: c.paymentDueDate ? new Date(c.paymentDueDate) : new Date(),
+          statementDate: c.statementDate ? new Date(c.statementDate) : new Date(),
+          timestamp: c.timestamp ? new Date(c.timestamp) : new Date(),
+          auditTrail: c.auditTrail
+            ? {
+                ...c.auditTrail,
+                createdAt: c.auditTrail.createdAt ? new Date(c.auditTrail.createdAt) : new Date(),
+                updatedAt: c.auditTrail.updatedAt ? new Date(c.auditTrail.updatedAt) : new Date(),
+              }
+            : undefined,
+        })) ?? [],
+
+        creditCardTransactions: (s.creditCardTransactions as any[] | undefined)?.map((t) => ({
+          ...t,
+          timestamp: t.timestamp ? new Date(t.timestamp) : new Date(),
+          auditTrail: t.auditTrail
+            ? {
+                ...t.auditTrail,
+                createdAt: t.auditTrail.createdAt ? new Date(t.auditTrail.createdAt) : new Date(),
+                updatedAt: t.auditTrail.updatedAt ? new Date(t.auditTrail.updatedAt) : new Date(),
+              }
+            : undefined,
+        })) ?? [],
       };
+
 
       setLocal(withDefaults);
     } catch (e) {
