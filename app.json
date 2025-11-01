@@ -4,12 +4,13 @@
     "slug": "pocketworkx",
     "version": "1.0.0",
     "scheme": "pocketworkx",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -20,13 +21,20 @@
       "bundleIdentifier": "com.pocketworkx.app"
     },
     "android": {
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 34,
+      "buildToolsVersion": "35.0.0",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F7D94C"
       },
       "package": "com.pocketworkx.app",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -50,6 +58,12 @@
           "cameraPermission": "The app accesses your camera to let you capture receipts for expense tracking."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2d27b954-4682-4ab9-bf94-1efa5c7b44c6"
+      }
+    }
   }
 }
