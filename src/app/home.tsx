@@ -214,13 +214,19 @@ const HomeScreen: React.FC = () => {
 
 
   const renderPrimaryBalance = () => (
-    <View style={styles.primaryBalanceCard}>
+    <TouchableOpacity 
+      style={styles.primaryBalanceCard}
+      activeOpacity={0.9}
+      onPress={() => router.push('/cash')}
+    >
       <Text style={styles.primaryAmount}>
         {formatCurrency(dashboardData.liquidCash, 'INR')}
       </Text>
       <Text style={styles.primaryLabel}>Your liquid cash balance</Text>
-    </View>
+      <Text style={styles.tapHint}>Tap to manage cash</Text>
+    </TouchableOpacity>
   );
+
 
   const renderMetricsGrid = () => (
     <View style={styles.metricsGrid}>
@@ -353,63 +359,111 @@ const HomeScreen: React.FC = () => {
       animationType="slide"
       onRequestClose={() => setIsHelpModalVisible(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.helpModalContent}>
-          <View style={styles.helpModalHeader}>
-            <Text style={styles.helpModalTitle}>Welcome to PocketWorkx! 💰</Text>
+      <View style={{
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <View style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          width: '90%',
+          maxHeight: '80%',
+          overflow: 'hidden',
+        }}>
+          {/* Header */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: 16,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: '#E0E0E0',
+            backgroundColor: '#FFFFFF',
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1A1A1A' }}>
+              Welcome to PocketWorkx! 💰
+            </Text>
             <TouchableOpacity onPress={() => setIsHelpModalVisible(false)}>
-              <Feather name="x" size={24} color={Colors.text.primary} />
+              <Feather name="x" size={24} color="#1A1A1A" />
             </TouchableOpacity>
           </View>
-          
-          <ScrollView style={styles.helpModalScroll}>
-            <View style={styles.helpModalBody}>
-              <Text style={styles.helpIntro}>
-                Track your cash, bank accounts & net worth in one place
+
+          {/* Body (scrollable) */}
+          <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ padding: 16 }}>
+            <Text style={{
+              fontSize: 14,
+              fontWeight: '600',
+              color: '#8B5CF6',
+              textAlign: 'center',
+              marginBottom: 16,
+            }}>
+              Track your cash, bank accounts & net worth in one place
+            </Text>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
+                🏠 Home Screen Guide:
               </Text>
-              
-              <View style={styles.helpSection}>
-                <Text style={styles.helpSectionTitle}>🏠 Home Screen Guide:</Text>
-                <Text style={styles.helpBullet}>• Use Quick Actions to record expenses or add cash instantly</Text>
-                <Text style={styles.helpBullet}>• Tap any balance card to see detailed transactions</Text>
-                <Text style={styles.helpBullet}>• Your net worth is calculated automatically</Text>
-              </View>
-              
-              <View style={styles.helpSection}>
-                <Text style={styles.helpSectionTitle}>💵 Cash Management:</Text>
-                <Text style={styles.helpBullet}>• Add physical cash you have (wallet, home safe, car)</Text>
-                <Text style={styles.helpBullet}>• Record expenses when you spend cash</Text>
-                <Text style={styles.helpBullet}>• Move cash between locations</Text>
-                <Text style={styles.helpBullet}>• Deposit cash to your bank accounts</Text>
-              </View>
-              
-              <View style={styles.helpSection}>
-                <Text style={styles.helpSectionTitle}>🏦 Bank Accounts:</Text>
-                <Text style={styles.helpBullet}>• Add all your bank accounts for complete tracking</Text>
-                <Text style={styles.helpBullet}>• Record debit card & UPI expenses directly</Text>
-                <Text style={styles.helpBullet}>• View transaction history and export to CSV</Text>
-              </View>
-              
-              <View style={styles.helpTip}>
-                <Text style={styles.helpTipText}>
-                  💡 Tip: Start by adding some cash and a bank account, then record a few transactions to see how it works!
-                </Text>
-              </View>
+              <Text style={{ fontSize: 13, color: '#666666', marginBottom: 6 }}>• Use Quick Actions to record expenses or add cash instantly</Text>
+              <Text style={{ fontSize: 13, color: '#666666', marginBottom: 6 }}>• Tap any balance card to see detailed transactions</Text>
+              <Text style={{ fontSize: 13, color: '#666666' }}>• Your net worth is calculated automatically</Text>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
+                💵 Cash Management:
+              </Text>
+              <Text style={{ fontSize: 13, color: '#666666', marginBottom: 6 }}>• Add physical cash you have (wallet, home safe, car)</Text>
+              <Text style={{ fontSize: 13, color: '#666666', marginBottom: 6 }}>• Record expenses when you spend cash</Text>
+              <Text style={{ fontSize: 13, color: '#666666', marginBottom: 6 }}>• Move cash between locations</Text>
+              <Text style={{ fontSize: 13, color: '#666666' }}>• Deposit cash to your bank accounts</Text>
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
+                🏦 Bank Accounts:
+              </Text>
+              <Text style={{ fontSize: 13, color: '#666666', marginBottom: 6 }}>• Add all your bank accounts for complete tracking</Text>
+              <Text style={{ fontSize: 13, color: '#666666', marginBottom: 6 }}>• Record debit card & UPI expenses directly</Text>
+              <Text style={{ fontSize: 13, color: '#666666' }}>• View transaction history and export to CSV</Text>
+            </View>
+
+            <View style={{ backgroundColor: '#F7D94C', padding: 12, borderRadius: 8 }}>
+              <Text style={{ fontSize: 13, color: '#1A1A1A', fontWeight: '600', textAlign: 'center' }}>
+                💡 Tip: Start by adding some cash and a bank account, then record a few transactions to see how it works!
+              </Text>
             </View>
           </ScrollView>
-          
-          <View style={styles.helpModalFooter}>
+
+          {/* Footer */}
+          <View style={{
+            padding: 16,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: '#E0E0E0',
+            backgroundColor: '#FFFFFF',
+          }}>
             <TouchableOpacity
-              style={styles.helpGotItButton}
+              style={{
+                backgroundColor: '#8B5CF6',
+                paddingVertical: 12,
+                paddingHorizontal: 24,
+                borderRadius: 10,
+                alignSelf: 'center',
+              }}
               onPress={() => setIsHelpModalVisible(false)}
             >
-              <Text style={styles.helpGotItText}>Got it!</Text>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+                Got it!
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
     </Modal>
   );
+
 
 
   return (
@@ -509,6 +563,14 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
     textAlign: 'center',
+  },
+  tapHint: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    opacity: 0.8,
+    fontStyle: 'italic',
   },
   metricsGrid: {
     paddingHorizontal: Spacing.base,
