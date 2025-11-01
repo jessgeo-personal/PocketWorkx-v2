@@ -15,6 +15,8 @@ import {
   exportAccountsCsv,
   exportTransactionsCsv,
 } from '../services/exportService';
+import AppFooter from '../components/AppFooter';
+
 
 export default function AnalyticsScreen() {
   const [isExporting, setIsExporting] = useState(false);
@@ -143,6 +145,7 @@ export default function AnalyticsScreen() {
         {renderComingSoonSection()}
         
         <View style={styles.bottomSpacing} />
+        <AppFooter />
       </ScrollView>
     </ScreenLayout>
   );

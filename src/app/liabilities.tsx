@@ -13,6 +13,8 @@ import { useRouter } from 'expo-router';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
+import AppFooter from '../components/AppFooter';
+
 
 interface LiabilitiesData {
   totalLiabilities: number;
@@ -247,6 +249,7 @@ const LiabilitiesScreen: React.FC = () => {
         {renderLiabilitiesBreakdown()}
         {renderUpcomingPayments()}
         {renderDebtMetrics()}
+        <AppFooter />
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </ScreenLayout>

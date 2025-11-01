@@ -16,6 +16,8 @@ import {
 } from '../types/finance';
 import { formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';  // ← Added
+import AppFooter from '../components/AppFooter';
+
 
 const CreditCardsScreen: React.FC = () => {
   const [cards, setCards] = useState<CreditCard[]>([
@@ -103,6 +105,7 @@ const CreditCardsScreen: React.FC = () => {
         <ScrollView contentContainerStyle={styles.scrollView}>
           {renderSummary()}
           {cards.map(renderCard)}
+          <AppFooter />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>  

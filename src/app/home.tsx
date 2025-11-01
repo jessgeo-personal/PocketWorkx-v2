@@ -15,6 +15,7 @@ import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
 import { useStorage } from '../services/storage/StorageProvider';
+import AppFooter from '../components/AppFooter';
 
 
 // Import the logo image
@@ -348,6 +349,7 @@ const HomeScreen: React.FC = () => {
         {renderMetricsGrid()}
         {renderLatestTransactions()}
         {renderQuickActions()}
+        <AppFooter />
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </ScreenLayout>

@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
+import AppFooter from '../components/AppFooter';
 
 interface LiquidityData {
   totalLiquidAssets: number;
@@ -148,6 +149,7 @@ const LiquidityScreen: React.FC = () => {
         {renderLiquidityOverview()}
         {renderLiquidityBreakdown()}
         {renderLiquidityMetrics()}
+        <AppFooter />
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </ScreenLayout>

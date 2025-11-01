@@ -16,6 +16,8 @@ import {
 } from '../types/finance';
 import { formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';  // ← Added
+import AppFooter from '../components/AppFooter';
+
 
 const LoansScreen: React.FC = () => {
   const [loans, setLoans] = useState<Loan[]>([
@@ -102,6 +104,7 @@ const LoansScreen: React.FC = () => {
         <ScrollView contentContainerStyle={styles.scrollView}>
           {renderSummary()}
           {loans.map(renderLoanCard)}
+          <AppFooter />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>  

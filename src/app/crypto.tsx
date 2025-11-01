@@ -17,6 +17,8 @@ import {
 } from '../types/finance';
 import { formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';  // ← Added
+import AppFooter from '../components/AppFooter';
+
 
 const CryptoScreen: React.FC = () => {
   const [cryptoAssets, setCryptoAssets] = useState<CryptoHolding[]>([
@@ -251,6 +253,7 @@ const CryptoScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Your Crypto Assets</Text>
             {cryptoAssets.map(renderCryptoCard)}
           </View>
+          <AppFooter />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>  

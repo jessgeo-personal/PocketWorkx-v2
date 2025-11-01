@@ -11,6 +11,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
+import AppFooter from '../components/AppFooter';
+
 
 const TrendsScreen: React.FC = () => {
   return (
@@ -40,6 +42,7 @@ const TrendsScreen: React.FC = () => {
               Detailed financial trends, market analysis, and performance insights will be available here.
             </Text>
           </View>
+          <AppFooter />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>

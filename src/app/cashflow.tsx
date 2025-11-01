@@ -12,6 +12,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
+import AppFooter from '../components/AppFooter';
+
 
 const CashflowScreen: React.FC = () => {
   const cashflowData = {
@@ -198,6 +200,7 @@ const CashflowScreen: React.FC = () => {
           {renderIncomeStreams()}
           {renderExpenseStreams()}
           {renderCashflowTips()}
+          <AppFooter />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>

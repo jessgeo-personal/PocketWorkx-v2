@@ -14,6 +14,8 @@ import { Investment } from '../types/finance';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
+import AppFooter from '../components/AppFooter';
+
 
 const InvestmentsScreen: React.FC = () => {
   const [investments, setInvestments] = useState<Investment[]>([
@@ -329,6 +331,7 @@ const InvestmentsScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Your Investments</Text>
           {investments.map(renderInvestmentCard)}
         </View>
+        <AppFooter />
       </ScrollView>
     </ScreenLayout>
   );
