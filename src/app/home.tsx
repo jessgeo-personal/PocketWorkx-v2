@@ -48,44 +48,47 @@ const HomeScreen: React.FC = () => {
   // Hook into global storage
   const { state } = useStorage();
 
+  // 1) Cash totals
+  const cashEntries = (state?.cashEntries ?? []) as Array<{
+    amount: { amount: number; currency: string };
+    type: string;
+    timestamp: string | Date;
+    description?: string;
+    cashCategory?: string;
+  }>;
+  const liquidCash = cashEntries.reduce((sum, e) => sum + (e.amount?.amount ?? 0), 0);
+
+  // 2) Bank accounts total balance  
+  const accounts = (state?.accounts ?? []) as Array<{
+    id: string;
+    nickname: string;
+    bankName: string;
+    type: string;
+    balance: { amount: number; currency: string };
+  }>;
+    // Real total bank accounts balance
+  const accountsTotal = useMemo(
+    () => accounts.reduce((sum, a) => sum + (a.balance?.amount ?? 0), 0),
+    [accounts]
+  );
+
+  // 3) For now, liabilities and investments placeholders (to be wired in later phases)
+  const totalLiabilities = 0;     // loans + credit cards totals will fill this
+  const investmentsReceivables = 0;      // investments + receivables totals will fill this
+
+  // 4) Net worth per verified formula: accounts + liquidCash - liabilities + investments
+  const netWorth = accountsTotal + liquidCash - totalLiabilities + investmentsReceivables;
+
   // Live calculations from actual data
-  const dashboardData = useMemo((): DashboardData => {
-    // 1) Cash totals
-    const cashEntries = (state?.cashEntries ?? []) as Array<{
-      amount: { amount: number; currency: string };
-      type: string;
-      timestamp: string | Date;
-      description?: string;
-      cashCategory?: string;
-    }>;
-    const liquidCash = cashEntries.reduce((sum, e) => sum + (e.amount?.amount ?? 0), 0);
-
-    // 2) Bank accounts total balance  
-    const accounts = (state?.accounts ?? []) as Array<{
-      id: string;
-      nickname: string;
-      bankName: string;
-      type: string;
-      balance: { amount: number; currency: string };
-    }>;
-    const accountsTotal = accounts.reduce((sum, a) => sum + (a.balance?.amount ?? 0), 0);
-
-    // 3) For now, liabilities and investments placeholders (to be wired in later phases)
-    const totalLiabilities = 0;     // loans + credit cards totals will fill this
-    const investmentsReceivables = 0;      // investments + receivables totals will fill this
-
-    // 4) Net worth per verified formula: accounts + liquidCash - liabilities + investments
-    const netWorth = accountsTotal + liquidCash - totalLiabilities + investmentsReceivables;
-
-    return {
+  const dashboardData = useMemo(() => ({  
       liquidCash,
+      accountsTotal,
       netWorth,
       totalLiabilities,
       investmentsReceivables,
       userName: 'Donna',
       userEmail: 'hello@reallygreatsite.com',
-    };
-  }, [state]);
+  }), [accountsTotal, netWorth, liquidCash, totalLiabilities, investmentsReceivables]);
 
   // Build unified recent transactions from cash + accounts
   const recentTransactions = useMemo((): Transaction[] => {
