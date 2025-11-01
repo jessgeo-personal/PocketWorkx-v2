@@ -227,6 +227,22 @@ const HomeScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+const renderAccountBalance = () => (
+  <TouchableOpacity 
+    style={styles.accountBalanceCard}
+    activeOpacity={0.9}
+    onPress={() => router.push('/accounts')}
+  >
+    <Text style={styles.accountBalanceAmount}>
+      {formatCurrency(accountsTotal, 'INR')}
+    </Text>
+    <Text style={styles.accountBalanceLabel}>Your total account balance</Text>
+    <Text style={styles.tapHint}>Tap to manage accounts</Text>
+  </TouchableOpacity>
+);
+
+
+
 
   const renderMetricsGrid = () => (
     <View style={styles.metricsGrid}>
@@ -478,6 +494,7 @@ const HomeScreen: React.FC = () => {
         {renderWelcomeHeader()}
         {renderTopQuickActions()}
         {renderPrimaryBalance()}
+        {renderAccountBalance()}
         {renderMetricsGrid()}
         {renderLatestTransactions()}
         {renderQuickActions()}
@@ -801,6 +818,28 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
+  },
+  accountBalanceCard: {
+    backgroundColor: Colors.background.card,
+    marginHorizontal: Spacing.base,
+    marginBottom: Spacing.xl,
+    marginTop: Spacing.sm, // Small gap after primary balance
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    ...Shadows.base, // Slightly less shadow than primary card
+  },
+  accountBalanceAmount: {
+    fontSize: Typography.fontSize['2xl'], // Smaller than primary
+    fontWeight: Typography.fontWeight.bold,
+    color: '#1976D2', // Blue for bank accounts
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  accountBalanceLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
 
 });
