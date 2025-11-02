@@ -167,6 +167,9 @@ const HomeScreen: React.FC = () => {
 
   // Add help modal state
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
+  // Add quick actions modal state
+  const [isQuickActionsModalVisible, setIsQuickActionsModalVisible] = useState(false);
+
 
 
   const onRefresh = async () => {
@@ -382,37 +385,20 @@ const HomeScreen: React.FC = () => {
 
   const renderQuickActions = () => (
     <View style={styles.quickActionsSection}>
-      <View style={styles.quickActionsGrid}>
-        <TouchableOpacity style={styles.quickActionItem}>
-          <Feather name="camera" size={20} color={Colors.text.secondary} />
-          <Text style={styles.quickActionText}>Scan receipts</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.quickActionItem}>
-          <Feather name="upload" size={20} color={Colors.text.secondary} />
-          <Text style={styles.quickActionText}>Upload Statements</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.quickActionItem}>
-          <Feather name="message-circle" size={20} color={Colors.text.secondary} />
-          <Text style={styles.quickActionText}>Scan SMS for transactions</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.quickActionItem}>
-          <Feather name="mail" size={20} color={Colors.text.secondary} />
-          <Text style={styles.quickActionText}>Scan Emails for transactions</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.quickActionItem, styles.primaryAction]}
-          onPress={() => router.push({ pathname: '/cash', params: { openModal: 'add' } })}
-        >
-          <Feather name="plus" size={20} color={Colors.white} />
-          <Text style={[styles.quickActionText, { color: Colors.white }]}>Add Cash</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity 
+        style={styles.quickActionsButton}
+        onPress={() => setIsQuickActionsModalVisible(true)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.quickActionsButtonContent}>
+          <Feather name="zap" size={24} color="#FFFFFF" />
+          <Text style={styles.quickActionsButtonText}>Quick Actions</Text>
+          <Feather name="chevron-right" size={20} color="#FFFFFF" />
+        </View>
+      </TouchableOpacity>
     </View>
   );
+
 
   const renderHelpModal = () => (
     <Modal
@@ -526,6 +512,151 @@ const HomeScreen: React.FC = () => {
     </Modal>
   );
 
+  const renderQuickActionsModal = () => (
+    <Modal
+      visible={isQuickActionsModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsQuickActionsModalVisible(false)}
+    >
+      <View style={styles.quickActionsModalOverlay}>
+        <View style={styles.quickActionsModalContent}>
+          {/* Header */}
+          <View style={styles.quickActionsModalHeader}>
+            <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
+            <TouchableOpacity onPress={() => setIsQuickActionsModalVisible(false)}>
+              <Feather name="x" size={24} color={Colors.text.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Body */}
+          <ScrollView style={styles.quickActionsModalBody} showsVerticalScrollIndicator={false}>
+            {/* Cash Actions */}
+            <View style={styles.actionGroup}>
+              <Text style={styles.actionGroupTitle}>💰 Cash</Text>
+              <View style={styles.actionGroupGrid}>
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push({ pathname: '/cash', params: { openModal: 'add' } });
+                  }}
+                >
+                  <Feather name="plus-circle" size={20} color="#27AE60" />
+                  <Text style={styles.modalActionText}>Add Cash</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push({ pathname: '/cash', params: { openModal: 'expense' } });
+                  }}
+                >
+                  <Feather name="minus-circle" size={20} color="#E74C3C" />
+                  <Text style={styles.modalActionText}>Record Expense</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Bank Accounts Actions */}
+            <View style={styles.actionGroup}>
+              <Text style={styles.actionGroupTitle}>🏦 Bank Accounts</Text>
+              <View style={styles.actionGroupGrid}>
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push('/accounts');
+                  }}
+                >
+                  <Feather name="plus-circle" size={20} color="#1976D2" />
+                  <Text style={styles.modalActionText}>Add Account</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push({ pathname: '/accounts', params: { openModal: 'debit' } });
+                  }}
+                >
+                  <Feather name="credit-card" size={20} color="#FF9800" />
+                  <Text style={styles.modalActionText}>Record Debit/UPI</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Credit Cards Actions */}
+            <View style={styles.actionGroup}>
+              <Text style={styles.actionGroupTitle}>💳 Credit Cards</Text>
+              <View style={styles.actionGroupGrid}>
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push('/credit-cards');
+                  }}
+                >
+                  <Feather name="plus-circle" size={20} color="#8B5CF6" />
+                  <Text style={styles.modalActionText}>Add Card</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push({ pathname: '/credit-cards', params: { openModal: 'charge' } });
+                  }}
+                >
+                  <Feather name="shopping-cart" size={20} color="#E74C3C" />
+                  <Text style={styles.modalActionText}>Record Charge</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push({ pathname: '/credit-cards', params: { openModal: 'payment' } });
+                  }}
+                >
+                  <Feather name="check-circle" size={20} color="#27AE60" />
+                  <Text style={styles.modalActionText}>Make Payment</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Data Import Actions */}
+            <View style={styles.actionGroup}>
+              <Text style={styles.actionGroupTitle}>📊 Data Import</Text>
+              <View style={styles.actionGroupGrid}>
+                <TouchableOpacity style={styles.modalActionButton}>
+                  <Feather name="camera" size={20} color={Colors.text.secondary} />
+                  <Text style={styles.modalActionText}>Scan Receipts</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.modalActionButton}>
+                  <Feather name="upload" size={20} color={Colors.text.secondary} />
+                  <Text style={styles.modalActionText}>Upload Statements</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.modalActionButton}>
+                  <Feather name="message-circle" size={20} color={Colors.text.secondary} />
+                  <Text style={styles.modalActionText}>Scan SMS</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.modalActionButton}>
+                  <Feather name="mail" size={20} color={Colors.text.secondary} />
+                  <Text style={styles.modalActionText}>Scan Emails</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
 
 
   return (
@@ -547,6 +678,7 @@ const HomeScreen: React.FC = () => {
         <View style={styles.bottomSpacing} />
       </ScrollView>
       {renderHelpModal()}
+      {renderQuickActionsModal()}
     </ScreenLayout>
   );
 };
@@ -898,6 +1030,85 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.xs,
+  },
+  quickActionsButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginHorizontal: Spacing.base,
+    ...Shadows.md,
+  },
+  quickActionsButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  quickActionsButtonText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
+    flex: 1,
+    textAlign: 'center',
+  },
+  quickActionsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  quickActionsModalContent: {
+    backgroundColor: Colors.background.card,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: '80%',
+    paddingBottom: Spacing.xl,
+  },
+  quickActionsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border.light,
+  },
+  quickActionsModalTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+  },
+  quickActionsModalBody: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  actionGroup: {
+    marginBottom: Spacing.xl,
+  },
+  actionGroupTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.md,
+  },
+  actionGroupGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  modalActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.secondary,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    width: '48%',
+    marginBottom: Spacing.sm,
+    ...Shadows.base,
+  },
+  modalActionText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.primary,
+    marginLeft: Spacing.sm,
+    fontWeight: Typography.fontWeight.medium,
   },
 
 });
