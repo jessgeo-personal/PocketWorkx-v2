@@ -520,7 +520,9 @@ const HomeScreen: React.FC = () => {
       onRequestClose={() => setIsQuickActionsModalVisible(false)}
     >
       <View style={styles.quickActionsModalOverlay}>
-        <View style={styles.quickActionsModalContent}>
+          <View style={{ height: 6, alignItems: 'center', paddingTop: 6 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border.light }} />
+          </View>
           {/* Header */}
           <View style={styles.quickActionsModalHeader}>
             <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
@@ -530,7 +532,11 @@ const HomeScreen: React.FC = () => {
           </View>
 
           {/* Body */}
-          <ScrollView style={styles.quickActionsModalBody} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={styles.quickActionsModalBody} 
+            contentContainerStyle={{ paddingBottom: Spacing.xl }}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Cash Actions */}
             <View style={styles.actionGroup}>
               <Text style={styles.actionGroupTitle}>💰 Cash</Text>
@@ -669,11 +675,10 @@ const HomeScreen: React.FC = () => {
         }
       >
         {renderWelcomeHeader()}
-        {renderTopQuickActions()}
+        {renderQuickActions()}
         {renderPrimaryBalance()}
         {renderMetricsGrid()}
         {renderLatestTransactions()}
-        {renderQuickActions()}
         <AppFooter />
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -843,7 +848,15 @@ const styles = StyleSheet.create({
   },
   quickActionsSection: {
     paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.md, // tighter at top
+    marginTop: Spacing.sm,
+  },
+  quickActionsButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    ...Shadows.md,
   },
   quickActionsGrid: {
     backgroundColor: Colors.background.card,
@@ -1059,8 +1072,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.card,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '80%',
+    maxHeight: '85%',
+    minHeight: '55%',
     paddingBottom: Spacing.xl,
+    overflow: 'hidden',
   },
   quickActionsModalHeader: {
     flexDirection: 'row',
