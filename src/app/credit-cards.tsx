@@ -23,78 +23,17 @@ import TransactionsModal from '../components/modals/TransactionsModal';
 import AppFooter from '../components/AppFooter';
 
 // Use shared storage
-import { useStorage } from '../services/storage/StorageProvider';
+// Use shared storage
+import { useStorage, type AppModel, type CreditCardEntry as SPCreditCardEntry, type CreditCardTransaction as SPCreditCardTransaction } from '../services/storage/StorageProvider';
 
 // Credit Card data types (matching finance.ts CreditCard interface)
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
 
-type CreditCardEntry = {
-  id: string;
-  bank: string;
-  cardNumber: string; // masked, last 4 digits
-  cardType: 'visa' | 'mastercard' | 'amex' | 'rupay' | 'diners';
-  cardName: string;
-  creditLimit: Money;
-  currentBalance: Money; // outstanding balance (positive = debt)
-  availableCredit: Money;
-  minimumPayment: Money;
-  paymentDueDate: Date;
-  statementDate: Date;
-  interestRate: number;
-  annualFee?: Money;
-  rewardProgram?: {
-    type: 'cashback' | 'points' | 'miles';
-    rate: number;
-    currentBalance: number;
-  };
-  isActive: boolean;
-  timestamp: Date;
-  encryptedData?: {
-    encryptionKey: string;
-    encryptionAlgorithm: string;
-    lastEncrypted: Date;
-    isEncrypted: boolean;
-  };
-  auditTrail?: {
-    createdBy: string;
-    createdAt: Date;
-    updatedBy: string;
-    updatedAt: Date;
-    version: number;
-    changes: any[];
-  };
-  linkedTransactions?: any[];
-};
+type CreditCardEntry = SPCreditCardEntry;
+type CreditCardTransaction = SPCreditCardTransaction;
 
-// Credit Card Transaction types
-type CreditCardTransaction = {
-  id: string;
-  description: string;
-  amount: Money; // positive = charge, negative = payment/credit
-  type: 'CHARGE' | 'PAYMENT' | 'CREDIT' | 'FEE';
-  category: string; // expense category for charges
-  cardId: string;
-  merchantName?: string;
-  notes?: string;
-  timestamp: Date;
-  encryptedData?: {
-    encryptionKey: string;
-    encryptionAlgorithm: string;
-    lastEncrypted: Date;
-    isEncrypted: boolean;
-  };
-  auditTrail?: {
-    createdBy: string;
-    createdAt: Date;
-    updatedBy: string;
-    updatedAt: Date;
-    version: number;
-    changes: any[];
-  };
-  linkedTransactions?: any[];
-};
-
+// ADD this missing UI grouping type:
 type CreditCardGroup = {
   cardName: string;
   bank: string;
@@ -322,11 +261,12 @@ const CreditCardsScreen: React.FC = () => {
         linkedTransactions: [],
       };
 
-      await save(draft => {
-        const next = draft.creditCardEntries ? [...draft.creditCardEntries] : [];
-        next.push(newCard);
+      await save((draft: AppModel) => {
+        const next: CreditCardEntry[] = draft.creditCardEntries ? [...draft.creditCardEntries] as CreditCardEntry[] : [];
+        next.push(newCard as CreditCardEntry);
         return { ...draft, creditCardEntries: next };
       });
+
 
       // Reset form and close modal
       setNewCardBank('');
@@ -397,29 +337,21 @@ const CreditCardsScreen: React.FC = () => {
         linkedTransactions: [],
       };
 
-      await save(draft => {
-        // Add transaction
-        const nextTransactions = draft.creditCardTransactions ? [...draft.creditCardTransactions] : [];
-        nextTransactions.push(newCharge);
+      await save((draft: AppModel) => {
+        const nextTransactions: CreditCardTransaction[] = draft.creditCardTransactions ? [...draft.creditCardTransactions] as CreditCardTransaction[] : [];
+        nextTransactions.push(newCharge as CreditCardTransaction);
 
-        // Update card balance
-        const nextCards = (draft.creditCardEntries ?? []).map((card: any) => {
+        const nextCards: CreditCardEntry[] = (draft.creditCardEntries ?? []).map((card) => {
           if (card.id === selectedCardForCharge) {
             const newBalance = card.currentBalance.amount + amount;
             return {
               ...card,
               currentBalance: { ...card.currentBalance, amount: newBalance },
-              availableCredit: { 
-                ...card.availableCredit, 
-                amount: card.creditLimit.amount - newBalance 
-              },
-              minimumPayment: {
-                ...card.minimumPayment,
-                amount: Math.max(newBalance * 0.05, card.minimumPayment.amount)
-              }
-            };
+              availableCredit: { ...card.availableCredit, amount: card.creditLimit.amount - newBalance },
+              minimumPayment: { ...card.minimumPayment, amount: Math.max(newBalance * 0.05, card.minimumPayment.amount) }
+            } as CreditCardEntry;
           }
-          return card;
+          return card as CreditCardEntry;
         });
 
         return { 
@@ -428,6 +360,7 @@ const CreditCardsScreen: React.FC = () => {
           creditCardEntries: nextCards 
         };
       });
+
 
       // Reset form and close modal
       setChargeDescription('');
@@ -495,29 +428,21 @@ const CreditCardsScreen: React.FC = () => {
         linkedTransactions: [],
       };
 
-      await save(draft => {
-        // Add transaction
-        const nextTransactions = draft.creditCardTransactions ? [...draft.creditCardTransactions] : [];
-        nextTransactions.push(newPayment);
+      await save((draft: AppModel) => {
+        const nextTransactions: CreditCardTransaction[] = draft.creditCardTransactions ? [...draft.creditCardTransactions] as CreditCardTransaction[] : [];
+        nextTransactions.push(newPayment as CreditCardTransaction);
 
-        // Update card balance
-        const nextCards = (draft.creditCardEntries ?? []).map((card: any) => {
+        const nextCards: CreditCardEntry[] = (draft.creditCardEntries ?? []).map((card) => {
           if (card.id === selectedCardForPayment) {
             const newBalance = Math.max(0, card.currentBalance.amount - amount);
             return {
               ...card,
               currentBalance: { ...card.currentBalance, amount: newBalance },
-              availableCredit: { 
-                ...card.availableCredit, 
-                amount: card.creditLimit.amount - newBalance 
-              },
-              minimumPayment: {
-                ...card.minimumPayment,
-                amount: Math.max(newBalance * 0.05, 100)
-              }
-            };
+              availableCredit: { ...card.availableCredit, amount: card.creditLimit.amount - newBalance },
+              minimumPayment: { ...card.minimumPayment, amount: Math.max(newBalance * 0.05, 100) }
+            } as CreditCardEntry;
           }
-          return card;
+          return card as CreditCardEntry;
         });
 
         return { 
@@ -526,6 +451,8 @@ const CreditCardsScreen: React.FC = () => {
           creditCardEntries: nextCards 
         };
       });
+
+
 
       // Reset form and close modal
       setPaymentAmount('');
@@ -546,9 +473,9 @@ const CreditCardsScreen: React.FC = () => {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await save(draft => {
-            const nextCards = (draft.creditCardEntries ?? []).filter((c: any) => c.id !== cardId);
-            const nextTransactions = (draft.creditCardTransactions ?? []).filter((tx: any) => tx.cardId !== cardId);
+          await save((draft: AppModel) => {
+            const nextCards: CreditCardEntry[] = (draft.creditCardEntries ?? []).filter((c) => c.id !== cardId) as CreditCardEntry[];
+            const nextTransactions: CreditCardTransaction[] = (draft.creditCardTransactions ?? []).filter((tx) => tx.cardId !== cardId) as CreditCardTransaction[];
             return { 
               ...draft, 
               creditCardEntries: nextCards,

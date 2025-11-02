@@ -72,6 +72,24 @@ const HomeScreen: React.FC = () => {
     [accounts]
   );
 
+  // Total Liquidity formula per project rules:
+  // Total Liquidity = cash + bank accounts + short-term investments (+ optional crypto if enabled in settings)
+  // For now, use cash + bank accounts only; shortTermInvestments placeholder 0 (to be wired later)
+  const shortTermInvestments = 0; // TODO: wire from investments when ready
+  const includeCryptoInLiquidity = false; // TODO: wire from user settings
+  const cryptoLiquid = 0; // TODO: wire from crypto state when ready
+
+  const totalLiquidity = useMemo(() => {
+    let base = liquidCash + accountsTotal + shortTermInvestments;
+    if (includeCryptoInLiquidity) base += cryptoLiquid;
+    return base;
+  }, [liquidCash, accountsTotal, shortTermInvestments, includeCryptoInLiquidity, cryptoLiquid]);
+
+  const totalLiquidityFormulaText = includeCryptoInLiquidity
+    ? 'Cash + Bank Accounts + Short-term investments + Crypto (enabled)'
+    : 'Cash + Bank Accounts + Short-term investments';
+
+
   // 3) For now, liabilities and investments placeholders (to be wired in later phases)
   const totalLiabilities = 0;     // loans + credit cards totals will fill this
   const investmentsReceivables = 0;      // investments + receivables totals will fill this
