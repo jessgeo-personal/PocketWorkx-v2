@@ -238,29 +238,35 @@ const HomeScreen: React.FC = () => {
     <TouchableOpacity 
       style={styles.primaryBalanceCard}
       activeOpacity={0.9}
-      onPress={() => router.push('/cash')}
+      onPress={() => router.push('/analytics')}
     >
       <Text style={styles.primaryAmount}>
-        {formatCurrency(dashboardData.liquidCash, 'INR')}
+        {formatCurrency(dashboardData.netWorth, 'INR')}
       </Text>
-      <Text style={styles.primaryLabel}>Your liquid cash balance</Text>
-      <Text style={styles.tapHint}>Tap to manage cash</Text>
+      <Text style={styles.primaryLabel}>Your Total Net Worth</Text>
+      <Text style={styles.tapHint}>
+        Formula: (Bank Accounts + Crypto + Investments + Physical Assets) − (Loans + Credit Cards)
+      </Text>
     </TouchableOpacity>
   );
 
-const renderAccountBalance = () => (
-  <TouchableOpacity 
-    style={styles.accountBalanceCard}
-    activeOpacity={0.9}
-    onPress={() => router.push('/accounts')}
-  >
-    <Text style={styles.accountBalanceAmount}>
-      {formatCurrency(accountsTotal, 'INR')}
-    </Text>
-    <Text style={styles.accountBalanceLabel}>Your total account balance</Text>
-    <Text style={styles.tapHint}>Tap to manage accounts</Text>
-  </TouchableOpacity>
-);
+
+  const renderLiquiditySecondary = () => (
+    <TouchableOpacity 
+      style={styles.accountBalanceCard}
+      activeOpacity={0.9}
+      onPress={() => router.push('/liquidity')}
+    >
+      <Text style={styles.accountBalanceAmount}>
+        {formatCurrency(totalLiquidity, 'INR')}
+      </Text>
+      <Text style={styles.accountBalanceLabel}>Total Liquidity</Text>
+      <Text style={styles.tapHint}>
+        {totalLiquidityFormulaText}
+      </Text>
+    </TouchableOpacity>
+  );
+
 
 
 
@@ -269,12 +275,15 @@ const renderAccountBalance = () => (
     <View style={styles.metricsGrid}>
       <TouchableOpacity 
         style={styles.metricCard}
-        onPress={() => router.push('/analytics')}
+        onPress={() => router.push('/liquidity')}
       >
         <Text style={styles.metricAmount}>
-          {formatCurrency(dashboardData.netWorth, 'INR')}
+          {formatCurrency(totalLiquidity, 'INR')}
         </Text>
-        <Text style={styles.metricLabel}>Your total net worth</Text>
+        <Text style={styles.metricLabel}>Total Liquidity</Text>
+        <Text style={styles.metricFormula}>
+          {totalLiquidityFormulaText}
+        </Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
@@ -298,6 +307,7 @@ const renderAccountBalance = () => (
       </TouchableOpacity>
     </View>
   );
+
 
   const renderLatestTransactions = () => (
     <View style={styles.transactionsSection}>
@@ -515,7 +525,6 @@ const renderAccountBalance = () => (
         {renderWelcomeHeader()}
         {renderTopQuickActions()}
         {renderPrimaryBalance()}
-        {renderAccountBalance()}
         {renderMetricsGrid()}
         {renderLatestTransactions()}
         {renderQuickActions()}
@@ -861,6 +870,13 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
     textAlign: 'center',
+  },
+  metricFormula: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+    fontStyle: 'italic',
   },
 
 });
