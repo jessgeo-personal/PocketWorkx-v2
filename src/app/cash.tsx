@@ -660,7 +660,10 @@ const CashScreen: React.FC = () => {
         onPress={handleOpenAllTransactions}
       >
         <LinearGradient colors={['#27AE60', '#2ECC71']} style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total Liquid Cash</Text>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.totalLabel}>Total Liquid Cash</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#FFFFFF" />
+          </View>
           <Text style={[
             styles.totalAmount,
             totalLiquidCash < 0 && styles.negativeTotalAmount
@@ -742,23 +745,15 @@ const CashScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={() => handleDeletecashCategory(group.categoryName)}
-          >
-            <MaterialIcons name="delete" size={20} color="#E74C3C" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.cashAmount}>
-          <Text style={styles.amountLabel}>Category Total</Text>
-          <Text
-            style={[
-              styles.amountValue,
-              group.totalAmount < 0 && styles.negativeAmount
-            ]}
-          >
-            {formatFullINR(group.totalAmount)}
-          </Text>
+          <View style={styles.rightIconsRow}>
+            <MaterialIcons name="chevron-right" size={22} color={Colors.text.secondary} />
+            <TouchableOpacity 
+              style={styles.deleteButton} 
+              onPress={() => handleDeletecashCategory(group.categoryName)}
+            >
+              <MaterialIcons name="delete" size={20} color="#E74C3C" />
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -1676,6 +1671,17 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
     overflow: 'hidden',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  rightIconsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
 
 });

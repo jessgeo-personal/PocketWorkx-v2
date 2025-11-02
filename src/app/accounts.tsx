@@ -687,6 +687,7 @@ const searchParams = useLocalSearchParams<{ openModal?: string }>();
             <Text style={styles.accountMeta}>{acc.type.toUpperCase()}</Text>
           </View>
         </View>
+        <MaterialIcons name="chevron-right" size={22} color={Colors.text.secondary} />
       </View>
       <View style={styles.accountRight}>
         <Text style={styles.balanceLabel}>Account Balance</Text>

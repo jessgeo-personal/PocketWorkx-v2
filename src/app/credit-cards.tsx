@@ -513,7 +513,10 @@ const CreditCardsScreen: React.FC = () => {
         onPress={handleOpenAllTransactions}
       >
         <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.totalCard}>
-          <Text style={styles.totalLabel}>Total Outstanding Balance</Text>
+          <View style={styles.cardHeaderRow}>
+            <Text style={styles.totalLabel}>Total Outstanding Balance</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#FFFFFF" />
+          </View>
           <Text style={styles.totalAmount}>
             {formatFullINR(totalOutstandingBalance)}
           </Text>
@@ -585,13 +588,17 @@ const CreditCardsScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={() => handleDeleteCard(group.card.id)}
-          >
-            <MaterialIcons name="delete" size={20} color="#E74C3C" />
-          </TouchableOpacity>
+          <View style={styles.rightIconsRow}>
+            <MaterialIcons name="chevron-right" size={22} color={Colors.text.secondary} />
+            <TouchableOpacity 
+              style={styles.deleteButton} 
+              onPress={() => handleDeleteCard(group.card.id)}
+            >
+              <MaterialIcons name="delete" size={20} color="#E74C3C" />
+            </TouchableOpacity>
+          </View>
         </View>
+
         
         <View style={styles.balanceSection}>
           <View style={styles.balanceRow}>
@@ -940,6 +947,18 @@ const styles = StyleSheet.create({
     width: 200,
     height: 100,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  rightIconsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+
 });
 
 export { CreditCardsScreen as default };

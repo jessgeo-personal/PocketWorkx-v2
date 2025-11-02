@@ -240,10 +240,13 @@ const HomeScreen: React.FC = () => {
       activeOpacity={0.9}
       onPress={() => router.push('/analytics')}
     >
+      <View style={styles.cardHeaderRow}>
+        <Text style={styles.primaryLabel}>Your Total Net Worth</Text>
+        <Feather name="chevron-right" size={20} color={Colors.text.secondary} />
+      </View>
       <Text style={styles.primaryAmount}>
         {formatCurrency(dashboardData.netWorth, 'INR')}
       </Text>
-      <Text style={styles.primaryLabel}>Your Total Net Worth</Text>
       <Text style={styles.tapHint}>
         Formula: (Bank Accounts + Crypto + Investments + Physical Assets) − (Loans + Credit Cards)
       </Text>
@@ -277,19 +280,27 @@ const HomeScreen: React.FC = () => {
         style={styles.metricCard}
         onPress={() => router.push('/liquidity')}
       >
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>Total Liquidity</Text>
+          <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
+        </View>
         <Text style={styles.metricAmount}>
           {formatCurrency(totalLiquidity, 'INR')}
         </Text>
-        <Text style={styles.metricLabel}>Total Liquidity</Text>
         <Text style={styles.metricFormula}>
           {totalLiquidityFormulaText}
         </Text>
       </TouchableOpacity>
+
       
       <TouchableOpacity 
         style={styles.metricCard}
         onPress={() => router.push('/liabilities')}
       >
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>Your total liabilities</Text>
+          <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
+        </View>
         <Text style={[styles.metricAmount, { color: Colors.error.main }]}>
           {formatCurrency(dashboardData.totalLiabilities, 'INR')}
         </Text>
@@ -300,6 +311,10 @@ const HomeScreen: React.FC = () => {
         style={styles.metricCard}
         onPress={() => router.push('/investments')}
       >
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>Your Investments & receivables</Text>
+          <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
+        </View>
         <Text style={styles.metricAmount}>
           {formatCurrency(dashboardData.investmentsReceivables, 'INR')}
         </Text>
@@ -877,6 +892,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.xs,
     fontStyle: 'italic',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
   },
 
 });

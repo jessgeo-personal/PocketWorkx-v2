@@ -6,8 +6,10 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
@@ -24,6 +26,7 @@ interface LiquidityData {
 }
 
 const LiquidityScreen: React.FC = () => {
+  const router = useRouter();
   const [liquidityData, setLiquidityData] = useState<LiquidityData>({
     totalLiquidAssets: 4567800,
     cash: 93500,
@@ -57,55 +60,77 @@ const LiquidityScreen: React.FC = () => {
   );
 
   const renderLiquidityBreakdown = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Liquidity Breakdown</Text>
-      
-      <View style={styles.breakdownCard}>
-        <View style={styles.breakdownItem}>
-          <View style={styles.breakdownLeft}>
-            <Feather name="dollar-sign" size={20} color={Colors.success.main} />
-            <View style={styles.breakdownDetails}>
-              <Text style={styles.breakdownLabel}>Cash</Text>
-              <Text style={styles.breakdownSubtext}>Physical cash in hand</Text>
-            </View>
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Liquidity Breakdown</Text>
+    
+    <TouchableOpacity 
+      style={styles.breakdownCard}
+      onPress={() => router.push('/cash')}
+      activeOpacity={0.9}
+    >
+      <View style={styles.breakdownItem}>
+        <View style={styles.breakdownLeft}>
+          <Feather name="dollar-sign" size={20} color={Colors.success.main} />
+          <View style={styles.breakdownDetails}>
+            <Text style={styles.breakdownLabel}>Cash</Text>
+            <Text style={styles.breakdownSubtext}>Physical cash in hand</Text>
           </View>
+        </View>
+        <View style={styles.breakdownRight}>
           <Text style={styles.breakdownAmount}>
             {formatCurrency(liquidityData.cash, 'INR')}
           </Text>
+          <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
         </View>
+      </View>
+    </TouchableOpacity>
 
-        <View style={styles.separator} />
-
-        <View style={styles.breakdownItem}>
-          <View style={styles.breakdownLeft}>
-            <Feather name="credit-card" size={20} color={Colors.info.main} />
-            <View style={styles.breakdownDetails}>
-              <Text style={styles.breakdownLabel}>Bank Accounts</Text>
-              <Text style={styles.breakdownSubtext}>Savings & checking accounts</Text>
-            </View>
+    <TouchableOpacity 
+      style={[styles.breakdownCard, { marginTop: Spacing.md }]}
+      onPress={() => router.push('/accounts')}
+      activeOpacity={0.9}
+    >
+      <View style={styles.breakdownItem}>
+        <View style={styles.breakdownLeft}>
+          <Feather name="credit-card" size={20} color={Colors.info.main} />
+          <View style={styles.breakdownDetails}>
+            <Text style={styles.breakdownLabel}>Bank Accounts</Text>
+            <Text style={styles.breakdownSubtext}>Savings & checking accounts</Text>
           </View>
+        </View>
+        <View style={styles.breakdownRight}>
           <Text style={styles.breakdownAmount}>
             {formatCurrency(liquidityData.bankAccounts, 'INR')}
           </Text>
+          <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
         </View>
+      </View>
+    </TouchableOpacity>
 
-        <View style={styles.separator} />
-
-        <View style={styles.breakdownItem}>
-          <View style={styles.breakdownLeft}>
-            <Feather name="trending-up" size={20} color={Colors.warning.main} />
-            <View style={styles.breakdownDetails}>
-              <Text style={styles.breakdownLabel}>Short-term Investments</Text>
-              <Text style={styles.breakdownSubtext}>Liquid mutual funds, FDs</Text>
-            </View>
+    <TouchableOpacity 
+      style={[styles.breakdownCard, { marginTop: Spacing.md }]}
+      onPress={() => router.push('/investments')}
+      activeOpacity={0.9}
+    >
+      <View style={styles.breakdownItem}>
+        <View style={styles.breakdownLeft}>
+          <Feather name="trending-up" size={20} color={Colors.warning.main} />
+          <View style={styles.breakdownDetails}>
+            <Text style={styles.breakdownLabel}>Short-term Investments</Text>
+            <Text style={styles.breakdownSubtext}>Liquid mutual funds, FDs</Text>
           </View>
+        </View>
+        <View style={styles.breakdownRight}>
           <Text style={styles.breakdownAmount}>
             {formatCurrency(liquidityData.shortTermInvestments, 'INR')}
           </Text>
+          <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
         </View>
       </View>
-    </View>
-  );
+    </TouchableOpacity>
+  </View>
+);
+
 
   const renderLiquidityMetrics = () => (
     <View style={styles.section}>
@@ -297,6 +322,11 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100, // Space for bottom menu
+  },
+  breakdownRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
 });
 
