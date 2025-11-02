@@ -256,27 +256,6 @@ const HomeScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-
-  const renderLiquiditySecondary = () => (
-    <TouchableOpacity 
-      style={styles.accountBalanceCard}
-      activeOpacity={0.9}
-      onPress={() => router.push('/liquidity')}
-    >
-      <Text style={styles.accountBalanceAmount}>
-        {formatCurrency(totalLiquidity, 'INR')}
-      </Text>
-      <Text style={styles.accountBalanceLabel}>Total Liquidity</Text>
-      <Text style={styles.tapHint}>
-        {totalLiquidityFormulaText}
-      </Text>
-    </TouchableOpacity>
-  );
-
-
-
-
-
   const renderMetricsGrid = () => (
     <View style={styles.metricsGrid}>
       <TouchableOpacity 
@@ -307,7 +286,6 @@ const HomeScreen: React.FC = () => {
         <Text style={[styles.metricAmount, { color: Colors.error.main }]}>
           {formatCurrency(dashboardData.totalLiabilities, 'INR')}
         </Text>
-        <Text style={styles.metricLabel}>Your total liabilities</Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
@@ -321,7 +299,6 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.metricAmount}>
           {formatCurrency(dashboardData.investmentsReceivables, 'INR')}
         </Text>
-        <Text style={styles.metricLabel}>Your Investments & receivables</Text>
       </TouchableOpacity>
     </View>
   );
@@ -659,7 +636,7 @@ const HomeScreen: React.FC = () => {
             </View>
           </ScrollView>
         </View>
-      </View>
+      
     </Modal>
   );
 
@@ -1044,13 +1021,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.xs,
   },
-  quickActionsButton: {
-    backgroundColor: '#8B5CF6',
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.base,
-    ...Shadows.md,
-  },
+
   quickActionsButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
