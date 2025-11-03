@@ -97,7 +97,7 @@ const CreditCardsScreen: React.FC = () => {
   const [paymentDay, setPaymentDay] = useState<number>(new Date().getDate());
   const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
   const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
-  
+
   // Enhanced Payment Modal states  
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedCardForPayment, setSelectedCardForPayment] = useState<string>('');
@@ -1071,24 +1071,28 @@ const CreditCardsScreen: React.FC = () => {
     setSelectedCardForPayment(newValue);
   };
 
+  // Debounced update to avoid intermediate values blocking the last item selection
+  let accountChangeTimer: NodeJS.Timeout | undefined;
   const handleAccountChange = (event: any) => {
-    console.log('Account picker event:', event);
-    let newValue: string;
-    
+    let newValue: string | undefined;
+
     if (event && typeof event === 'string') {
-      newValue = event;
+      newValue = String(event);
     } else if (event && event.item && event.item.value !== undefined) {
-      newValue = event.item.value;
+      newValue = String(event.item.value);
     } else if (event && event.value !== undefined) {
-      newValue = event.value;
+      newValue = String(event.value);
     } else {
       console.warn('Unexpected account picker event format:', event);
       return;
     }
-    
-    console.log('Setting selected account to:', newValue);
-    setSelectedAccountForPayment(newValue);
+
+    if (accountChangeTimer) clearTimeout(accountChangeTimer);
+    accountChangeTimer = setTimeout(() => {
+      setSelectedAccountForPayment(newValue!);
+    }, 60);
   };
+
 
 
   const handleDayChange = (event: any) => {
@@ -1253,10 +1257,10 @@ const CreditCardsScreen: React.FC = () => {
                     <View style={styles.wheelPickerContainer}>
                       <WheelPicker
                         data={accountPickerData}
-                        value={selectedAccountForPayment}
+                        value={String(selectedAccountForPayment || '')}
                         onValueChanged={handleAccountChange}
                         itemHeight={60}
-                        visibleItemCount={3}
+                        visibleItemCount={5}
                         enableScrollByTapOnItem={true}
                         style={styles.wheelPickerStyle}
                         itemTextStyle={styles.wheelPickerText}
