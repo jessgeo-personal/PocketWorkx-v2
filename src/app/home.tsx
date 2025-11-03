@@ -504,9 +504,10 @@ const HomeScreen: React.FC = () => {
           {/* Header */}
           <View style={styles.quickActionsModalHeader}>
             <View style={styles.modalHeaderContent}>
-              <Feather name="zap" size={24} color={Colors.white} /> <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
+              <Feather name="zap" size={24}  /> 
+              <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
               <TouchableOpacity onPress={() => setIsQuickActionsModalVisible(false)}>
-                <Feather name="x" size={24} color={Colors.white} />
+                <Feather name="x" size={24} />
               </TouchableOpacity>
             </View>
           </View>
@@ -518,7 +519,7 @@ const HomeScreen: React.FC = () => {
             contentContainerStyle={{ paddingBottom: Spacing.xl }}
             showsVerticalScrollIndicator={false}
           >
-            <View style={{ backgroundColor: Colors.background }}>
+            <View style={{ backgroundColor: Colors.background.primary }}>
             {/* Cash Actions */}
             <View style={styles.actionGroup}>
               <View style={styles.sectionDivider}>
@@ -533,9 +534,12 @@ const HomeScreen: React.FC = () => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/cash', params: { openModal: 'add' } });
                   }}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="plus-circle" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Add Cash</Text>
+                  <View style={styles.modalActionInner}>
+                    <Feather name="plus-circle" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Add Cash</Text>
+                  </View>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -544,9 +548,12 @@ const HomeScreen: React.FC = () => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/cash', params: { openModal: 'expense' } });
                   }}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="minus-circle" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Record Expense</Text>
+                  <View style={styles.modalActionInner}>
+                    <Feather name="minus-circle" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Record Expense</Text>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
@@ -565,9 +572,12 @@ const HomeScreen: React.FC = () => {
                     setIsQuickActionsModalVisible(false);
                     router.push('/accounts');
                   }}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="plus-circle" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Add Account</Text>
+                  <View style={styles.modalActionInner}>
+                    <Feather name="plus-circle" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Add Account</Text>
+                  </View>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -576,9 +586,12 @@ const HomeScreen: React.FC = () => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/accounts', params: { openModal: 'debit' } });
                   }}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="credit-card" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Record Debit/UPI</Text>
+                  <View style={styles.modalActionInner}>
+                    <Feather name="credit-card" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Record Debit/UPI</Text>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
@@ -597,9 +610,12 @@ const HomeScreen: React.FC = () => {
                     setIsQuickActionsModalVisible(false);
                     router.push('/credit-cards');
                   }}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="plus-circle" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Add Card</Text>
+                  <View style={styles.modalActionInner}>
+                    <Feather name="plus-circle" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Add Card</Text>
+                  </View>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -608,9 +624,12 @@ const HomeScreen: React.FC = () => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/credit-cards', params: { openModal: 'charge' } });
                   }}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="shopping-cart" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Record Charge</Text>
+                  <View style={styles.modalActionInner}>
+                    <Feather name="shopping-cart" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Record Charge</Text>
+                  </View>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -619,9 +638,12 @@ const HomeScreen: React.FC = () => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/credit-cards', params: { openModal: 'payment' } });
                   }}
+                  activeOpacity={0.9}
                 >
-                  <Feather name="check-circle" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Make Payment</Text>
+                  <View style={styles.modalActionInner}>
+                    <Feather name="check-circle" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Make Payment</Text>
+                  </View>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1071,7 +1093,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   quickActionsModalHeader: {
-    backgroundColor: Colors.accent, // purple header matching button
+    backgroundColor: Colors.background.primary, // purple header matching button
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,   // reduce top padding to remove perceived gap
     paddingBottom: Spacing.lg,
@@ -1081,7 +1103,7 @@ const styles = StyleSheet.create({
   quickActionsModalTitle: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.white,
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   quickActionsModalBody: {
@@ -1091,7 +1113,8 @@ const styles = StyleSheet.create({
   },
 
   actionGroup: {
-    marginBottom: Spacing.xl,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   actionGroupTitle: {
     fontSize: Typography.fontSize.base,
@@ -1103,7 +1126,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: Spacing.sm,
+    //gap: Spacing.sm,
+    marginBottom: Spacing.sm,     // better spacing under each row
   },
   modalHeaderContent: {
     flexDirection: 'row',
@@ -1112,24 +1136,33 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   modalActionButton: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
-    backgroundColor: Colors.accent,         // purple button
-    paddingVertical: Spacing.lg,            // larger touch target
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.xl,          // rounded like primary buttons
+    backgroundColor: Colors.accentDark,     // pocketworkx purple
+    borderRadius: BorderRadius.xl,
     width: '48%',
-    marginBottom: Spacing.sm,
-    ...Shadows.md,
+    height: 100,                        // target ~200px height
+    marginBottom: Spacing.md,
+    // Stronger 3D effect:
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  modalActionInner: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,                    // space between icon and text (RN 0.73+ supports gap)
   },
   modalActionText: {
-    fontSize: Typography.fontSize.lg,     // larger text
-    color: Colors.white,                    // white text
-    marginLeft: Spacing.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    fontSize: Typography.fontSize.base,   // larger readable text
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.bold,
+    textAlign: 'center',
+    lineHeight: 22,
   },
-
   sectionDivider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1143,8 +1176,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sectionDividerText: {
-    fontSize: Typography.fontSize.lg,
-    color: '#1F2937',
+    fontSize: Typography.fontSize.xl,
+    color: Colors.text.primary,
     fontWeight: '700',
     //textTransform: 'uppercase',
   },
