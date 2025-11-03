@@ -551,8 +551,14 @@ const CreditCardsScreen: React.FC = () => {
   // Reset form helper
   const resetPaymentForm = () => {
     setPaymentAmount('');
-    setSelectedCardForPayment('');
-    setSelectedAccountForPayment('');
+    
+    // Initialize with first available items or empty
+    const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    const accounts = (state?.accounts ?? []) as Array<{ id: string }>;
+    
+    setSelectedCardForPayment(cards.length > 0 ? cards[0].id : '');
+    setSelectedAccountForPayment(accounts.length > 0 ? accounts[0].id : '');
+    
     const today = new Date();
     setPaymentDay(today.getDate());
     setPaymentMonth(today.getMonth() + 1);
@@ -561,6 +567,7 @@ const CreditCardsScreen: React.FC = () => {
     setPaymentNotes('');
     setIsPaymentModalVisible(false);
   };
+
 
 
 
@@ -1000,8 +1007,40 @@ const CreditCardsScreen: React.FC = () => {
     );
   };
 
+  // Safe wheel picker callbacks with null checks
+  const handleCardChange = (event: any) => {
+    if (event && event.item && event.item.value) {
+      setSelectedCardForPayment(event.item.value);
+    }
+  };
 
-  // Enhanced Make Payment Modal with True Wheel Pickers (API CORRECTED)
+  const handleAccountChange = (event: any) => {
+    if (event && event.item && event.item.value !== undefined) {
+      setSelectedAccountForPayment(event.item.value);
+    }
+  };
+
+  const handleDayChange = (event: any) => {
+    if (event && event.item && event.item.value) {
+      setPaymentDay(event.item.value);
+    }
+  };
+
+  const handleMonthChange = (event: any) => {
+    if (event && event.item && event.item.value) {
+      setPaymentMonth(event.item.value);
+    }
+  };
+
+  const handleYearChange = (event: any) => {
+    if (event && event.item && event.item.value) {
+      setPaymentYear(event.item.value);
+    }
+  };
+
+
+ // Enhanced Make Payment Modal with Crash-Safe Wheel Pickers
+
   const renderPaymentModal = () => {
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
     const accounts = (state?.accounts ?? []) as Array<{
@@ -1011,16 +1050,42 @@ const CreditCardsScreen: React.FC = () => {
       balance: { amount: number; currency: string };
     }>;
     
-    // Generate picker data with multi-line labels using \n
-    const cardPickerData = cards.map(card => ({
+    // Safety check - don't render picker if no data
+    if (cards.length === 0 && accounts.length === 0) {
+      return (
+        <Modal
+          visible={isPaymentModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setIsPaymentModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Make Payment</Text>
+                <TouchableOpacity onPress={() => setIsPaymentModalVisible(false)}>
+                  <MaterialIcons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.modalBody}>
+                <Text style={styles.emptyText}>Please add credit cards and bank accounts first.</Text>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      );
+    }
+    
+    // Generate picker data with proper defaults
+    const cardPickerData = cards.length > 0 ? cards.map(card => ({
       value: card.id,
       label: `${card.cardName} ${card.cardNumber}\n${formatFullINR(card.currentBalance.amount)} due`,
-    }));
+    })) : [{ value: '', label: 'No cards available' }];
 
-    const accountPickerData = accounts.map(acc => ({
+    const accountPickerData = accounts.length > 0 ? accounts.map(acc => ({
       value: acc.id,
       label: `${acc.nickname}\n${formatFullINR(acc.balance.amount)} available`,
-    }));
+    })) : [{ value: '', label: 'No accounts available' }];
 
     // Date picker data
     const dayData = Array.from({length: 31}, (_, i) => ({
@@ -1040,6 +1105,10 @@ const CreditCardsScreen: React.FC = () => {
       value: currentYear - 2 + i,
       label: (currentYear - 2 + i).toString()
     }));
+
+    // Initialize defaults if not set
+    const selectedCardId = selectedCardForPayment || (cards.length > 0 ? cards[0].id : '');
+    const selectedAccountId = selectedAccountForPayment || (accounts.length > 0 ? accounts[0].id : '');
 
     return (
       <Modal
@@ -1072,41 +1141,45 @@ const CreditCardsScreen: React.FC = () => {
                   />
                 </View>
 
-                {/* Credit Card Wheel Picker - CORRECTED API */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Select Credit Card *</Text>
-                  <View style={styles.wheelPickerContainer}>
-                    <WheelPicker
-                      data={cardPickerData}
-                      value={selectedCardForPayment}
-                      onValueChanged={({item}) => setSelectedCardForPayment(item.value)}
-                      itemHeight={60}
-                      visibleItemCount={3}
-                      enableScrollByTapOnItem={true}
-                      style={styles.wheelPickerStyle}
-                      itemTextStyle={styles.wheelPickerText}
-                      overlayItemStyle={styles.wheelPickerOverlay}
-                    />
+                {/* Credit Card Wheel Picker with Safety */}
+                {cards.length > 0 && (
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Select Credit Card *</Text>
+                    <View style={styles.wheelPickerContainer}>
+                      <WheelPicker
+                        data={cardPickerData}
+                        value={selectedCardId}
+                        onValueChanged={handleCardChange}
+                        itemHeight={60}
+                        visibleItemCount={3}
+                        enableScrollByTapOnItem={true}
+                        style={styles.wheelPickerStyle}
+                        itemTextStyle={styles.wheelPickerText}
+                        overlayItemStyle={styles.wheelPickerOverlay}
+                      />
+                    </View>
                   </View>
-                </View>
+                )}
 
-                {/* Source Account Wheel Picker - CORRECTED API */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Pay From Account *</Text>
-                  <View style={styles.wheelPickerContainer}>
-                    <WheelPicker
-                      data={accountPickerData}
-                      value={selectedAccountForPayment}
-                      onValueChanged={({item}) => setSelectedAccountForPayment(item.value)}
-                      itemHeight={60}
-                      visibleItemCount={3}
-                      enableScrollByTapOnItem={true}
-                      style={styles.wheelPickerStyle}
-                      itemTextStyle={styles.wheelPickerText}
-                      overlayItemStyle={styles.wheelPickerOverlay}
-                    />
+                {/* Source Account Wheel Picker with Safety */}
+                {accounts.length > 0 && (
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Pay From Account *</Text>
+                    <View style={styles.wheelPickerContainer}>
+                      <WheelPicker
+                        data={accountPickerData}
+                        value={selectedAccountId}
+                        onValueChanged={handleAccountChange}
+                        itemHeight={60}
+                        visibleItemCount={3}
+                        enableScrollByTapOnItem={true}
+                        style={styles.wheelPickerStyle}
+                        itemTextStyle={styles.wheelPickerText}
+                        overlayItemStyle={styles.wheelPickerOverlay}
+                      />
+                    </View>
                   </View>
-                </View>
+                )}
 
                 {/* Payment Date Toggle */}
                 <View style={styles.inputContainer}>
@@ -1121,7 +1194,7 @@ const CreditCardsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Date Wheel Pickers (Day/Month/Year) - CORRECTED API */}
+                {/* Date Wheel Pickers (Day/Month/Year) with Safety */}
                 {useCustomDate && (
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Payment Date</Text>
@@ -1133,7 +1206,7 @@ const CreditCardsScreen: React.FC = () => {
                           <WheelPicker
                             data={dayData}
                             value={paymentDay}
-                            onValueChanged={({item}) => setPaymentDay(item.value)}
+                            onValueChanged={handleDayChange}
                             itemHeight={40}
                             visibleItemCount={3}
                             enableScrollByTapOnItem={true}
@@ -1151,7 +1224,7 @@ const CreditCardsScreen: React.FC = () => {
                           <WheelPicker
                             data={monthData}
                             value={paymentMonth}
-                            onValueChanged={({item}) => setPaymentMonth(item.value)}
+                            onValueChanged={handleMonthChange}
                             itemHeight={40}
                             visibleItemCount={3}
                             enableScrollByTapOnItem={true}
@@ -1169,7 +1242,7 @@ const CreditCardsScreen: React.FC = () => {
                           <WheelPicker
                             data={yearData}
                             value={paymentYear}
-                            onValueChanged={({item}) => setPaymentYear(item.value)}
+                            onValueChanged={handleYearChange}
                             itemHeight={40}
                             visibleItemCount={3}
                             enableScrollByTapOnItem={true}
@@ -1214,6 +1287,8 @@ const CreditCardsScreen: React.FC = () => {
       </Modal>
     );
   };
+
+
 
 
 
@@ -1496,11 +1571,15 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: 16,
     marginBottom: 4,
+    textAlign: 'center',
+    padding: 20,
   },
   emptySubtext: {
     fontSize: 14,
     color: Colors.text.tertiary,
     textAlign: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   logoContainer: {
     alignItems: 'flex-start',
@@ -1640,123 +1719,112 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     textAlign: 'right',
   },
-  // Enhanced payment modal styles
-  largeInputLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    marginBottom: 12,
-  },
-  largeTextInput: {
-    borderWidth: 2,
-    borderColor: Colors.accentDark,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    backgroundColor: Colors.background.secondary,
-    textAlign: 'center',
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: Colors.accentDark,
-    borderRadius: 8,
-    backgroundColor: Colors.background.primary,
-  },
-  wheelPicker: {
-    height: 80,
-    color: Colors.text.primary,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 36,
-    height: 36,
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
-    borderRadius: 4,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxActive: {
-    backgroundColor: '#8B5CF6',
-  },
-  checkboxLabel: {
-    fontSize: 16,
-    color: Colors.text.primary,
-    fontWeight: '500',
-  },
-  // Corrected wheel picker styles (API compliant)
-  wheelPickerContainer: {
-    backgroundColor: Colors.background.secondary,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
-    overflow: 'hidden',
-    marginTop: 8,
-    height: 180, // Fixed height container
-  },
-  wheelPickerStyle: {
-    flex: 1,
-  },
-  wheelPickerSmall: {
-    backgroundColor: Colors.background.secondary,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#8B5CF6',
-    overflow: 'hidden',
-    height: 120, // Fixed height container
-  },
-  dateWheelStyle: {
-    flex: 1,
-  },
-  wheelPickerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  wheelPickerOverlay: {
-    backgroundColor: '#8B5CF6' + '20',
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: '#8B5CF6',
-  },
-  datePickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    paddingHorizontal: 8,
-  },
-  datePickerColumn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  datePickerLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  dateWheelText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
-  dateWheelOverlay: {
-    backgroundColor: '#8B5CF6' + '15',
-    borderTopWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: '#8B5CF6',
-  },
+  // Complete wheel picker styles
+largeInputLabel: {
+  fontSize: 20,
+  fontWeight: '700',
+  color: Colors.text.primary,
+  marginBottom: 12,
+},
+largeTextInput: {
+  borderWidth: 2,
+  borderColor: '#8B5CF6',
+  borderRadius: 12,
+  padding: 20,
+  fontSize: 28,
+  fontWeight: '600',
+  color: Colors.text.primary,
+  backgroundColor: Colors.background.secondary,
+  textAlign: 'center',
+},
+wheelPickerContainer: {
+  backgroundColor: Colors.background.secondary,
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: '#E0E0E0',
+  overflow: 'hidden',
+  marginTop: 8,
+  height: 180,
+},
+wheelPickerStyle: {
+  flex: 1,
+},
+wheelPickerSmall: {
+  backgroundColor: Colors.background.secondary,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: '#E0E0E0',
+  overflow: 'hidden',
+  height: 120,
+},
+dateWheelStyle: {
+  flex: 1,
+},
+wheelPickerText: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: Colors.text.primary,
+  textAlign: 'center',
+  lineHeight: 22,
+},
+wheelPickerOverlay: {
+  backgroundColor: '#8B5CF6' + '20',
+  borderTopWidth: 2,
+  borderBottomWidth: 2,
+  borderColor: '#8B5CF6',
+},
+datePickerRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 8,
+  paddingHorizontal: 8,
+},
+datePickerColumn: {
+  alignItems: 'center',
+  flex: 1,
+},
+datePickerLabel: {
+  fontSize: 14,
+  fontWeight: '600',
+  color: Colors.text.primary,
+  marginBottom: 8,
+  textAlign: 'center',
+},
+dateWheelText: {
+  fontSize: 16,
+  fontWeight: '700',
+  color: Colors.text.primary,
+  textAlign: 'center',
+},
+dateWheelOverlay: {
+  backgroundColor: '#8B5CF6' + '15',
+  borderTopWidth: 1,
+  borderBottomWidth: 1,
+  borderColor: '#8B5CF6',
+},
+checkboxRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 8,
+},
+checkbox: {
+  width: 24,
+  height: 24,
+  borderWidth: 2,
+  borderColor: '#8B5CF6',
+  borderRadius: 4,
+  marginRight: 12,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+checkboxActive: {
+  backgroundColor: '#8B5CF6',
+},
+checkboxLabel: {
+  fontSize: 16,
+  color: Colors.text.primary,
+  fontWeight: '500',
+},
 
 
 });
