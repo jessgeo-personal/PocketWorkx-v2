@@ -1141,10 +1141,10 @@ const CreditCardsScreen: React.FC = () => {
                   />
                 </View>
 
-                {/* Credit Card Wheel Picker with Safety */}
-                {cards.length > 0 && (
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Select Credit Card *</Text>
+                {/* Credit Card Wheel Picker - Always Visible */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Select Credit Card *</Text>
+                  {cards.length > 0 ? (
                     <View style={styles.wheelPickerContainer}>
                       <WheelPicker
                         data={cardPickerData}
@@ -1158,13 +1158,28 @@ const CreditCardsScreen: React.FC = () => {
                         overlayItemStyle={styles.wheelPickerOverlay}
                       />
                     </View>
-                  </View>
-                )}
+                  ) : (
+                    <View style={styles.emptyPickerContainer}>
+                      <Text style={styles.emptyPickerText}>No credit cards added yet</Text>
+                      <TouchableOpacity 
+                        style={styles.addCardQuickButton}
+                        onPress={() => {
+                          setIsPaymentModalVisible(false);
+                          setIsAddCardModalVisible(true);
+                        }}
+                      >
+                        <MaterialIcons name="add-circle" size={20} color="#8B5CF6" />
+                        <Text style={styles.addCardQuickText}>Add Credit Card First</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
 
-                {/* Source Account Wheel Picker with Safety */}
-                {accounts.length > 0 && (
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Pay From Account *</Text>
+
+                {/* Source Account Wheel Picker - Always Visible */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Pay From Account *</Text>
+                  {accounts.length > 0 ? (
                     <View style={styles.wheelPickerContainer}>
                       <WheelPicker
                         data={accountPickerData}
@@ -1178,8 +1193,23 @@ const CreditCardsScreen: React.FC = () => {
                         overlayItemStyle={styles.wheelPickerOverlay}
                       />
                     </View>
-                  </View>
-                )}
+                  ) : (
+                    <View style={styles.emptyPickerContainer}>
+                      <Text style={styles.emptyPickerText}>No bank accounts found</Text>
+                      <TouchableOpacity 
+                        style={styles.addCardQuickButton}
+                        onPress={() => {
+                          setIsPaymentModalVisible(false);
+                          router.push('/accounts');
+                        }}
+                      >
+                        <MaterialIcons name="add-circle" size={20} color="#8B5CF6" />
+                        <Text style={styles.addCardQuickText}>Add Bank Account First</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
 
                 {/* Payment Date Toggle */}
                 <View style={styles.inputContainer}>
@@ -1720,111 +1750,141 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   // Complete wheel picker styles
-largeInputLabel: {
-  fontSize: 20,
-  fontWeight: '700',
-  color: Colors.text.primary,
-  marginBottom: 12,
-},
-largeTextInput: {
-  borderWidth: 2,
-  borderColor: '#8B5CF6',
-  borderRadius: 12,
-  padding: 20,
-  fontSize: 28,
-  fontWeight: '600',
-  color: Colors.text.primary,
-  backgroundColor: Colors.background.secondary,
-  textAlign: 'center',
-},
-wheelPickerContainer: {
-  backgroundColor: Colors.background.secondary,
-  borderRadius: 12,
-  borderWidth: 2,
-  borderColor: '#E0E0E0',
-  overflow: 'hidden',
-  marginTop: 8,
-  height: 180,
-},
-wheelPickerStyle: {
-  flex: 1,
-},
-wheelPickerSmall: {
-  backgroundColor: Colors.background.secondary,
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: '#E0E0E0',
-  overflow: 'hidden',
-  height: 120,
-},
-dateWheelStyle: {
-  flex: 1,
-},
-wheelPickerText: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: Colors.text.primary,
-  textAlign: 'center',
-  lineHeight: 22,
-},
-wheelPickerOverlay: {
-  backgroundColor: '#8B5CF6' + '20',
-  borderTopWidth: 2,
-  borderBottomWidth: 2,
-  borderColor: '#8B5CF6',
-},
-datePickerRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  marginTop: 8,
-  paddingHorizontal: 8,
-},
-datePickerColumn: {
-  alignItems: 'center',
-  flex: 1,
-},
-datePickerLabel: {
-  fontSize: 14,
-  fontWeight: '600',
-  color: Colors.text.primary,
-  marginBottom: 8,
-  textAlign: 'center',
-},
-dateWheelText: {
-  fontSize: 16,
-  fontWeight: '700',
-  color: Colors.text.primary,
-  textAlign: 'center',
-},
-dateWheelOverlay: {
-  backgroundColor: '#8B5CF6' + '15',
-  borderTopWidth: 1,
-  borderBottomWidth: 1,
-  borderColor: '#8B5CF6',
-},
-checkboxRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginBottom: 8,
-},
-checkbox: {
-  width: 24,
-  height: 24,
-  borderWidth: 2,
-  borderColor: '#8B5CF6',
-  borderRadius: 4,
-  marginRight: 12,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-checkboxActive: {
-  backgroundColor: '#8B5CF6',
-},
-checkboxLabel: {
-  fontSize: 16,
-  color: Colors.text.primary,
-  fontWeight: '500',
-},
+  largeInputLabel: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 12,
+  },
+  largeTextInput: {
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    borderRadius: 12,
+    padding: 20,
+    fontSize: 28,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    backgroundColor: Colors.background.secondary,
+    textAlign: 'center',
+  },
+  wheelPickerContainer: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+    marginTop: 8,
+    height: 180,
+  },
+  wheelPickerStyle: {
+    flex: 1,
+  },
+  wheelPickerSmall: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+    height: 120,
+    width: 100,
+  },
+  dateWheelStyle: {
+    flex: 1,
+  },
+  wheelPickerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  wheelPickerOverlay: {
+    backgroundColor: '#8B5CF6' + '20',
+    borderTopWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: '#8B5CF6',
+  },
+  datePickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: 8,
+  },
+  datePickerColumn: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  dateWheelText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    textAlign: 'center',
+  },
+  dateWheelOverlay: {
+    backgroundColor: '#8B5CF6' + '15',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#8B5CF6',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    borderRadius: 4,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: '#8B5CF6',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: Colors.text.primary,
+    fontWeight: '500',
+  },
+  emptyPickerContainer: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  emptyPickerText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  addCardQuickButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#8B5CF6' + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 6,
+  },
+  addCardQuickText: {
+    fontSize: 14,
+    color: '#8B5CF6',
+    fontWeight: '600',
+  },
 
 
 });
