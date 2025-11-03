@@ -497,16 +497,21 @@ const HomeScreen: React.FC = () => {
       onRequestClose={() => setIsQuickActionsModalVisible(false)}
     >
       <View style={styles.quickActionsModalOverlay}>
+        <View style={styles.quickActionsModalContent}>
           <View style={{ height: 6, alignItems: 'center', paddingTop: 6 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border.light }} />
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#CCCCCC' }} />
           </View>
           {/* Header */}
           <View style={styles.quickActionsModalHeader}>
-            <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
-            <TouchableOpacity onPress={() => setIsQuickActionsModalVisible(false)}>
-              <Feather name="x" size={24} color={Colors.text.primary} />
-            </TouchableOpacity>
+            <View style={styles.modalHeaderContent}>
+              <Feather name="zap" size={24} color="#FFFFFF" />
+              <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
+              <TouchableOpacity onPress={() => setIsQuickActionsModalVisible(false)}>
+                <Feather name="x" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
+
 
           {/* Body */}
           <ScrollView 
@@ -1037,36 +1042,35 @@ const styles = StyleSheet.create({
   },
   quickActionsModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   quickActionsModalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F7D94C', // Golden background
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '85%',
-    minHeight: '55%',
+    minHeight: '60%',
     paddingBottom: Spacing.xl,
     overflow: 'hidden',
   },
   quickActionsModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border.light,
-    backgroundColor: '#FFFFFF', // ensure solid
+    backgroundColor: '#8B5CF6', // Purple header like button
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
   },
   quickActionsModalTitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   quickActionsModalBody: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: '#8B5CF6'
+    backgroundColor: '#F7D94C', // Ensure golden throughout
   },
   actionGroup: {
     marginBottom: Spacing.xl,
@@ -1082,6 +1086,12 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: Spacing.sm,
+  },
+  modalHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   modalActionButton: {
     flexDirection: 'row',
