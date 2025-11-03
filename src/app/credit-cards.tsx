@@ -93,11 +93,6 @@ const CreditCardsScreen: React.FC = () => {
   const [chargeMerchant, setChargeMerchant] = useState('');
   const [chargeNotes, setChargeNotes] = useState('');
   
-    // Split date into separate day/month/year
-  const [paymentDay, setPaymentDay] = useState<number>(new Date().getDate());
-  const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
-  const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
-
   // Enhanced Payment Modal states  
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedCardForPayment, setSelectedCardForPayment] = useState<string>('');
@@ -1162,6 +1157,20 @@ const CreditCardsScreen: React.FC = () => {
       label: `${acc.nickname}\n${formatFullINR(acc.balance.amount)} available`,
     })) : [{ value: '', label: 'No accounts available' }];
     
+    // Snap selection to a valid option if needed (helps last item settle)
+    if (accounts.length > 0) {
+      const optionValues = accountPickerData.map(i => String(i.value));
+      if (!optionValues.includes(String(selectedAccountForPayment || ''))) {
+        setSelectedAccountForPayment(optionValues[optionValues.length - 1]);
+      }
+    }
+
+    // Date picker data - ADD THIS MISSING DECLARATION
+    const dayData = Array.from({length: 31}, (_, i) => ({
+      value: i + 1, 
+      label: (i + 1).toString()
+    }));
+
     const monthData = [
       {value: 1, label: 'Jan'}, {value: 2, label: 'Feb'}, {value: 3, label: 'Mar'},
       {value: 4, label: 'Apr'}, {value: 5, label: 'May'}, {value: 6, label: 'Jun'},
