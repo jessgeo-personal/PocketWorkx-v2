@@ -514,6 +514,7 @@ const HomeScreen: React.FC = () => {
             contentContainerStyle={{ paddingBottom: Spacing.xl }}
             showsVerticalScrollIndicator={false}
           >
+            <View style={{ backgroundColor: '#FFFFFF' }}>
             {/* Cash Actions */}
             <View style={styles.actionGroup}>
               <Text style={styles.actionGroupTitle}>💰 Cash</Text>
@@ -633,6 +634,7 @@ const HomeScreen: React.FC = () => {
                   <Text style={styles.modalActionText}>Scan Emails</Text>
                 </TouchableOpacity>
               </View>
+            </View>
             </View>
           </ScrollView>
         </View>
@@ -828,13 +830,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md, // tighter at top
     marginTop: Spacing.sm,
   },
-  quickActionsButton: {
-    backgroundColor: '#8B5CF6',
-    borderRadius: BorderRadius.xl,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    ...Shadows.md,
-  },
   quickActionsGrid: {
     backgroundColor: Colors.background.card,
     borderRadius: BorderRadius.xl,
@@ -1021,7 +1016,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.xs,
   },
-
+  quickActionsButton: {
+    backgroundColor: '#8B5CF6',
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    ...Shadows.md,
+  },
   quickActionsButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1036,11 +1037,11 @@ const styles = StyleSheet.create({
   },
   quickActionsModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   quickActionsModalContent: {
-    backgroundColor: Colors.background.card,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '85%',
@@ -1055,6 +1056,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border.light,
+    backgroundColor: '#FFFFFF', // ensure solid
   },
   quickActionsModalTitle: {
     fontSize: Typography.fontSize.lg,
@@ -1064,6 +1066,7 @@ const styles = StyleSheet.create({
   quickActionsModalBody: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
+    backgroundColor: '#8B5CF6'
   },
   actionGroup: {
     marginBottom: Spacing.xl,
