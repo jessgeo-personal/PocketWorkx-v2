@@ -87,6 +87,11 @@ const LoansScreen: React.FC = () => {
   const [newTenureMonths, setNewTenureMonths] = useState('');
   const [newEmiAmount, setNewEmiAmount] = useState('');
 
+  // New: start date (day/month/year pickers - simple numeric inputs for now)
+  const [startDay, setStartDay] = useState<string>('');
+  const [startMonth, setStartMonth] = useState<string>('');   // 1-12
+  const [startYear, setStartYear] = useState<string>('');     // yyyy
+
   // TransactionsModal states
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
@@ -135,13 +140,25 @@ const LoansScreen: React.FC = () => {
       Alert.alert('Error', 'Please enter a valid EMI amount');
       return;
     }
+    const sd = parseInt(startDay);
+    const sm = parseInt(startMonth);
+    const sy = parseInt(startYear);
+    if (Number.isNaN(sd) || Number.isNaN(sm) || Number.isNaN(sy) ||
+        sd < 1 || sd > 31 || sm < 1 || sm > 12 || sy < 1900 || sy > 2100) {
+      Alert.alert('Error', 'Please enter a valid start date (DD/MM/YYYY)');
+      return;
+    }
+
 
     setIsProcessing(true);
     try {
-      const now = new Date();
-      const startDate = new Date(now.getTime() - (tenure * 0.1 * 30 * 24 * 60 * 60 * 1000)); // approx start
-      const endDate = new Date(now.getTime() + (tenure * 0.9 * 30 * 24 * 60 * 60 * 1000)); // approx end
-      const nextEMI = new Date(now.getTime() + (5 * 24 * 60 * 60 * 1000)); // 5 days from now
+      // Build start date from user input
+      const startDate = new Date(sy, sm - 1, sd);
+      // Compute next EMI date = startDate + 1 month (same day; fallback to end of month if day overflow)
+      const nextEMIBase = new Date(startDate);
+      const nextEMI = new Date(nextEMIBase.getFullYear(), nextEMIBase.getMonth() + 1, nextEMIBase.getDate());
+      // Compute end date approximately using tenure months from start date
+      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + tenure, startDate.getDate());
 
       const newLoan: LoanEntry = {
         id: Date.now().toString(),
@@ -196,6 +213,9 @@ const LoansScreen: React.FC = () => {
       setNewInterestRate('');
       setNewTenureMonths('');
       setNewEmiAmount('');
+      setStartDay('');
+      setStartMonth('');
+      setStartYear('');
       setIsAddLoanModalVisible(false);
 
       Alert.alert('Success', 'Loan added successfully');
@@ -444,6 +464,36 @@ const LoansScreen: React.FC = () => {
               </View>
             </View>
           </ScrollView>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Loan Start Date (DD/MM/YYYY) *</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                style={[styles.textInput, { flex: 1 }]}
+                value={startDay}
+                onChangeText={setStartDay}
+                placeholder="DD"
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+              <TextInput
+                style={[styles.textInput, { flex: 1 }]}
+                value={startMonth}
+                onChangeText={setStartMonth}
+                placeholder="MM"
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+              <TextInput
+                style={[styles.textInput, { flex: 2 }]}
+                value={startYear}
+                onChangeText={setStartYear}
+                placeholder="YYYY"
+                keyboardType="number-pad"
+                maxLength={4}
+              />
+            </View>
+          </View>
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddLoanModalVisible(false)}>

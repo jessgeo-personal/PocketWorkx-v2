@@ -97,6 +97,39 @@ type PocketWorkxState = {
     linkedTransactions?: any[];
   }>;
 
+// NEW: loans domain persisted as raw JSON; StorageProvider normalizes to Date in memory
+  loanEntries?: Array<{
+    id: string;
+    type: 'home' | 'car' | 'personal' | 'education' | 'other';
+    bank: string;
+    loanNumber: string;
+    principalAmount: { amount: number; currency: 'INR' };
+    currentBalance: { amount: number; currency: 'INR' };
+    interestRate: number;
+    tenureMonths: number;
+    emiAmount: { amount: number; currency: 'INR' };
+    nextPaymentDate?: string | Date;
+    startDate?: string | Date;
+    endDate?: string | Date;
+    isActive: boolean;
+    timestamp?: string | Date;
+    encryptedData?: {
+      encryptionKey: string;
+      encryptionAlgorithm: string;
+      lastEncrypted: string | Date;
+      isEncrypted: boolean;
+    };
+    auditTrail?: {
+      createdBy: string;
+      createdAt?: string | Date;
+      updatedBy: string;
+      updatedAt?: string | Date;
+      version: number;
+      changes: any[];
+    };
+    linkedTransactions?: any[];
+  }>;
+
   // meta
   _version?: number;
   _updatedAt?: string; // ISO date
@@ -128,6 +161,8 @@ async function ensureDataFile(): Promise<void> {
               // NEW: credit cards
             creditCardEntries: [],
             creditCardTransactions: [],
+              // NEW: loans
+            loanEntries: [],
             _version: 1,
             _updatedAt: new Date().toISOString(),
         };
@@ -160,6 +195,8 @@ export async function getState(): Promise<PocketWorkxState> {
         // NEW: credit cards
         creditCardEntries: [],
         creditCardTransactions: [],
+          // NEW: loans
+        loanEntries: [],
         _version: 1,
         _updatedAt: new Date().toISOString(),
     };

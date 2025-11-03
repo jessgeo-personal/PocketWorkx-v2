@@ -36,8 +36,8 @@ export interface CreditCardEntry {
   currentBalance: { amount: number; currency: 'INR' };
   availableCredit: { amount: number; currency: 'INR' };
   minimumPayment: { amount: number; currency: 'INR' };
-  paymentDueDate: Date; // CHANGE: make non-optional - StorageProvider normalizes
-  statementDate: Date;  // CHANGE: make non-optional - StorageProvider normalizes  
+  paymentDueDate: Date;
+  statementDate: Date;
   interestRate: number;
   annualFee?: { amount: number; currency: 'INR' };
   rewardProgram?: {
@@ -46,18 +46,18 @@ export interface CreditCardEntry {
     currentBalance: number;
   };
   isActive: boolean;
-  timestamp: Date; // CHANGE: make non-optional - StorageProvider normalizes
+  timestamp: Date;
   encryptedData?: {
     encryptionKey: string;
     encryptionAlgorithm: string;
-    lastEncrypted: Date; // CHANGE: make Date - StorageProvider normalizes
+    lastEncrypted: Date;
     isEncrypted: boolean;
   };
   auditTrail?: {
     createdBy: string;
-    createdAt: Date;    // CHANGE: make Date - StorageProvider normalizes
+    createdAt: Date;
     updatedBy: string;
-    updatedAt: Date;    // CHANGE: make Date - StorageProvider normalizes  
+    updatedAt: Date;
     version: number;
     changes: any[];
   };
@@ -73,25 +73,56 @@ export interface CreditCardTransaction {
   cardId: string;
   merchantName?: string;
   notes?: string;
-  timestamp: Date; // CHANGE: make non-optional - StorageProvider normalizes
+  timestamp: Date;
   encryptedData?: {
     encryptionKey: string;
     encryptionAlgorithm: string;
-    lastEncrypted: Date; // CHANGE: make Date - StorageProvider normalizes
+    lastEncrypted: Date;
     isEncrypted: boolean;
   };
   auditTrail?: {
     createdBy: string;
-    createdAt: Date;   // CHANGE: make Date - StorageProvider normalizes
+    createdAt: Date;
     updatedBy: string;
-    updatedAt: Date;   // CHANGE: make Date - StorageProvider normalizes
+    updatedAt: Date;
     version: number;
     changes: any[];
   };
   linkedTransactions?: any[];
 }
 
-
+// ===== Loans domain types =====
+export interface LoanEntry {
+  id: string;
+  type: 'home' | 'car' | 'personal' | 'education' | 'other';
+  bank: string;
+  loanNumber: string;
+  principalAmount: { amount: number; currency: 'INR' };
+  currentBalance: { amount: number; currency: 'INR' };
+  interestRate: number; // annual %
+  tenureMonths: number;
+  emiAmount: { amount: number; currency: 'INR' };
+  nextPaymentDate: Date;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  timestamp: Date;
+  encryptedData?: {
+    encryptionKey: string;
+    encryptionAlgorithm: string;
+    lastEncrypted: Date;
+    isEncrypted: boolean;
+  };
+  auditTrail?: {
+    createdBy: string;
+    createdAt: Date;
+    updatedBy: string;
+    updatedAt: Date;
+    version: number;
+    changes: any[];
+  };
+  linkedTransactions?: any[];
+}
 
 // ===== Persisted AppModel from localFileStore =====
 // getState() returns a JSON object. It may or may not have the new cash fields yet.
@@ -100,10 +131,14 @@ export type AppModel = Awaited<ReturnType<typeof getState>> & {
   cashCategories?: CashCategory[];
   cashTransactions?: CashTransaction[];
 
-  // NEW: Credit cards
+  // Credit cards
   creditCardEntries?: CreditCardEntry[];
   creditCardTransactions?: CreditCardTransaction[];
+
+  // Loans
+  loanEntries?: LoanEntry[];
 };
+
 
 
 // ===== Context shape =====
@@ -176,6 +211,22 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 ...t.auditTrail,
                 createdAt: t.auditTrail.createdAt ? new Date(t.auditTrail.createdAt) : new Date(),
                 updatedAt: t.auditTrail.updatedAt ? new Date(t.auditTrail.updatedAt) : new Date(),
+              }
+            : undefined,
+        })) ?? [],
+
+        // NEW: initialize loan entries with date normalization
+        loanEntries: (s.loanEntries as any[] | undefined)?.map((l) => ({
+          ...l,
+          nextPaymentDate: l.nextPaymentDate ? new Date(l.nextPaymentDate) : new Date(),
+          startDate: l.startDate ? new Date(l.startDate) : new Date(),
+          endDate: l.endDate ? new Date(l.endDate) : new Date(),
+          timestamp: l.timestamp ? new Date(l.timestamp) : new Date(),
+          auditTrail: l.auditTrail
+            ? {
+                ...l.auditTrail,
+                createdAt: l.auditTrail.createdAt ? new Date(l.auditTrail.createdAt) : new Date(),
+                updatedAt: l.auditTrail.updatedAt ? new Date(l.auditTrail.updatedAt) : new Date(),
               }
             : undefined,
         })) ?? [],
