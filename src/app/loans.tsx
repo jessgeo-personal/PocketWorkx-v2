@@ -96,6 +96,10 @@ const LoansScreen: React.FC = () => {
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
 
+  // EMI Schedule modal states
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [selectedLoanForSchedule, setSelectedLoanForSchedule] = useState<LoanEntry | null>(null);
+
   // Read from storage
   const loans: LoanEntry[] = (state?.loanEntries as LoanEntry[] | undefined) ?? [];
 
@@ -344,12 +348,24 @@ const LoansScreen: React.FC = () => {
             <Text style={styles.balanceLabel}>EMI</Text>
             <Text style={styles.emiAmount}>{formatFullINR(loan.emiAmount.amount)}</Text>
           </View>
-          <View style={styles.balanceRow}>
-            <Text style={[styles.dueLabel, isOverdue && styles.overdueText]}>
-              {isOverdue ? `Overdue by ${Math.abs(daysUntilDue)} days` : `Due in ${daysUntilDue} days`}
-            </Text>
-            <Text style={styles.rateLabel}>{loan.interestRate.toFixed(2)}% p.a.</Text>
-          </View>
+            <View style={styles.balanceRow}>
+              <Text style={[styles.dueLabel, isOverdue && styles.overdueText]}>
+                {isOverdue ? `Overdue by ${Math.abs(daysUntilDue)} days` : `Due in ${daysUntilDue} days`}
+              </Text>
+              <Text style={styles.rateLabel}>{loan.interestRate.toFixed(2)}% p.a.</Text>
+            </View>
+            <View style={styles.actionRow}>
+              <TouchableOpacity 
+                style={styles.scheduleButton}
+                onPress={() => {
+                  setSelectedLoanForSchedule(loan);
+                  setScheduleModalVisible(true);
+                }}
+              >
+                <MaterialIcons name="calendar-today" size={16} color="#8B5CF6" />
+                <Text style={styles.scheduleButtonText}>View Schedule</Text>
+              </TouchableOpacity>
+            </View>
         </View>
       </TouchableOpacity>
     );
@@ -558,15 +574,15 @@ const LoansScreen: React.FC = () => {
       </ScrollView>
 
       {renderAddLoanModal()}
-
       {/* TransactionsModal integration placeholder */}
       {txFilter && (
         <TransactionsModal
-          visible={txModalVisible}
+           visible={txModalVisible}
           onClose={() => setTxModalVisible(false)}
           params={{ filterCriteria: txFilter }}
         />
       )}
+      {renderScheduleModal()}
     </ScreenLayout>
   );
 };
@@ -880,6 +896,166 @@ const styles = StyleSheet.create({
   disabledButton: {
     backgroundColor: '#C7B8F7',
   },
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  scheduleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#8B5CF6' + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  scheduleButtonText: {
+    fontSize: 12,
+    color: '#8B5CF6',
+    fontWeight: '600',
+  },
+  scheduleSubtitle: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E0E0E0',
+  },
+  scheduleLeft: {
+    flex: 2,
+  },
+  scheduleCenter: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  scheduleRight: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  scheduleMonth: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  scheduleDate: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+  },
+  scheduleAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F57C00',
+  },
+  statusButton: {
+    padding: 4,
+  },
+  statusButtonPaid: {
+    backgroundColor: '#27AE60' + '15',
+    borderRadius: 12,
+  },
+  statusButtonOverdue: {
+    backgroundColor: '#E74C3C' + '15',
+    borderRadius: 12,
+  },
+
 });
+
+const renderScheduleModal = () => {
+  if (!selectedLoanForSchedule) return null;
+
+  // Generate basic 12-month EMI schedule (simplified for now)
+  const scheduleItems = [];
+  const startDate = new Date(selectedLoanForSchedule.startDate);
+  
+  for (let i = 0; i < Math.min(12, selectedLoanForSchedule.tenureMonths); i++) {
+    const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, startDate.getDate());
+    const isPaid = selectedLoanForSchedule.linkedTransactions?.some(t => 
+      t.type === 'EMI_PAYMENT' && 
+      new Date(t.dueDate).getMonth() === dueDate.getMonth() &&
+      new Date(t.dueDate).getFullYear() === dueDate.getFullYear()
+    ) || false;
+
+    scheduleItems.push({
+      id: `emi-${i + 1}`,
+      month: i + 1,
+      dueDate,
+      amount: selectedLoanForSchedule.emiAmount.amount,
+      status: isPaid ? 'paid' : (dueDate < new Date() ? 'overdue' : 'due'),
+    });
+  }
+
+  return (
+    <Modal
+      visible={scheduleModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setScheduleModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              EMI Schedule - {selectedLoanForSchedule.type.toUpperCase()}
+            </Text>
+            <TouchableOpacity onPress={() => setScheduleModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              <Text style={styles.scheduleSubtitle}>
+                {selectedLoanForSchedule.bank} • {selectedLoanForSchedule.loanNumber}
+              </Text>
+              
+              {scheduleItems.map(item => (
+                <View key={item.id} style={styles.scheduleRow}>
+                  <View style={styles.scheduleLeft}>
+                    <Text style={styles.scheduleMonth}>
+                      {item.dueDate.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}
+                    </Text>
+                    <Text style={styles.scheduleDate}>
+                      Due: {item.dueDate.getDate()}/{item.dueDate.getMonth() + 1}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.scheduleCenter}>
+                    <Text style={styles.scheduleAmount}>
+                      {formatFullINR(item.amount)}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.scheduleRight}>
+                    <TouchableOpacity 
+                      style={[
+                        styles.statusButton, 
+                        item.status === 'paid' && styles.statusButtonPaid,
+                        item.status === 'overdue' && styles.statusButtonOverdue
+                      ]}
+                      onPress={() => Alert.alert('Coming Soon', 'Mark as paid functionality next phase')}
+                    >
+                      <MaterialIcons 
+                        name={item.status === 'paid' ? 'check-circle' : 'radio-button-unchecked'} 
+                        size={20} 
+                        color={item.status === 'paid' ? '#27AE60' : '#999'} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 export default LoansScreen;
