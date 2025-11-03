@@ -20,25 +20,14 @@ import { Colors } from '../utils/theme';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import type { FilterCriteria } from '../types/transactions';
 
-// Note: Storage integration will be added next phase to replace placeholder data.
+// Use shared storage
+import { useStorage, type AppModel, type LoanEntry as SPLoanEntry } from '../services/storage/StorageProvider';
+
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
 
-type LoanEntry = {
-  id: string;
-  type: 'home' | 'car' | 'personal' | 'education' | 'other';
-  bank: string;
-  loanNumber: string;
-  principalAmount: Money;
-  currentBalance: Money;
-  interestRate: number; // annual %
-  tenureMonths: number;
-  emiAmount: Money;
-  nextPaymentDate: Date;
-  startDate: Date;
-  endDate: Date;
-  isActive: boolean;
-};
+// Use storage provider types
+type LoanEntry = SPLoanEntry;
 
 const formatFullINR = (value: number): string => {
   try {
@@ -60,8 +49,8 @@ const formatFullINR = (value: number): string => {
   }
 };
 
-const getLoanTypeIcon = (t: LoanEntry['type']) => {
-  switch (t) {
+const getLoanTypeIcon = (t: string) => {
+  switch (t.toLowerCase()) {
     case 'home': return 'home';
     case 'car': return 'directions-car';
     case 'personal': return 'person';
@@ -70,9 +59,8 @@ const getLoanTypeIcon = (t: LoanEntry['type']) => {
   }
 };
 
-const getLoanAccent = (t: LoanEntry['type']) => {
-  // Loans color scheme per spec: red/orange tones
-  switch (t) {
+const getLoanAccent = (t: string) => {
+  switch (t.toLowerCase()) {
     case 'home': return '#D32F2F';
     case 'car': return '#F57C00';
     case 'personal': return '#E64A19';
@@ -82,54 +70,148 @@ const getLoanAccent = (t: LoanEntry['type']) => {
 };
 
 const LoansScreen: React.FC = () => {
-  // Placeholder local data for phase 1. Next phase: replace with storage state.
-  const [loans, setLoans] = useState<LoanEntry[]>([
-    {
-      id: 'loan-1',
-      type: 'home',
-      bank: 'HDFC Bank',
-      loanNumber: 'HL-0001',
-      principalAmount: { amount: 7500000, currency: 'INR' },
-      currentBalance: { amount: 5825000, currency: 'INR' },
-      interestRate: 7.35,
-      tenureMonths: 240,
-      emiAmount: { amount: 45600, currency: 'INR' },
-      nextPaymentDate: new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 10),
-      startDate: new Date(2021, 3, 15),
-      endDate: new Date(2041, 3, 15),
-      isActive: true,
-    },
-    {
-      id: 'loan-2',
-      type: 'car',
-      bank: 'ICICI Bank',
-      loanNumber: 'CAR-8921',
-      principalAmount: { amount: 1200000, currency: 'INR' },
-      currentBalance: { amount: 310000, currency: 'INR' },
-      interestRate: 9.1,
-      tenureMonths: 60,
-      emiAmount: { amount: 25500, currency: 'INR' },
-      nextPaymentDate: new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 3),
-      startDate: new Date(2023, 1, 10),
-      endDate: new Date(2028, 1, 10),
-      isActive: true,
-    },
-  ]);
+  // Hook into global storage
+  const { state, loading, save } = useStorage();
 
+  // Modal states
+  const [isAddLoanModalVisible, setIsAddLoanModalVisible] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Add Loan form states
+  const [newLoanBank, setNewLoanBank] = useState('');
+  const [newLoanNumber, setNewLoanNumber] = useState('');
+  const [newLoanType, setNewLoanType] = useState<'home' | 'car' | 'personal' | 'education' | 'other'>('home');
+  const [newPrincipalAmount, setNewPrincipalAmount] = useState('');
+  const [newCurrentBalance, setNewCurrentBalance] = useState('');
+  const [newInterestRate, setNewInterestRate] = useState('');
+  const [newTenureMonths, setNewTenureMonths] = useState('');
+  const [newEmiAmount, setNewEmiAmount] = useState('');
+
+  // TransactionsModal states
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
+
+  // Read from storage
+  const loans: LoanEntry[] = (state?.loanEntries as LoanEntry[] | undefined) ?? [];
 
   const totalOutstanding = useMemo(
     () => loans.reduce((sum, l) => sum + (l.currentBalance?.amount || 0), 0),
     [loans]
   );
 
+  const handleAddLoan = async () => {
+    if (isProcessing) return;
+    
+    if (!newLoanBank.trim() || !newLoanNumber.trim() || !newPrincipalAmount.trim() || 
+        !newCurrentBalance.trim() || !newInterestRate.trim() || !newTenureMonths.trim() || 
+        !newEmiAmount.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    const principal = parseFloat(newPrincipalAmount);
+    const balance = parseFloat(newCurrentBalance);
+    const rate = parseFloat(newInterestRate);
+    const tenure = parseInt(newTenureMonths);
+    const emi = parseFloat(newEmiAmount);
+
+    if (isNaN(principal) || principal <= 0) {
+      Alert.alert('Error', 'Please enter a valid principal amount');
+      return;
+    }
+    if (isNaN(balance) || balance < 0) {
+      Alert.alert('Error', 'Please enter a valid current balance');
+      return;
+    }
+    if (isNaN(rate) || rate <= 0 || rate > 50) {
+      Alert.alert('Error', 'Please enter a valid interest rate (0-50%)');
+      return;
+    }
+    if (isNaN(tenure) || tenure <= 0 || tenure > 600) {
+      Alert.alert('Error', 'Please enter a valid tenure (1-600 months)');
+      return;
+    }
+    if (isNaN(emi) || emi <= 0) {
+      Alert.alert('Error', 'Please enter a valid EMI amount');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const now = new Date();
+      const startDate = new Date(now.getTime() - (tenure * 0.1 * 30 * 24 * 60 * 60 * 1000)); // approx start
+      const endDate = new Date(now.getTime() + (tenure * 0.9 * 30 * 24 * 60 * 60 * 1000)); // approx end
+      const nextEMI = new Date(now.getTime() + (5 * 24 * 60 * 60 * 1000)); // 5 days from now
+
+      const newLoan: LoanEntry = {
+        id: Date.now().toString(),
+        type: newLoanType,
+        bank: newLoanBank.trim(),
+        loanNumber: newLoanNumber.trim(),
+        principalAmount: { amount: Math.round(principal), currency: 'INR' },
+        currentBalance: { amount: Math.round(balance), currency: 'INR' },
+        interestRate: rate,
+        tenureMonths: tenure,
+        emiAmount: { amount: Math.round(emi), currency: 'INR' },
+        nextPaymentDate: nextEMI,
+        startDate: startDate,
+        endDate: endDate,
+        isActive: true,
+        timestamp: now,
+        encryptedData: {
+          encryptionKey: '',
+          encryptionAlgorithm: 'AES-256',
+          lastEncrypted: now,
+          isEncrypted: false,
+        },
+        auditTrail: {
+          createdBy: 'user',
+          createdAt: now,
+          updatedBy: 'user',
+          updatedAt: now,
+          version: 1,
+          changes: [{
+            action: 'ADD_LOAN',
+            timestamp: now,
+            loanType: newLoanType,
+            bank: newLoanBank.trim(),
+            principalAmount: Math.round(principal),
+          }],
+        },
+        linkedTransactions: [],
+      };
+
+      await save((draft: AppModel) => {
+        const nextLoans: LoanEntry[] = draft.loanEntries ? [...draft.loanEntries] as LoanEntry[] : [];
+        nextLoans.push(newLoan as LoanEntry);
+        return { ...draft, loanEntries: nextLoans };
+      });
+
+      // Reset form and close modal
+      setNewLoanBank('');
+      setNewLoanNumber('');
+      setNewLoanType('home');
+      setNewPrincipalAmount('');
+      setNewCurrentBalance('');
+      setNewInterestRate('');
+      setNewTenureMonths('');
+      setNewEmiAmount('');
+      setIsAddLoanModalVisible(false);
+
+      Alert.alert('Success', 'Loan added successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add loan. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Loans & Liabilities</Text>
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => Alert.alert('Coming Soon', 'Add Loan modal will be implemented next.')}
+        onPress={() => setIsAddLoanModalVisible(true)}
       >
         <MaterialIcons name="add" size={24} color="#FFFFFF" />
       </TouchableOpacity>
@@ -137,7 +219,6 @@ const LoansScreen: React.FC = () => {
   );
 
   const openAllLoansTransactions = () => {
-    // Next phase will implement TransactionsModal mapping for 'loan'
     setTxFilter({
       assetType: 'loan',
       filterType: 'all',
@@ -165,7 +246,7 @@ const LoansScreen: React.FC = () => {
       <View style={styles.quickActionGrid}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => Alert.alert('Coming Soon', 'Add Loan will be implemented next.')}
+          onPress={() => setIsAddLoanModalVisible(true)}
         >
           <MaterialIcons name="add-circle" size={24} color="#8B5CF6" />
           <Text style={styles.actionText}>Add Loan</Text>
@@ -252,6 +333,145 @@ const LoansScreen: React.FC = () => {
     );
   };
 
+  const renderAddLoanModal = () => (
+    <Modal
+      visible={isAddLoanModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsAddLoanModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add Loan</Text>
+            <TouchableOpacity onPress={() => setIsAddLoanModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bank/Lender Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newLoanBank}
+                  onChangeText={setNewLoanBank}
+                  placeholder="e.g., HDFC Bank, ICICI Bank"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Loan Number *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newLoanNumber}
+                  onChangeText={setNewLoanNumber}
+                  placeholder="e.g., HL001, CAR-8921"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Loan Type *</Text>
+                <View style={styles.pickerRow}>
+                  {(['home', 'car', 'personal', 'education', 'other'] as const).map(type => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.pickerPill, newLoanType === type && styles.pickerPillSelected]}
+                      onPress={() => setNewLoanType(type)}
+                    >
+                      <Text style={[styles.pickerPillText, newLoanType === type && styles.pickerPillTextSelected]}>
+                        {type.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Principal Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newPrincipalAmount}
+                  onChangeText={setNewPrincipalAmount}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Current Outstanding Balance (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newCurrentBalance}
+                  onChangeText={setNewCurrentBalance}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Interest Rate (% p.a.) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newInterestRate}
+                  onChangeText={setNewInterestRate}
+                  placeholder="e.g., 7.35"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Tenure (Months) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newTenureMonths}
+                  onChangeText={setNewTenureMonths}
+                  placeholder="e.g., 240 (20 years)"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>EMI Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newEmiAmount}
+                  onChangeText={setNewEmiAmount}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddLoanModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, isProcessing && styles.disabledButton]}
+              onPress={handleAddLoan}
+              disabled={isProcessing}
+            >
+              <Text style={styles.primaryButtonText}>{isProcessing ? 'Adding...' : 'Add Loan'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  if (loading) {
+    return (
+      <ScreenLayout>
+        <View style={{ padding: 16 }}>
+          <Text>Loading loans data…</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
   return (
     <ScreenLayout>
       <StatusBar style="dark" backgroundColor={Colors.background.primary} />
@@ -285,6 +505,8 @@ const LoansScreen: React.FC = () => {
         <AppFooter />
       </ScrollView>
 
+      {renderAddLoanModal()}
+
       {/* TransactionsModal integration placeholder */}
       {txFilter && (
         <TransactionsModal
@@ -300,7 +522,7 @@ const LoansScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary, // Golden background
+    backgroundColor: Colors.background.primary,
   },
   header: {
     flexDirection: 'row',
@@ -324,7 +546,7 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   addButton: {
-    backgroundColor: '#8B5CF6', // Purple accent
+    backgroundColor: '#8B5CF6',
     borderRadius: 20,
     padding: 8,
   },
@@ -464,12 +686,12 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#D32F2F', // red for liability
+    color: '#D32F2F',
   },
   emiAmount: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F57C00', // orange for EMI
+    color: '#F57C00',
   },
   dueLabel: {
     fontSize: 12,
@@ -503,6 +725,108 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 420,
+    maxHeight: '85%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  modalScrollView: { flexGrow: 1 },
+  modalBody: { padding: 20 },
+  inputContainer: { marginBottom: 16 },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text.primary,
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text.primary,
+    backgroundColor: Colors.background.secondary,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pickerPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: Colors.background.secondary,
+  },
+  pickerPillSelected: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
+  },
+  pickerPillText: {
+    fontSize: 13,
+    color: Colors.text.primary,
+  },
+  pickerPillTextSelected: {
+    color: Colors.white,
+    fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E0E0E0',
+  },
+  cancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginRight: 12,
+    borderRadius: 10,
+  },
+  cancelButtonText: { 
+    fontSize: 16, 
+    color: '#666666' 
+  },
+  primaryButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  disabledButton: {
+    backgroundColor: '#C7B8F7',
   },
 });
 
