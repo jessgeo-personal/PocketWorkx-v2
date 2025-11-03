@@ -659,6 +659,329 @@ const CreditCardsScreen: React.FC = () => {
     </View>
   );
 
+  // Add Card Modal
+  const renderAddCardModal = () => (
+    <Modal
+      visible={isAddCardModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsAddCardModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add Credit Card</Text>
+            <TouchableOpacity onPress={() => setIsAddCardModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bank Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newCardBank}
+                  onChangeText={setNewCardBank}
+                  placeholder="e.g., HDFC, ICICI, SBI"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Card Name (Nickname) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newCardName}
+                  onChangeText={setNewCardName}
+                  placeholder="e.g., HDFC Millennia"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Last 4 Digits *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newCardNumber}
+                  onChangeText={setNewCardNumber}
+                  placeholder="1234"
+                  keyboardType="number-pad"
+                  maxLength={4}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Card Network *</Text>
+                <View style={styles.pickerRow}>
+                  {(['visa','mastercard','amex','rupay','diners'] as const).map(net => (
+                    <TouchableOpacity
+                      key={net}
+                      style={[styles.pickerPill, newCardType === net && styles.pickerPillSelected]}
+                      onPress={() => setNewCardType(net)}
+                    >
+                      <Text style={[styles.pickerPillText, newCardType === net && styles.pickerPillTextSelected]}>
+                        {net.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Credit Limit (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newCreditLimit}
+                  onChangeText={setNewCreditLimit}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Current Balance (₹)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newCurrentBalance}
+                  onChangeText={setNewCurrentBalance}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.optionalFieldsDivider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Optional</Text>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Interest Rate (%)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={newInterestRate}
+                  onChangeText={setNewInterestRate}
+                  placeholder="e.g., 18"
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddCardModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, isProcessing && styles.disabledButton]}
+              onPress={handleAddCard}
+              disabled={isProcessing}
+            >
+              <Text style={styles.primaryButtonText}>{isProcessing ? 'Adding...' : 'Add Card'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Record Charge Modal
+  const renderChargeModal = () => {
+    const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    return (
+      <Modal
+        visible={isChargeModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsChargeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Record Charge</Text>
+              <TouchableOpacity onPress={() => setIsChargeModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalBody}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={chargeAmount}
+                    onChangeText={setChargeAmount}
+                    placeholder="0"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Description *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={chargeDescription}
+                    onChangeText={setChargeDescription}
+                    placeholder="e.g., Grocery, Fuel, Amazon"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Category</Text>
+                  <View style={styles.pickerRow}>
+                    {getCreditCardCategoryOptions().map(cat => (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[styles.pickerPill, chargeCategory === cat && styles.pickerPillSelected]}
+                        onPress={() => setChargeCategory(cat)}
+                      >
+                        <Text style={[styles.pickerPillText, chargeCategory === cat && styles.pickerPillTextSelected]}>
+                          {cat.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Card *</Text>
+                  <View style={styles.pickerRow}>
+                    {cards.slice(0,5).map(c => (
+                      <TouchableOpacity
+                        key={c.id}
+                        style={[styles.pickerPill, selectedCardForCharge === c.id && styles.pickerPillSelected]}
+                        onPress={() => setSelectedCardForCharge(c.id)}
+                      >
+                        <Text style={[styles.pickerPillText, selectedCardForCharge === c.id && styles.pickerPillTextSelected]}>
+                          {c.cardName}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Merchant (Optional)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={chargeMerchant}
+                    onChangeText={setChargeMerchant}
+                    placeholder="e.g., Amazon, Zomato"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                  <TextInput
+                    style={[styles.textInput, { minHeight: 60 }]}
+                    value={chargeNotes}
+                    onChangeText={setChargeNotes}
+                    placeholder="Any additional context"
+                    multiline
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsChargeModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, isProcessing && styles.disabledButton]}
+                onPress={handleRecordCharge}
+                disabled={isProcessing}
+              >
+                <Text style={styles.primaryButtonText}>{isProcessing ? 'Saving...' : 'Save Charge'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // Make Payment Modal
+  const renderPaymentModal = () => {
+    const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    return (
+      <Modal
+        visible={isPaymentModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsPaymentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Make Payment</Text>
+              <TouchableOpacity onPress={() => setIsPaymentModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalBody}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={paymentAmount}
+                    onChangeText={setPaymentAmount}
+                    placeholder="0"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Card *</Text>
+                  <View style={styles.pickerRow}>
+                    {cards.slice(0,5).map(c => (
+                      <TouchableOpacity
+                        key={c.id}
+                        style={[styles.pickerPill, selectedCardForPayment === c.id && styles.pickerPillSelected]}
+                        onPress={() => setSelectedCardForPayment(c.id)}
+                      >
+                        <Text style={[styles.pickerPillText, selectedCardForPayment === c.id && styles.pickerPillTextSelected]}>
+                          {c.cardName}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                  <TextInput
+                    style={[styles.textInput, { minHeight: 60 }]}
+                    value={paymentNotes}
+                    onChangeText={setPaymentNotes}
+                    placeholder="Reference or comments"
+                    multiline
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsPaymentModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, isProcessing && styles.disabledButton]}
+                onPress={handleRecordPayment}
+                disabled={isProcessing}
+              >
+                <Text style={styles.primaryButtonText}>{isProcessing ? 'Saving...' : 'Save Payment'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+
   // Modal renders would go here - simplified for space
   // Will provide complete modal implementations in next phase
 
@@ -701,6 +1024,10 @@ const CreditCardsScreen: React.FC = () => {
         </View>
         <AppFooter />
       </ScrollView>
+
+      {renderAddCardModal()}
+      {renderChargeModal()}
+      {renderPaymentModal()}
 
       {/* TransactionsModal Integration */}
       {txFilter && (
@@ -957,6 +1284,123 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  // Modal shared
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    width: '90%',
+    maxWidth: 420,
+    maxHeight: '85%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E0E0E0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  modalScrollView: { flexGrow: 1 },
+  modalBody: { padding: 20 },
+  inputContainer: { marginBottom: 16 },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.text.primary,
+    marginBottom: 8,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.text.primary,
+    backgroundColor: Colors.background.secondary,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pickerPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: Colors.background.secondary,
+  },
+  pickerPillSelected: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
+  },
+  pickerPillText: {
+    fontSize: 13,
+    color: Colors.text.primary,
+  },
+  pickerPillTextSelected: {
+    color: Colors.white,
+    fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E0E0E0',
+  },
+  cancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginRight: 12,
+    borderRadius: 10,
+  },
+  cancelButtonText: { fontSize: 16, color: '#666666' },
+  primaryButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  disabledButton: {
+    backgroundColor: '#C7B8F7',
+  },
+  optionalFieldsDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+    marginHorizontal: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E0E0E0',
+    marginRight: 12,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: '#999999',
+    fontWeight: '500',
+    textAlign: 'right',
   },
 
 });
