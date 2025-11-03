@@ -21,7 +21,7 @@ import { formatCompactCurrency } from '../utils/currency';
 import type { TransactionRecord, FilterCriteria } from '../types/transactions';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import AppFooter from '../components/AppFooter';
-import { Picker } from '@react-native-picker/picker';
+import WheelPicker from '@quidone/react-native-wheel-picker';
 
 // Use shared storage
 // Use shared storage
@@ -97,7 +97,10 @@ const CreditCardsScreen: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedCardForPayment, setSelectedCardForPayment] = useState<string>('');
   const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<string>('');
-  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  // Split date into separate day/month/year
+  const [paymentDay, setPaymentDay] = useState<number>(new Date().getDate());
+  const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
+  const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
   const [useCustomDate, setUseCustomDate] = useState(false);
   const [paymentNotes, setPaymentNotes] = useState('');
 
@@ -436,7 +439,9 @@ const CreditCardsScreen: React.FC = () => {
   const processPayment = async (amount: number, sourceAccount: any) => {
     setIsProcessing(true);
     try {
-      const transactionDate = useCustomDate ? paymentDate : new Date();
+      const transactionDate = useCustomDate ? 
+        new Date(paymentYear, paymentMonth - 1, paymentDay) : 
+        new Date();
       const roundedAmount = Math.round(amount);
 
       // 1. Create Credit Card Payment Transaction (reduces credit card balance)
@@ -548,11 +553,15 @@ const CreditCardsScreen: React.FC = () => {
     setPaymentAmount('');
     setSelectedCardForPayment('');
     setSelectedAccountForPayment('');
-    setPaymentDate(new Date());
+    const today = new Date();
+    setPaymentDay(today.getDate());
+    setPaymentMonth(today.getMonth() + 1);
+    setPaymentYear(today.getFullYear());
     setUseCustomDate(false);
     setPaymentNotes('');
     setIsPaymentModalVisible(false);
   };
+
 
 
 
@@ -991,7 +1000,7 @@ const CreditCardsScreen: React.FC = () => {
     );
   };
 
-  // Enhanced Make Payment Modal with Wheel Pickers
+  // Enhanced Make Payment Modal with True Wheel Pickers
   const renderPaymentModal = () => {
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
     const accounts = (state?.accounts ?? []) as Array<{
@@ -1001,12 +1010,33 @@ const CreditCardsScreen: React.FC = () => {
       balance: { amount: number; currency: string };
     }>;
     
-    // Generate date options (today + past 30 days)
-    const dateOptions = Array.from({ length: 31 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date;
-    });
+    // Generate picker data arrays
+    const cardPickerData = cards.map(card => ({
+      value: card.id,
+      label: card.cardName,
+      last4: card.cardNumber,
+      balance: card.currentBalance.amount,
+    }));
+
+    const accountPickerData = accounts.map(acc => ({
+      value: acc.id,
+      label: acc.nickname,
+      balance: acc.balance.amount,
+    }));
+
+    // Date picker data
+    const dayData = Array.from({length: 31}, (_, i) => ({value: i + 1, label: (i + 1).toString()}));
+    const monthData = [
+      {value: 1, label: 'Jan'}, {value: 2, label: 'Feb'}, {value: 3, label: 'Mar'},
+      {value: 4, label: 'Apr'}, {value: 5, label: 'May'}, {value: 6, label: 'Jun'},
+      {value: 7, label: 'Jul'}, {value: 8, label: 'Aug'}, {value: 9, label: 'Sep'},
+      {value: 10, label: 'Oct'}, {value: 11, label: 'Nov'}, {value: 12, label: 'Dec'}
+    ];
+    const currentYear = new Date().getFullYear();
+    const yearData = Array.from({length: 5}, (_, i) => ({
+      value: currentYear - 2 + i,
+      label: (currentYear - 2 + i).toString()
+    }));
 
     return (
       <Modal
@@ -1039,45 +1069,59 @@ const CreditCardsScreen: React.FC = () => {
                   />
                 </View>
 
-                {/* Credit Card Picker */}
+                {/* Credit Card Wheel Picker */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Select Credit Card *</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={selectedCardForPayment}
-                      onValueChange={setSelectedCardForPayment}
-                      style={styles.wheelPicker}
-                    >
-                      <Picker.Item label="Choose a credit card..." value="" color="#999" />
-                      {cards.map(card => (
-                        <Picker.Item 
-                          key={card.id}
-                          label={`${card.cardName} (${formatFullINR(card.currentBalance.amount)} due)`}
-                          value={card.id} 
-                        />
-                      ))}
-                    </Picker>
+                  <View style={styles.wheelPickerContainer}>
+                    <WheelPicker
+                      data={cardPickerData}
+                      value={selectedCardForPayment}
+                      onValueChanged={({item}) => setSelectedCardForPayment(item.value)}
+                      height={180}
+                      width="100%"
+                      itemHeight={60}
+                      enableScrollByTapOnItem={true}
+                      itemTextStyle={styles.wheelPickerText}
+                      selectedStyle={styles.wheelPickerSelected}
+                      renderItem={({item, isSelected}) => (
+                        <View style={[styles.wheelPickerItem, isSelected && styles.wheelPickerItemSelected]}>
+                          <Text style={[styles.wheelPickerItemText, isSelected && styles.wheelPickerItemTextSelected]}>
+                            {item.label} {item.last4}
+                          </Text>
+                          <Text style={[styles.wheelPickerItemSubtext, isSelected && styles.wheelPickerItemSubtextSelected]}>
+                            Balance: {formatFullINR(item.balance)}
+                          </Text>
+                        </View>
+                      )}
+                    />
                   </View>
                 </View>
 
-                {/* Source Account Picker */}
+                {/* Source Account Wheel Picker */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Pay From Account *</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={selectedAccountForPayment}
-                      onValueChange={setSelectedAccountForPayment}
-                      style={styles.wheelPicker}
-                    >
-                      <Picker.Item label="Choose source account..." value="" color="#999" />
-                      {accounts.map(acc => (
-                        <Picker.Item 
-                          key={acc.id}
-                          label={`${acc.nickname} (${formatFullINR(acc.balance.amount)} available)`}
-                          value={acc.id} 
-                        />
-                      ))}
-                    </Picker>
+                  <View style={styles.wheelPickerContainer}>
+                    <WheelPicker
+                      data={accountPickerData}
+                      value={selectedAccountForPayment}
+                      onValueChanged={({item}) => setSelectedAccountForPayment(item.value)}
+                      height={180}
+                      width="100%"
+                      itemHeight={60}
+                      enableScrollByTapOnItem={true}
+                      itemTextStyle={styles.wheelPickerText}
+                      selectedStyle={styles.wheelPickerSelected}
+                      renderItem={({item, isSelected}) => (
+                        <View style={[styles.wheelPickerItem, isSelected && styles.wheelPickerItemSelected]}>
+                          <Text style={[styles.wheelPickerItemText, isSelected && styles.wheelPickerItemTextSelected]}>
+                            {item.label}
+                          </Text>
+                          <Text style={[styles.wheelPickerItemSubtext, isSelected && styles.wheelPickerItemSubtextSelected]}>
+                            Available: {formatFullINR(item.balance)}
+                          </Text>
+                        </View>
+                      )}
+                    />
                   </View>
                 </View>
 
@@ -1094,29 +1138,58 @@ const CreditCardsScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Date Picker (only if custom date enabled) */}
+                {/* Date Wheel Pickers (Day/Month/Year) */}
                 {useCustomDate && (
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Payment Date</Text>
-                    <View style={styles.pickerContainer}>
-                      <Picker
-                        selectedValue={paymentDate.toDateString()}
-                        onValueChange={(dateString) => setPaymentDate(new Date(dateString))}
-                        style={styles.wheelPicker}
-                      >
-                        {dateOptions.map(date => (
-                          <Picker.Item 
-                            key={date.toDateString()}
-                            label={date.toLocaleDateString('en-IN', { 
-                              weekday: 'short', 
-                              day: 'numeric', 
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                            value={date.toDateString()} 
-                          />
-                        ))}
-                      </Picker>
+                    <View style={styles.datePickerRow}>
+                      {/* Day Picker */}
+                      <View style={styles.datePickerColumn}>
+                        <Text style={styles.datePickerLabel}>Day</Text>
+                        <WheelPicker
+                          data={dayData}
+                          value={paymentDay}
+                          onValueChanged={({item}) => setPaymentDay(item.value)}
+                          height={120}
+                          width={80}
+                          itemHeight={40}
+                          enableScrollByTapOnItem={true}
+                          itemTextStyle={styles.dateWheelText}
+                          selectedStyle={styles.dateWheelSelected}
+                        />
+                      </View>
+                      
+                      {/* Month Picker */}
+                      <View style={styles.datePickerColumn}>
+                        <Text style={styles.datePickerLabel}>Month</Text>
+                        <WheelPicker
+                          data={monthData}
+                          value={paymentMonth}
+                          onValueChanged={({item}) => setPaymentMonth(item.value)}
+                          height={120}
+                          width={80}
+                          itemHeight={40}
+                          enableScrollByTapOnItem={true}
+                          itemTextStyle={styles.dateWheelText}
+                          selectedStyle={styles.dateWheelSelected}
+                        />
+                      </View>
+                      
+                      {/* Year Picker */}
+                      <View style={styles.datePickerColumn}>
+                        <Text style={styles.datePickerLabel}>Year</Text>
+                        <WheelPicker
+                          data={yearData}
+                          value={paymentYear}
+                          onValueChanged={({item}) => setPaymentYear(item.value)}
+                          height={120}
+                          width={80}
+                          itemHeight={40}
+                          enableScrollByTapOnItem={true}
+                          itemTextStyle={styles.dateWheelText}
+                          selectedStyle={styles.dateWheelSelected}
+                        />
+                      </View>
                     </View>
                   </View>
                 )}
@@ -1152,6 +1225,7 @@ const CreditCardsScreen: React.FC = () => {
       </Modal>
     );
   };
+
 
 
 
@@ -1602,7 +1676,6 @@ const styles = StyleSheet.create({
   wheelPicker: {
     height: 80,
     color: Colors.text.primary,
-    fontSize: 18,
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -1626,6 +1699,81 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text.primary,
     fontWeight: '500',
+  },
+  // Wheel picker styles (centralized font sizes)
+  wheelPickerContainer: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+  },
+  wheelPickerText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text.primary,
+  },
+  wheelPickerSelected: {
+    borderColor: '#8B5CF6',
+    borderWidth: 2,
+    backgroundColor: '#8B5CF6' + '20',
+  },
+  wheelPickerItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  wheelPickerItemSelected: {
+    backgroundColor: '#8B5CF6' + '10',
+  },
+  wheelPickerItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    textAlign: 'center',
+  },
+  wheelPickerItemTextSelected: {
+    color: '#8B5CF6',
+    fontWeight: '700',
+    fontSize: 18, // Magnified when selected
+  },
+  wheelPickerItemSubtext: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  wheelPickerItemSubtextSelected: {
+    color: '#8B5CF6',
+    fontWeight: '600',
+    fontSize: 14, // Slightly magnified
+  },
+  // Date picker styles
+  datePickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  datePickerColumn: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  datePickerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  dateWheelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  dateWheelSelected: {
+    borderColor: '#8B5CF6',
+    borderWidth: 2,
+    backgroundColor: '#8B5CF6' + '10',
   },
 
 });
