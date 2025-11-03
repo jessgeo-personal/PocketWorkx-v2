@@ -26,6 +26,7 @@ import { StatusBar } from 'expo-status-bar';
 import type { TransactionRecord, FilterCriteria, AccountTransaction } from '../types/transactions';
 import { DebitCategoryType, getDebitCategoryOptions } from '../types/categories';
 import AppFooter from '../components/AppFooter';
+import ComingSoonModal from '../components/ui/ComingSoonModal';
 
 
 type Currency = 'INR';
@@ -185,6 +186,10 @@ const AccountsScreen: React.FC = () => {
   // TransactionsModal states
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
+  // ComingSoonModal states
+  const [isComingSoonModalVisible, setIsComingSoonModalVisible] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState('');
+  const [comingSoonDescription, setComingSoonDescription] = useState('');
 
 // Get navigation parameters for auto-opening modals
 const searchParams = useLocalSearchParams<{ openModal?: string }>();
@@ -258,6 +263,13 @@ const searchParams = useLocalSearchParams<{ openModal?: string }>();
     editType,
     editBalanceAmount
   ]);
+
+  const showComingSoon = (feature: string, description: string) => {
+    setComingSoonFeature(feature);
+    setComingSoonDescription(description);
+    setIsComingSoonModalVisible(true);
+  };
+
 
   // Reset form helper
   const resetAddForm = () => {
@@ -570,13 +582,16 @@ const searchParams = useLocalSearchParams<{ openModal?: string }>();
 
   // Quick action handlers 2
   const handleUploadStatements = () =>
-    Alert.alert('Coming Soon', 'Upload Statements flow will be implemented next.');
+    showComingSoon('Statement Upload', 'Upload PDF or image bank statements for automatic transaction import and categorization.');
+    
   // Quick action handlers 3
   const handleScanSMS = () =>
-    Alert.alert('Coming Soon', 'SMS scanning flow will be implemented next.');
+    showComingSoon('SMS Scanner', 'Automatically detect and import transactions from bank SMS notifications in your inbox.');
+    
   // Quick action handlers 4
   const handleScanEmails = () =>
-    Alert.alert('Coming Soon', 'Email scanning flow will be implemented next.');
+    showComingSoon('Email Scanner', 'Import transactions from bank email statements, e-receipts, and payment confirmations.');
+
 
   // Header component
   const renderHeader = () => (
@@ -1271,6 +1286,15 @@ const searchParams = useLocalSearchParams<{ openModal?: string }>();
           params={{ filterCriteria: txFilter }}
         />
       ) : null}
+
+      {/* ComingSoonModal Integration */}
+      <ComingSoonModal
+        visible={isComingSoonModalVisible}
+        onClose={() => setIsComingSoonModalVisible(false)}
+        feature={comingSoonFeature}
+        description={comingSoonDescription}
+      />
+
     </ScreenLayout>
   );
 };

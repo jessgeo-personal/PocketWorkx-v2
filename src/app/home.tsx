@@ -17,6 +17,7 @@ import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/the
 import { formatCurrency } from '../utils/currency';
 import { useStorage } from '../services/storage/StorageProvider';
 import AppFooter from '../components/AppFooter';
+import ComingSoonModal from '../components/ui/ComingSoonModal';
 
 
 // Import the logo image
@@ -169,7 +170,10 @@ const HomeScreen: React.FC = () => {
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
   // Add quick actions modal state
   const [isQuickActionsModalVisible, setIsQuickActionsModalVisible] = useState(false);
-
+  // Add coming soon modal state
+  const [isComingSoonModalVisible, setIsComingSoonModalVisible] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState('');
+  const [comingSoonDescription, setComingSoonDescription] = useState('');
 
 
   const onRefresh = async () => {
@@ -180,6 +184,11 @@ const HomeScreen: React.FC = () => {
     }, 2000);
   };
 
+  const showComingSoon = (feature: string, description: string) => {
+    setComingSoonFeature(feature);
+    setComingSoonDescription(description);
+    setIsComingSoonModalVisible(true);
+  };
   //const renderLogoHeader = () => (
   //  <View style={styles.logoHeader}>
   //    <Image 
@@ -656,25 +665,62 @@ const HomeScreen: React.FC = () => {
                 <View style={styles.sectionDividerLine} />
               </View>
               <View style={styles.actionGroupGrid}>
-                <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="camera" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Scan Receipts</Text>
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    showComingSoon('Receipt Scanner', 'Use your camera to automatically extract transaction data from receipts and bills.');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="camera" size={42} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Scan Receipts</Text>
+                  </View>
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="upload" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Upload Statements</Text>
+
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    showComingSoon('Statement Upload', 'Upload PDF or image bank statements for automatic transaction import.');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="upload" size={42} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Upload Statements</Text>
+                  </View>
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="message-circle" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Scan SMS</Text>
+
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    showComingSoon('SMS Scanner', 'Automatically detect and import transactions from bank SMS notifications.');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="message-circle" size={42} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Scan SMS</Text>
+                  </View>
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="mail" size={20} color={Colors.white} />
-                  <Text style={styles.modalActionText}>Scan Emails</Text>
+
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    showComingSoon('Email Scanner', 'Import transactions from bank email statements and e-receipts.');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="mail" size={42} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Scan Emails</Text>
+                  </View>
                 </TouchableOpacity>
+
               </View>
             </View>
             </View>
@@ -705,6 +751,12 @@ const HomeScreen: React.FC = () => {
       </ScrollView>
       {renderHelpModal()}
       {renderQuickActionsModal()}
+      <ComingSoonModal
+        visible={isComingSoonModalVisible}
+        onClose={() => setIsComingSoonModalVisible(false)}
+        feature={comingSoonFeature}
+        description={comingSoonDescription}
+      />
     </ScreenLayout>
   );
 };
