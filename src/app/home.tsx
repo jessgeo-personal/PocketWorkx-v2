@@ -213,28 +213,28 @@ const HomeScreen: React.FC = () => {
   );
 
 
-  const renderTopQuickActions = () => (
-    <View style={styles.topQuickActionsContainer}>
-      <Text style={styles.topQuickActionsTitle}>Quick Actions</Text>
-      <View style={styles.topQuickActionsGrid}>
-        <TouchableOpacity 
-          style={styles.topQuickActionButton}
-          onPress={() => router.push({ pathname: '/cash', params: { openModal: 'expense' } })}
-        >
-          <Feather name="credit-card" size={24} color="#FFFFFF" />
-          <Text style={styles.topQuickActionText}>Record Expense</Text>
-        </TouchableOpacity>
+  // const renderTopQuickActions = () => (
+  //   <View style={styles.topQuickActionsContainer}>
+  //     <Text style={styles.topQuickActionsTitle}>Quick Actions</Text>
+  //     <View style={styles.topQuickActionsGrid}>
+  //       <TouchableOpacity 
+  //         style={styles.topQuickActionButton}
+  //         onPress={() => router.push({ pathname: '/cash', params: { openModal: 'expense' } })}
+  //       >
+  //         <Feather name="credit-card" size={24} color="#FFFFFF" />
+  //         <Text style={styles.topQuickActionText}>Record Expense</Text>
+  //       </TouchableOpacity>
         
-        <TouchableOpacity 
-          style={styles.topQuickActionButton}
-          onPress={() => router.push({ pathname: '/accounts', params: { openModal: 'debit' } })}
-        >
-          <Feather name="minus-circle" size={24} color="#FFFFFF" />
-          <Text style={styles.topQuickActionText}>Add Debit Card/UPI Expense</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  //       <TouchableOpacity 
+  //         style={styles.topQuickActionButton}
+  //         onPress={() => router.push({ pathname: '/accounts', params: { openModal: 'debit' } })}
+  //       >
+  //         <Feather name="minus-circle" size={24} color="#FFFFFF" />
+  //         <Text style={styles.topQuickActionText}>Add Debit Card/UPI Expense</Text>
+  //       </TouchableOpacity>
+  //     </View>
+  //   </View>
+  // );
 
 
   const renderPrimaryBalance = () => (
@@ -499,15 +499,14 @@ const HomeScreen: React.FC = () => {
       <View style={styles.quickActionsModalOverlay}>
         <View style={styles.quickActionsModalContent}>
           <View style={{ height: 6, alignItems: 'center', paddingTop: 6 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#CCCCCC' }} />
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.border.main }} />
           </View>
           {/* Header */}
           <View style={styles.quickActionsModalHeader}>
             <View style={styles.modalHeaderContent}>
-              <Feather name="zap" size={24} color="#FFFFFF" />
-              <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
+              <Feather name="zap" size={24} color={Colors.white} /> <Text style={styles.quickActionsModalTitle}>Quick Actions</Text>
               <TouchableOpacity onPress={() => setIsQuickActionsModalVisible(false)}>
-                <Feather name="x" size={24} color="#FFFFFF" />
+                <Feather name="x" size={24} color={Colors.white} />
               </TouchableOpacity>
             </View>
           </View>
@@ -519,12 +518,13 @@ const HomeScreen: React.FC = () => {
             contentContainerStyle={{ paddingBottom: Spacing.xl }}
             showsVerticalScrollIndicator={false}
           >
-            <View style={{ backgroundColor: '#FFFFFF' }}>
+            <View style={{ backgroundColor: Colors.background }}>
             {/* Cash Actions */}
             <View style={styles.actionGroup}>
               <View style={styles.sectionDivider}>
+                
+                <Text style={styles.sectionDividerText}>💰 Cash </Text>
                 <View style={styles.sectionDividerLine} />
-                <Text style={styles.sectionDividerText}>💰 Cash</Text>
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
@@ -534,7 +534,7 @@ const HomeScreen: React.FC = () => {
                     router.push({ pathname: '/cash', params: { openModal: 'add' } });
                   }}
                 >
-                  <Feather name="plus-circle" size={20} color="#27AE60" />
+                  <Feather name="plus-circle" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Add Cash</Text>
                 </TouchableOpacity>
                 
@@ -545,7 +545,7 @@ const HomeScreen: React.FC = () => {
                     router.push({ pathname: '/cash', params: { openModal: 'expense' } });
                   }}
                 >
-                  <Feather name="minus-circle" size={20} color="#E74C3C" />
+                  <Feather name="minus-circle" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Record Expense</Text>
                 </TouchableOpacity>
               </View>
@@ -554,8 +554,9 @@ const HomeScreen: React.FC = () => {
             {/* Bank Accounts Actions */}
             <View style={styles.actionGroup}>
               <View style={styles.sectionDivider}>
+                
+                <Text style={styles.sectionDividerText}>🏦 Bank Accounts </Text>
                 <View style={styles.sectionDividerLine} />
-                <Text style={styles.sectionDividerText}>🏦 Bank Accounts</Text>
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
@@ -565,7 +566,7 @@ const HomeScreen: React.FC = () => {
                     router.push('/accounts');
                   }}
                 >
-                  <Feather name="plus-circle" size={20} color="#1976D2" />
+                  <Feather name="plus-circle" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Add Account</Text>
                 </TouchableOpacity>
                 
@@ -576,7 +577,7 @@ const HomeScreen: React.FC = () => {
                     router.push({ pathname: '/accounts', params: { openModal: 'debit' } });
                   }}
                 >
-                  <Feather name="credit-card" size={20} color="#FF9800" />
+                  <Feather name="credit-card" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Record Debit/UPI</Text>
                 </TouchableOpacity>
               </View>
@@ -585,8 +586,9 @@ const HomeScreen: React.FC = () => {
             {/* Credit Cards Actions */}
             <View style={styles.actionGroup}>
               <View style={styles.sectionDivider}>
+                
+                <Text style={styles.sectionDividerText}>💳 Credit Cards </Text>
                 <View style={styles.sectionDividerLine} />
-                <Text style={styles.sectionDividerText}>💳 Credit Cards</Text>
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
@@ -596,7 +598,7 @@ const HomeScreen: React.FC = () => {
                     router.push('/credit-cards');
                   }}
                 >
-                  <Feather name="plus-circle" size={20} color="#8B5CF6" />
+                  <Feather name="plus-circle" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Add Card</Text>
                 </TouchableOpacity>
                 
@@ -607,7 +609,7 @@ const HomeScreen: React.FC = () => {
                     router.push({ pathname: '/credit-cards', params: { openModal: 'charge' } });
                   }}
                 >
-                  <Feather name="shopping-cart" size={20} color="#E74C3C" />
+                  <Feather name="shopping-cart" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Record Charge</Text>
                 </TouchableOpacity>
                 
@@ -618,7 +620,7 @@ const HomeScreen: React.FC = () => {
                     router.push({ pathname: '/credit-cards', params: { openModal: 'payment' } });
                   }}
                 >
-                  <Feather name="check-circle" size={20} color="#27AE60" />
+                  <Feather name="check-circle" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Make Payment</Text>
                 </TouchableOpacity>
               </View>
@@ -627,27 +629,28 @@ const HomeScreen: React.FC = () => {
             {/* Data Import Actions */}
             <View style={styles.actionGroup}>
               <View style={styles.sectionDivider}>
+                
+                <Text style={styles.sectionDividerText}>📊 Data Import </Text>
                 <View style={styles.sectionDividerLine} />
-                <Text style={styles.sectionDividerText}>📊 Data Import</Text>
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="camera" size={20} color={Colors.text.secondary} />
+                  <Feather name="camera" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Scan Receipts</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="upload" size={20} color={Colors.text.secondary} />
+                  <Feather name="upload" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Upload Statements</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="message-circle" size={20} color={Colors.text.secondary} />
+                  <Feather name="message-circle" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Scan SMS</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={styles.modalActionButton}>
-                  <Feather name="mail" size={20} color={Colors.text.secondary} />
+                  <Feather name="mail" size={20} color={Colors.white} />
                   <Text style={styles.modalActionText}>Scan Emails</Text>
                 </TouchableOpacity>
               </View>
@@ -687,6 +690,7 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.background.primary, // golden
   },
   
   headerContainer: {
@@ -847,30 +851,30 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md, // tighter at top
     marginTop: Spacing.sm,
   },
-  quickActionsGrid: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.base,
-    ...Shadows.base,
-  },
-  quickActionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-  },
-  primaryAction: {
-    backgroundColor: Colors.accent,
-    marginBottom: 0,
-  },
-  quickActionText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginLeft: Spacing.md,
-    fontWeight: Typography.fontWeight.medium,
-  },
+  //quickActionsGrid: {
+    //backgroundColor: Colors.background.card,
+    //borderRadius: BorderRadius.xl,
+    //padding: Spacing.base,
+    //...Shadows.base,
+  ///},
+  ///quickActionItem: {
+  ///  flexDirection: 'row',
+  ///  alignItems: 'center',
+  ///  paddingVertical: Spacing.md,
+  ///  paddingHorizontal: Spacing.md,
+  ///  borderRadius: BorderRadius.md,
+  ///  marginBottom: Spacing.sm,
+  ///},
+  //primaryAction: {
+  //  backgroundColor: Colors.accent,
+  //  marginBottom: 0,
+  //},
+  //quickActionText: {
+   // fontSize: Typography.fontSize.sm,
+  //  color: Colors.text.secondary,
+  //  marginLeft: Spacing.md,
+  //  fontWeight: Typography.fontWeight.medium,
+  //},
   bottomSpacing: {
     height: 100, // Space for bottom menu
   },
@@ -880,40 +884,40 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     fontWeight: Typography.fontWeight.medium,
   },
-  topQuickActionsContainer: {
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.lg,
-  },
-  topQuickActionsTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.base,
-    textAlign: 'center',
-  },
-  topQuickActionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  topQuickActionButton: {
-    flex: 1,
-    backgroundColor: '#8B5CF6', // Purple accent per design guidelines
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    alignItems: 'center',
-    ...Shadows.md,
-    minHeight: 80,
-    justifyContent: 'center',
-  },
-  topQuickActionText: {
-    color: '#FFFFFF',
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
-    lineHeight: 16, // Better text wrapping for long button text
-  },
+  // topQuickActionsContainer: {
+  //   paddingHorizontal: Spacing.base,
+  //   marginBottom: Spacing.lg,
+  // },
+  // topQuickActionsTitle: {
+  //   fontSize: Typography.fontSize.lg,
+  //   fontWeight: Typography.fontWeight.semibold,
+  //   color: Colors.text.primary,
+  //   marginBottom: Spacing.base,
+  //   textAlign: 'center',
+  // },
+  // topQuickActionsGrid: {
+  //   flexDirection: 'row',
+  //   justifyContent: 'space-between',
+  //   gap: Spacing.sm,
+  // },
+  // topQuickActionButton: {
+  //   flex: 1,
+  //   backgroundColor: '#8B5CF6', // Purple accent per design guidelines
+  //   padding: Spacing.lg,
+  //   borderRadius: BorderRadius.xl,
+  //   alignItems: 'center',
+  //   ...Shadows.md,
+  //   minHeight: 80,
+  //   justifyContent: 'center',
+  // },
+  // topQuickActionText: {
+  //   color: '#FFFFFF',
+  //   fontSize: Typography.fontSize.sm,
+  //   fontWeight: Typography.fontWeight.semibold,
+  //   marginTop: Spacing.sm,
+  //   textAlign: 'center',
+  //   lineHeight: 16, // Better text wrapping for long button text
+  // },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.25)',
@@ -941,9 +945,9 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
   },
-  helpModalScroll: {
-    flex: 1,
-  },
+  // helpModalScroll: {
+  //   flex: 1,
+  // },
   helpModalBody: {
     padding: Spacing.lg,
   },
@@ -998,28 +1002,28 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.white,
   },
-  accountBalanceCard: {
-    backgroundColor: Colors.background.card,
-    marginHorizontal: Spacing.base,
-    marginBottom: Spacing.xl,
-    marginTop: Spacing.sm, // Small gap after primary balance
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    alignItems: 'center',
-    ...Shadows.base, // Slightly less shadow than primary card
-  },
-  accountBalanceAmount: {
-    fontSize: Typography.fontSize['2xl'], // Smaller than primary
-    fontWeight: Typography.fontWeight.bold,
-    color: '#1976D2', // Blue for bank accounts
-    textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
-  accountBalanceLabel: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
+  // accountBalanceCard: {
+  //   backgroundColor: Colors.background.card,
+  //   marginHorizontal: Spacing.base,
+  //   marginBottom: Spacing.xl,
+  //   marginTop: Spacing.sm, // Small gap after primary balance
+  //   padding: Spacing.lg,
+  //   borderRadius: BorderRadius.xl,
+  //   alignItems: 'center',
+  //   ...Shadows.base, // Slightly less shadow than primary card
+  // },
+  // accountBalanceAmount: {
+  //   fontSize: Typography.fontSize['2xl'], // Smaller than primary
+  //   fontWeight: Typography.fontWeight.bold,
+  //   color: '#1976D2', // Blue for bank accounts
+  //   textAlign: 'center',
+  //   marginBottom: Spacing.xs,
+  // },
+  // accountBalanceLabel: {
+  //   fontSize: Typography.fontSize.sm,
+  //   color: Colors.text.secondary,
+  //   textAlign: 'center',
+  // },
   metricFormula: {
     fontSize: Typography.fontSize.xs,
     color: Colors.text.secondary,
@@ -1054,36 +1058,38 @@ const styles = StyleSheet.create({
   },
   quickActionsModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: Colors.background.modal, // theme overlay
     justifyContent: 'flex-end',
   },
   quickActionsModalContent: {
-    backgroundColor: Colors.background.card,//'#F7D94C', // Golden background
+    backgroundColor: Colors.background.primary, // pocketworkx golden
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '95%',
-    minHeight: '90%',
+    maxHeight: '90%',
+    minHeight: '80%',
     paddingBottom: Spacing.xl,
     overflow: 'hidden',
   },
   quickActionsModalHeader: {
-    backgroundColor: '#8B5CF6', // Purple header like button
+    backgroundColor: Colors.accent, // purple header matching button
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
+    paddingTop: Spacing.lg,   // reduce top padding to remove perceived gap
+    paddingBottom: Spacing.lg,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
   },
   quickActionsModalTitle: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.background.card,//'#FFFFFF',
+    color: Colors.white,
     textAlign: 'center',
   },
   quickActionsModalBody: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background.card, //'#F7D94C', // Ensure golden throughout
+    backgroundColor: Colors.background.primary, // golden
   },
+
   actionGroup: {
     marginBottom: Spacing.xl,
   },
@@ -1103,24 +1109,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '50%',
+    width: '100%',
   },
   modalActionButton: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.secondary,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    backgroundColor: Colors.accent,         // purple button
+    paddingVertical: Spacing.lg,            // larger touch target
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.xl,          // rounded like primary buttons
     width: '48%',
     marginBottom: Spacing.sm,
-    ...Shadows.base,
+    ...Shadows.md,
   },
   modalActionText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.primary,
+    fontSize: Typography.fontSize.lg,     // larger text
+    color: Colors.white,                    // white text
     marginLeft: Spacing.sm,
-    fontWeight: Typography.fontWeight.medium,
+    fontWeight: Typography.fontWeight.semibold,
   },
+
   sectionDivider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1130,14 +1139,14 @@ const styles = StyleSheet.create({
   sectionDividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#1F2937',
     marginRight: 12,
   },
   sectionDividerText: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.lg,
     color: '#1F2937',
     fontWeight: '700',
-    textTransform: 'uppercase',
+    //textTransform: 'uppercase',
   },
 
 });
