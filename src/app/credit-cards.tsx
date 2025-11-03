@@ -97,6 +97,24 @@ const CreditCardsScreen: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedCardForPayment, setSelectedCardForPayment] = useState<string>('');
   const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<string>('');
+
+  // Initialize selections when data loads
+  useEffect(() => {
+    const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    const accounts = (state?.accounts ?? []) as Array<{ id: string }>;
+    
+    // Auto-select first card if none selected and cards exist
+    if (!selectedCardForPayment && cards.length > 0) {
+      setSelectedCardForPayment(cards[0].id);
+    }
+    
+    // Auto-select first account if none selected and accounts exist  
+    if (!selectedAccountForPayment && accounts.length > 0) {
+      setSelectedAccountForPayment(accounts[0].id);
+    }
+  }, [state?.creditCardEntries, state?.accounts, selectedCardForPayment, selectedAccountForPayment]);
+
+  
   // Split date into separate day/month/year
   const [paymentDay, setPaymentDay] = useState<number>(new Date().getDate());
   const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
@@ -388,19 +406,30 @@ const CreditCardsScreen: React.FC = () => {
   const handleRecordPayment = async () => {
     if (isProcessing) return;
     
+    const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    const accounts = (state?.accounts ?? []) as Array<{ id: string }>;
+    
+    console.log('Payment validation:');
+    console.log('- Amount:', paymentAmount);
+    console.log('- Selected card:', selectedCardForPayment);
+    console.log('- Selected account:', selectedAccountForPayment);
+    console.log('- Available cards:', cards.length);
+    console.log('- Available accounts:', accounts.length);
+    
     // Enhanced validation for all 3 mandatory fields
     if (!paymentAmount.trim()) {
       Alert.alert('Error', 'Please enter a payment amount');
       return;
     }
-    if (!selectedCardForPayment) {
-      Alert.alert('Error', 'Please select a credit card');
+    if (!selectedCardForPayment || !cards.find(c => c.id === selectedCardForPayment)) {
+      Alert.alert('Error', 'Please select a valid credit card');
       return;
     }
-    if (!selectedAccountForPayment) {
-      Alert.alert('Error', 'Please select a source account');
+    if (!selectedAccountForPayment || !accounts.find(a => a.id === selectedAccountForPayment)) {
+      Alert.alert('Error', 'Please select a valid source account');
       return;
     }
+
 
     const raw = Number(paymentAmount);
     if (!Number.isFinite(raw) || raw <= 0) {
@@ -1007,18 +1036,45 @@ const CreditCardsScreen: React.FC = () => {
     );
   };
 
-  // Safe wheel picker callbacks with null checks
+  // Fixed wheel picker callbacks - handle both event formats
   const handleCardChange = (event: any) => {
-    if (event && event.item && event.item.value) {
-      setSelectedCardForPayment(event.item.value);
+    console.log('Card picker event:', event);
+    let newValue: string;
+    
+    if (event && typeof event === 'string') {
+      newValue = event;
+    } else if (event && event.item && event.item.value) {
+      newValue = event.item.value;
+    } else if (event && event.value) {
+      newValue = event.value;
+    } else {
+      console.warn('Unexpected card picker event format:', event);
+      return;
     }
+    
+    console.log('Setting selected card to:', newValue);
+    setSelectedCardForPayment(newValue);
   };
 
   const handleAccountChange = (event: any) => {
-    if (event && event.item && event.item.value !== undefined) {
-      setSelectedAccountForPayment(event.item.value);
+    console.log('Account picker event:', event);
+    let newValue: string;
+    
+    if (event && typeof event === 'string') {
+      newValue = event;
+    } else if (event && event.item && event.item.value !== undefined) {
+      newValue = event.item.value;
+    } else if (event && event.value !== undefined) {
+      newValue = event.value;
+    } else {
+      console.warn('Unexpected account picker event format:', event);
+      return;
     }
+    
+    console.log('Setting selected account to:', newValue);
+    setSelectedAccountForPayment(newValue);
   };
+
 
   const handleDayChange = (event: any) => {
     if (event && event.item && event.item.value) {
@@ -1106,9 +1162,14 @@ const CreditCardsScreen: React.FC = () => {
       label: (currentYear - 2 + i).toString()
     }));
 
-    // Initialize defaults if not set
-    const selectedCardId = selectedCardForPayment || (cards.length > 0 ? cards[0].id : '');
-    const selectedAccountId = selectedAccountForPayment || (accounts.length > 0 ? accounts[0].id : '');
+    // Auto-initialize if empty and data is available
+    if (!selectedCardForPayment && cards.length > 0) {
+      setSelectedCardForPayment(cards[0].id);
+    }
+    if (!selectedAccountForPayment && accounts.length > 0) {
+      setSelectedAccountForPayment(accounts[0].id);
+    }
+
 
     return (
       <Modal
@@ -1148,7 +1209,7 @@ const CreditCardsScreen: React.FC = () => {
                     <View style={styles.wheelPickerContainer}>
                       <WheelPicker
                         data={cardPickerData}
-                        value={selectedCardId}
+                        value={selectedCardForPayment}
                         onValueChanged={handleCardChange}
                         itemHeight={60}
                         visibleItemCount={3}
@@ -1183,7 +1244,7 @@ const CreditCardsScreen: React.FC = () => {
                     <View style={styles.wheelPickerContainer}>
                       <WheelPicker
                         data={accountPickerData}
-                        value={selectedAccountId}
+                        value={selectedAccountForPayment}
                         onValueChanged={handleAccountChange}
                         itemHeight={60}
                         visibleItemCount={3}
