@@ -21,6 +21,7 @@ import { formatCompactCurrency } from '../utils/currency';
 import type { TransactionRecord, FilterCriteria } from '../types/transactions';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import AppFooter from '../components/AppFooter';
+import { Picker } from '@react-native-picker/picker';
 
 // Use shared storage
 // Use shared storage
@@ -92,10 +93,14 @@ const CreditCardsScreen: React.FC = () => {
   const [chargeMerchant, setChargeMerchant] = useState('');
   const [chargeNotes, setChargeNotes] = useState('');
   
-  // Payment Modal states  
+  // Enhanced Payment Modal states  
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedCardForPayment, setSelectedCardForPayment] = useState<string>('');
+  const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<string>('');
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [useCustomDate, setUseCustomDate] = useState(false);
   const [paymentNotes, setPaymentNotes] = useState('');
+
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [txModalVisible, setTxModalVisible] = useState(false);
@@ -380,8 +385,17 @@ const CreditCardsScreen: React.FC = () => {
   const handleRecordPayment = async () => {
     if (isProcessing) return;
     
-    if (!paymentAmount.trim() || !selectedCardForPayment) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    // Enhanced validation for all 3 mandatory fields
+    if (!paymentAmount.trim()) {
+      Alert.alert('Error', 'Please enter a payment amount');
+      return;
+    }
+    if (!selectedCardForPayment) {
+      Alert.alert('Error', 'Please select a credit card');
+      return;
+    }
+    if (!selectedAccountForPayment) {
+      Alert.alert('Error', 'Please select a source account');
       return;
     }
 
@@ -391,50 +405,96 @@ const CreditCardsScreen: React.FC = () => {
       return;
     }
 
+    // Check if selected account has sufficient balance
+    const accounts = (state?.accounts ?? []) as Array<{
+      id: string;
+      nickname: string;
+      balance: { amount: number; currency: string };
+    }>;
+    const selectedAccount = accounts.find(acc => acc.id === selectedAccountForPayment);
+    if (!selectedAccount) {
+      Alert.alert('Error', 'Selected account not found');
+      return;
+    }
+
+    if (selectedAccount.balance.amount < raw) {
+      Alert.alert(
+        'Insufficient Balance',
+        `Account balance: ${formatFullINR(selectedAccount.balance.amount)}\nPayment amount: ${formatFullINR(raw)}\n\nThis will result in negative balance. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue', onPress: () => processPayment(raw, selectedAccount) }
+        ]
+      );
+      return;
+    }
+
+    processPayment(raw, selectedAccount);
+  };
+
+  // Separate function to handle the actual payment processing
+  const processPayment = async (amount: number, sourceAccount: any) => {
     setIsProcessing(true);
     try {
-      const now = new Date();
-      const amount = Math.round(raw);
+      const transactionDate = useCustomDate ? paymentDate : new Date();
+      const roundedAmount = Math.round(amount);
 
-      // Create payment transaction
-      const newPayment: CreditCardTransaction = {
+      // 1. Create Credit Card Payment Transaction (reduces credit card balance)
+      const creditCardPayment: CreditCardTransaction = {
         id: `${Date.now()}-payment`,
-        description: 'Credit Card Payment',
-        amount: { amount: -amount, currency: 'INR' }, // negative for payments
+        description: `Payment from ${sourceAccount.nickname}`,
+        amount: { amount: -roundedAmount, currency: 'INR' },
         type: 'PAYMENT',
         category: 'Payment',
         cardId: selectedCardForPayment,
-        notes: paymentNotes?.trim() || undefined,
-        timestamp: now,
+        notes: paymentNotes?.trim() || `Paid from ${sourceAccount.nickname}`,
+        timestamp: transactionDate,
         encryptedData: {
           encryptionKey: '',
           encryptionAlgorithm: 'AES-256',
-          lastEncrypted: now,
+          lastEncrypted: transactionDate,
           isEncrypted: false,
         },
         auditTrail: {
           createdBy: 'user',
-          createdAt: now,
+          createdAt: transactionDate,
           updatedBy: 'user',
-          updatedAt: now,
+          updatedAt: transactionDate,
           version: 1,
           changes: [{
             action: 'RECORD_PAYMENT',
-            timestamp: now,
-            amount: -amount,
+            timestamp: transactionDate,
+            amount: -roundedAmount,
             cardId: selectedCardForPayment,
+            sourceAccountId: selectedAccountForPayment,
           }],
         },
         linkedTransactions: [],
       };
 
-      await save((draft: AppModel) => {
-        const nextTransactions: CreditCardTransaction[] = draft.creditCardTransactions ? [...draft.creditCardTransactions] as CreditCardTransaction[] : [];
-        nextTransactions.push(newPayment as CreditCardTransaction);
+      // 2. Create Bank Account Withdrawal Transaction (reduces bank account balance)
+      const accountWithdrawal = {
+        id: `${Date.now()}-withdrawal`,
+        datetime: transactionDate,
+        amount: { amount: -roundedAmount, currency: 'INR' },
+        description: `Credit Card Payment`,
+        type: 'withdrawal',
+        notes: paymentNotes?.trim() || `Payment to credit card`,
+        source: 'manual',
+        status: 'completed',
+      };
 
+      // 3. Update storage with dual transactions
+      await save((draft: AppModel) => {
+        // Add credit card payment transaction
+        const nextCCTransactions: CreditCardTransaction[] = draft.creditCardTransactions ? 
+          [...draft.creditCardTransactions] as CreditCardTransaction[] : [];
+        nextCCTransactions.push(creditCardPayment as CreditCardTransaction);
+
+        // Update credit card balance
         const nextCards: CreditCardEntry[] = (draft.creditCardEntries ?? []).map((card) => {
           if (card.id === selectedCardForPayment) {
-            const newBalance = Math.max(0, card.currentBalance.amount - amount);
+            const newBalance = Math.max(0, card.currentBalance.amount - roundedAmount);
             return {
               ...card,
               currentBalance: { ...card.currentBalance, amount: newBalance },
@@ -445,26 +505,56 @@ const CreditCardsScreen: React.FC = () => {
           return card as CreditCardEntry;
         });
 
+        // Update bank account with withdrawal transaction and reduce balance
+        const nextAccounts = (draft.accounts ?? []).map((account: any) => {
+          if (account.id === selectedAccountForPayment) {
+            const existingTransactions = account.transactions ?? [];
+            return {
+              ...account,
+              transactions: [...existingTransactions, accountWithdrawal],
+              balance: {
+                ...account.balance,
+                amount: account.balance.amount - roundedAmount
+              },
+              lastSynced: transactionDate,
+            };
+          }
+          return account;
+        });
+
         return { 
           ...draft, 
-          creditCardTransactions: nextTransactions,
-          creditCardEntries: nextCards 
+          creditCardTransactions: nextCCTransactions,
+          creditCardEntries: nextCards,
+          accounts: nextAccounts
         };
       });
 
+      Alert.alert(
+        'Payment Saved', 
+        `Payment of ${formatFullINR(roundedAmount)} processed successfully.\n\nFrom: ${sourceAccount.nickname}\nTo: Credit Card`,
+        [{ text: 'OK', onPress: resetPaymentForm }]
+      );
 
-
-      // Reset form and close modal
-      setPaymentAmount('');
-      setSelectedCardForPayment('');
-      setPaymentNotes('');
-      setIsPaymentModalVisible(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to record payment. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
+
+  // Reset form helper
+  const resetPaymentForm = () => {
+    setPaymentAmount('');
+    setSelectedCardForPayment('');
+    setSelectedAccountForPayment('');
+    setPaymentDate(new Date());
+    setUseCustomDate(false);
+    setPaymentNotes('');
+    setIsPaymentModalVisible(false);
+  };
+
+
 
   const handleDeleteCard = async (cardId: string) => {
     Alert.alert('Confirm Delete', 'Are you sure you want to remove this credit card?', [
@@ -901,9 +991,23 @@ const CreditCardsScreen: React.FC = () => {
     );
   };
 
-  // Make Payment Modal
+  // Enhanced Make Payment Modal with Wheel Pickers
   const renderPaymentModal = () => {
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    const accounts = (state?.accounts ?? []) as Array<{
+      id: string;
+      nickname: string;
+      bankName: string;
+      balance: { amount: number; currency: string };
+    }>;
+    
+    // Generate date options (today + past 30 days)
+    const dateOptions = Array.from({ length: 31 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date;
+    });
+
     return (
       <Modal
         visible={isPaymentModalVisible}
@@ -922,10 +1026,12 @@ const CreditCardsScreen: React.FC = () => {
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.modalBody}>
+                
+                {/* Enhanced Amount Input */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Amount (₹) *</Text>
+                  <Text style={styles.largeInputLabel}>Amount (₹) *</Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={styles.largeTextInput}
                     value={paymentAmount}
                     onChangeText={setPaymentAmount}
                     placeholder="0"
@@ -933,23 +1039,89 @@ const CreditCardsScreen: React.FC = () => {
                   />
                 </View>
 
+                {/* Credit Card Picker */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Card *</Text>
-                  <View style={styles.pickerRow}>
-                    {cards.slice(0,5).map(c => (
-                      <TouchableOpacity
-                        key={c.id}
-                        style={[styles.pickerPill, selectedCardForPayment === c.id && styles.pickerPillSelected]}
-                        onPress={() => setSelectedCardForPayment(c.id)}
-                      >
-                        <Text style={[styles.pickerPillText, selectedCardForPayment === c.id && styles.pickerPillTextSelected]}>
-                          {c.cardName}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <Text style={styles.inputLabel}>Select Credit Card *</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={selectedCardForPayment}
+                      onValueChange={setSelectedCardForPayment}
+                      style={styles.wheelPicker}
+                    >
+                      <Picker.Item label="Choose a credit card..." value="" color="#999" />
+                      {cards.map(card => (
+                        <Picker.Item 
+                          key={card.id}
+                          label={`${card.cardName} (${formatFullINR(card.currentBalance.amount)} due)`}
+                          value={card.id} 
+                        />
+                      ))}
+                    </Picker>
                   </View>
                 </View>
 
+                {/* Source Account Picker */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Pay From Account *</Text>
+                  <View style={styles.pickerContainer}>
+                    <Picker
+                      selectedValue={selectedAccountForPayment}
+                      onValueChange={setSelectedAccountForPayment}
+                      style={styles.wheelPicker}
+                    >
+                      <Picker.Item label="Choose source account..." value="" color="#999" />
+                      {accounts.map(acc => (
+                        <Picker.Item 
+                          key={acc.id}
+                          label={`${acc.nickname} (${formatFullINR(acc.balance.amount)} available)`}
+                          value={acc.id} 
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                </View>
+
+                {/* Payment Date Toggle */}
+                <View style={styles.inputContainer}>
+                  <View style={styles.checkboxRow}>
+                    <TouchableOpacity 
+                      style={[styles.checkbox, useCustomDate && styles.checkboxActive]}
+                      onPress={() => setUseCustomDate(!useCustomDate)}
+                    >
+                      {useCustomDate && <MaterialIcons name="check" size={16} color="#FFFFFF" />}
+                    </TouchableOpacity>
+                    <Text style={styles.checkboxLabel}>Custom Payment Date (optional)</Text>
+                  </View>
+                </View>
+
+                {/* Date Picker (only if custom date enabled) */}
+                {useCustomDate && (
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>Payment Date</Text>
+                    <View style={styles.pickerContainer}>
+                      <Picker
+                        selectedValue={paymentDate.toDateString()}
+                        onValueChange={(dateString) => setPaymentDate(new Date(dateString))}
+                        style={styles.wheelPicker}
+                      >
+                        {dateOptions.map(date => (
+                          <Picker.Item 
+                            key={date.toDateString()}
+                            label={date.toLocaleDateString('en-IN', { 
+                              weekday: 'short', 
+                              day: 'numeric', 
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                            value={date.toDateString()} 
+                          />
+                        ))}
+                      </Picker>
+                    </View>
+                  </View>
+                )}
+
+                {/* Notes (Optional) */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Notes (Optional)</Text>
                   <TextInput
@@ -972,7 +1144,7 @@ const CreditCardsScreen: React.FC = () => {
                 onPress={handleRecordPayment}
                 disabled={isProcessing}
               >
-                <Text style={styles.primaryButtonText}>{isProcessing ? 'Saving...' : 'Save Payment'}</Text>
+                <Text style={styles.primaryButtonText}>{isProcessing ? 'Processing...' : 'Save Payment'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -980,6 +1152,7 @@ const CreditCardsScreen: React.FC = () => {
       </Modal>
     );
   };
+
 
 
   // Modal renders would go here - simplified for space
@@ -1317,7 +1490,7 @@ const styles = StyleSheet.create({
   modalBody: { padding: 20 },
   inputContainer: { marginBottom: 16 },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '500',
     color: Colors.text.primary,
     marginBottom: 8,
@@ -1327,7 +1500,7 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.text.primary,
     backgroundColor: Colors.background.secondary,
   },
@@ -1401,6 +1574,58 @@ const styles = StyleSheet.create({
     color: '#999999',
     fontWeight: '500',
     textAlign: 'right',
+  },
+  // Enhanced payment modal styles
+  largeInputLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 12,
+  },
+  largeTextInput: {
+    borderWidth: 2,
+    borderColor: Colors.accentDark,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    backgroundColor: Colors.background.secondary,
+    textAlign: 'center',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: Colors.accentDark,
+    borderRadius: 8,
+    backgroundColor: Colors.background.primary,
+  },
+  wheelPicker: {
+    height: 80,
+    color: Colors.text.primary,
+    fontSize: 18,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 36,
+    height: 36,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    borderRadius: 4,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: '#8B5CF6',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: Colors.text.primary,
+    fontWeight: '500',
   },
 
 });
