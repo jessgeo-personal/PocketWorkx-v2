@@ -522,7 +522,10 @@ const HomeScreen: React.FC = () => {
             <View style={{ backgroundColor: '#FFFFFF' }}>
             {/* Cash Actions */}
             <View style={styles.actionGroup}>
-              <Text style={styles.actionGroupTitle}>💰 Cash</Text>
+              <View style={styles.sectionDivider}>
+                <View style={styles.sectionDividerLine} />
+                <Text style={styles.sectionDividerText}>💰 Cash</Text>
+              </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
                   style={styles.modalActionButton}
@@ -550,7 +553,10 @@ const HomeScreen: React.FC = () => {
 
             {/* Bank Accounts Actions */}
             <View style={styles.actionGroup}>
-              <Text style={styles.actionGroupTitle}>🏦 Bank Accounts</Text>
+              <View style={styles.sectionDivider}>
+                <View style={styles.sectionDividerLine} />
+                <Text style={styles.sectionDividerText}>🏦 Bank Accounts</Text>
+              </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
                   style={styles.modalActionButton}
@@ -578,7 +584,10 @@ const HomeScreen: React.FC = () => {
 
             {/* Credit Cards Actions */}
             <View style={styles.actionGroup}>
-              <Text style={styles.actionGroupTitle}>💳 Credit Cards</Text>
+              <View style={styles.sectionDivider}>
+                <View style={styles.sectionDividerLine} />
+                <Text style={styles.sectionDividerText}>💳 Credit Cards</Text>
+              </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
                   style={styles.modalActionButton}
@@ -617,7 +626,10 @@ const HomeScreen: React.FC = () => {
 
             {/* Data Import Actions */}
             <View style={styles.actionGroup}>
-              <Text style={styles.actionGroupTitle}>📊 Data Import</Text>
+              <View style={styles.sectionDivider}>
+                <View style={styles.sectionDividerLine} />
+                <Text style={styles.sectionDividerText}>📊 Data Import</Text>
+              </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity style={styles.modalActionButton}>
                   <Feather name="camera" size={20} color={Colors.text.secondary} />
@@ -643,7 +655,7 @@ const HomeScreen: React.FC = () => {
             </View>
           </ScrollView>
         </View>
-      
+      </View>
     </Modal>
   );
 
@@ -1046,31 +1058,31 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   quickActionsModalContent: {
-    backgroundColor: '#F7D94C', // Golden background
+    backgroundColor: Colors.background.card,//'#F7D94C', // Golden background
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '85%',
-    minHeight: '60%',
+    maxHeight: '95%',
+    minHeight: '90%',
     paddingBottom: Spacing.xl,
     overflow: 'hidden',
   },
   quickActionsModalHeader: {
     backgroundColor: '#8B5CF6', // Purple header like button
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xl,
+    paddingVertical: Spacing.lg,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
   },
   quickActionsModalTitle: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
-    color: '#FFFFFF',
+    color: Colors.background.card,//'#FFFFFF',
     textAlign: 'center',
   },
   quickActionsModalBody: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: '#F7D94C', // Ensure golden throughout
+    backgroundColor: Colors.background.card, //'#F7D94C', // Ensure golden throughout
   },
   actionGroup: {
     marginBottom: Spacing.xl,
@@ -1091,7 +1103,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
+    width: '50%',
   },
   modalActionButton: {
     flexDirection: 'row',
@@ -1108,6 +1120,24 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginLeft: Spacing.sm,
     fontWeight: Typography.fontWeight.medium,
+  },
+  sectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+    marginHorizontal: 4,
+  },
+  sectionDividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E0E0E0',
+    marginRight: 12,
+  },
+  sectionDividerText: {
+    fontSize: Typography.fontSize.sm,
+    color: '#1F2937',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 
 });
