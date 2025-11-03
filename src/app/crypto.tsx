@@ -18,9 +18,15 @@ import {
 import { formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';  // ← Added
 import AppFooter from '../components/AppFooter';
+import ComingSoonModal from '../components/ui/ComingSoonModal';
 
 
 const CryptoScreen: React.FC = () => {
+  // ComingSoonModal states
+  const [isComingSoonModalVisible, setIsComingSoonModalVisible] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState('');
+  const [comingSoonDescription, setComingSoonDescription] = useState('');
+  
   const [cryptoAssets, setCryptoAssets] = useState<CryptoHolding[]>([
     {
       id: '1',
@@ -133,6 +139,12 @@ const CryptoScreen: React.FC = () => {
     return ((current.amount - invested) / invested) * 100;
   };
 
+  const showComingSoon = (feature: string, description: string) => {
+    setComingSoonFeature(feature);
+    setComingSoonDescription(description);
+    setIsComingSoonModalVisible(true);
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Crypto Assets</Text>
@@ -218,22 +230,38 @@ const CryptoScreen: React.FC = () => {
     <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionGrid}>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => showComingSoon('Add Crypto Account', 'Connect your crypto exchange accounts or add manual holdings for Bitcoin, Ethereum, and other cryptocurrencies.')}
+          activeOpacity={0.9}
+        >
           <MaterialIcons name="add-circle" size={24} color="#9945FF" />
           <Text style={styles.actionText}>Add Crypto Acct</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => showComingSoon('Portfolio Analytics', 'View detailed portfolio breakdown, performance charts, and asset allocation insights.')}
+          activeOpacity={0.9}
+        >
           <MaterialIcons name="pie-chart" size={24} color="#9945FF" />
           <Text style={styles.actionText}>Portfolio</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => showComingSoon('Crypto Trading', 'Execute buy/sell orders and track your crypto trading activity across exchanges.')}
+          activeOpacity={0.9}
+        >
           <MaterialIcons name="trending-up" size={24} color="#9945FF" />
           <Text style={styles.actionText}>Trade</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => showComingSoon('Transaction History', 'View complete transaction history with filtering, search, and CSV export capabilities.')}
+          activeOpacity={0.9}
+        >
           <MaterialIcons name="history" size={24} color="#9945FF" />
           <Text style={styles.actionText}>History</Text>
         </TouchableOpacity>
@@ -254,6 +282,12 @@ const CryptoScreen: React.FC = () => {
             {cryptoAssets.map(renderCryptoCard)}
           </View>
           <AppFooter />
+          <ComingSoonModal
+            visible={isComingSoonModalVisible}
+            onClose={() => setIsComingSoonModalVisible(false)}
+            feature={comingSoonFeature}
+            description={comingSoonDescription}
+          />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>  
