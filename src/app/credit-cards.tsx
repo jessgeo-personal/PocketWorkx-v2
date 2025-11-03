@@ -407,7 +407,6 @@ const CreditCardsScreen: React.FC = () => {
     if (isProcessing) return;
     
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
-    const accounts = (state?.accounts ?? []) as Array<{ id: string }>;
     
     console.log('Payment validation:');
     console.log('- Amount:', paymentAmount);
@@ -438,11 +437,6 @@ const CreditCardsScreen: React.FC = () => {
     }
 
     // Check if selected account has sufficient balance
-    const accounts = (state?.accounts ?? []) as Array<{
-      id: string;
-      nickname: string;
-      balance: { amount: number; currency: string };
-    }>;
     const selectedAccount = accounts.find(acc => acc.id === selectedAccountForPayment);
     if (!selectedAccount) {
       Alert.alert('Error', 'Selected account not found');
@@ -583,7 +577,6 @@ const CreditCardsScreen: React.FC = () => {
     
     // Initialize with first available items or empty
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
-    const accounts = (state?.accounts ?? []) as Array<{ id: string }>;
     
     setSelectedCardForPayment(cards.length > 0 ? cards[0].id : '');
     setSelectedAccountForPayment(accounts.length > 0 ? accounts[0].id : '');
