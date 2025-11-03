@@ -152,6 +152,8 @@ const LoansScreen: React.FC = () => {
 
     setIsProcessing(true);
     try {
+      const now = new Date();
+      
       // Build start date from user input
       const startDate = new Date(sy, sm - 1, sd);
       // Compute next EMI date = startDate + 1 month (same day; fallback to end of month if day overflow)
