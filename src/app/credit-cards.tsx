@@ -407,6 +407,11 @@ const CreditCardsScreen: React.FC = () => {
     if (isProcessing) return;
     
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    const accounts = (state?.accounts ?? []) as Array<{
+      id: string;
+      nickname: string;
+      balance: { amount: number; currency: string };
+    }>;
     
     console.log('Payment validation:');
     console.log('- Amount:', paymentAmount);
@@ -577,6 +582,7 @@ const CreditCardsScreen: React.FC = () => {
     
     // Initialize with first available items or empty
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
+    const accounts = (state?.accounts ?? []) as Array<{ id: string }>;
     
     setSelectedCardForPayment(cards.length > 0 ? cards[0].id : '');
     setSelectedAccountForPayment(accounts.length > 0 ? accounts[0].id : '');
@@ -589,10 +595,6 @@ const CreditCardsScreen: React.FC = () => {
     setPaymentNotes('');
     setIsPaymentModalVisible(false);
   };
-
-
-
-
 
   const handleDeleteCard = async (cardId: string) => {
     Alert.alert('Confirm Delete', 'Are you sure you want to remove this credit card?', [
