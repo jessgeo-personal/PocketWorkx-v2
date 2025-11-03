@@ -93,12 +93,18 @@ const CreditCardsScreen: React.FC = () => {
   const [chargeMerchant, setChargeMerchant] = useState('');
   const [chargeNotes, setChargeNotes] = useState('');
   
+    // Split date into separate day/month/year
+  const [paymentDay, setPaymentDay] = useState<number>(new Date().getDate());
+  const [paymentMonth, setPaymentMonth] = useState<number>(new Date().getMonth() + 1);
+  const [paymentYear, setPaymentYear] = useState<number>(new Date().getFullYear());
+  
   // Enhanced Payment Modal states  
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedCardForPayment, setSelectedCardForPayment] = useState<string>('');
   const [selectedAccountForPayment, setSelectedAccountForPayment] = useState<string>('');
 
-  // Initialize selections when data loads
+
+    // Initialize selections when data loads
   useEffect(() => {
     const cards = (state?.creditCardEntries ?? []) as CreditCardEntry[];
     const accounts = (state?.accounts ?? []) as Array<{ id: string }>;
@@ -113,6 +119,20 @@ const CreditCardsScreen: React.FC = () => {
       setSelectedAccountForPayment(accounts[0].id);
     }
   }, [state?.creditCardEntries, state?.accounts, selectedCardForPayment, selectedAccountForPayment]);
+
+  // NEW USEEFFECT GOES HERE - Ensure selected account value always matches available picker values
+  useEffect(() => {
+    const accts = (state?.accounts ?? []) as Array<{ id: string }>;
+    if (!accts || accts.length === 0) return;
+
+    const current = String(selectedAccountForPayment || '');
+    const options = accts.map(a => String(a.id));
+
+    // If current selection is not in the list (or empty), snap to the last (fully visible) option
+    if (!options.includes(current)) {
+      setSelectedAccountForPayment(options[options.length - 1]);
+    }
+  }, [state?.accounts, selectedAccountForPayment]);
 
   
   // Split date into separate day/month/year
@@ -1129,20 +1149,14 @@ const CreditCardsScreen: React.FC = () => {
     
     // Generate picker data with proper defaults
     const cardPickerData = cards.length > 0 ? cards.map(card => ({
-      value: card.id,
+      value: String(card.id),
       label: `${card.cardName} ${card.cardNumber}\n${formatFullINR(card.currentBalance.amount)} due`,
     })) : [{ value: '', label: 'No cards available' }];
 
     const accountPickerData = accounts.length > 0 ? accounts.map(acc => ({
-      value: acc.id,
+      value: String(acc.id), // ensure string identity
       label: `${acc.nickname}\n${formatFullINR(acc.balance.amount)} available`,
     })) : [{ value: '', label: 'No accounts available' }];
-
-    // Date picker data
-    const dayData = Array.from({length: 31}, (_, i) => ({
-      value: i + 1, 
-      label: (i + 1).toString()
-    }));
     
     const monthData = [
       {value: 1, label: 'Jan'}, {value: 2, label: 'Feb'}, {value: 3, label: 'Mar'},
