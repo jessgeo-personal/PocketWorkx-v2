@@ -22,6 +22,8 @@ import type { TransactionRecord, FilterCriteria } from '../types/transactions';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import AppFooter from '../components/AppFooter';
 import WheelPicker from '@quidone/react-native-wheel-picker';
+import ComingSoonModal from '@/components/modals/ComingSoonModal';
+
 
 // Use shared storage
 // Use shared storage
@@ -75,7 +77,9 @@ const CreditCardsScreen: React.FC = () => {
   const [isAddCardModalVisible, setIsAddCardModalVisible] = useState(false);
   const [isChargeModalVisible, setIsChargeModalVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  
+  const [isComingSoonModalVisible, setIsComingSoonModalVisible] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState<string>('');
+
   // Add Card Modal states
   const [newCardBank, setNewCardBank] = useState('');
   const [newCardName, setNewCardName] = useState('');
@@ -774,33 +778,53 @@ const CreditCardsScreen: React.FC = () => {
   const renderQuickActions = () => (
     <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.quickActionGrid}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddCardModalVisible(true)}>
-          <MaterialIcons name="add-circle" size={24} color="#8B5CF6" />
-          <Text style={styles.actionText}>Add Card</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => setIsChargeModalVisible(true)}
-        >
-          <MaterialIcons name="receipt" size={24} color="#8B5CF6" />
-          <Text style={styles.actionText}>Record Charge</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => setIsPaymentModalVisible(true)}
-        >
-          <MaterialIcons name="payment" size={24} color="#8B5CF6" />
-          <Text style={styles.actionText}>Make Payment</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => router.push('/cashflow')}
-        >
-          <MaterialIcons name="trending-up" size={24} color="#8B5CF6" />
-          <Text style={styles.actionText}>View Trends</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.quickActionGrid}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddCardModalVisible(true)}>
+            <MaterialIcons name="add-circle" size={24} color="#8B5CF6" />
+            <Text style={styles.actionText}>Add Card</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setIsChargeModalVisible(true)}
+          >
+            <MaterialIcons name="receipt" size={24} color="#8B5CF6" />
+            <Text style={styles.actionText}>Record Charge</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => setIsPaymentModalVisible(true)}
+          >
+            <MaterialIcons name="payment" size={24} color="#8B5CF6" />
+            <Text style={styles.actionText}>Make Payment</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => {
+              setComingSoonFeature('Upload Statement');
+              setIsComingSoonModalVisible(true);
+            }}
+          >
+            <MaterialIcons name="cloud-upload" size={24} color="#8B5CF6" />
+            <Text style={styles.actionText}>Upload Statement</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => {
+              setComingSoonFeature('SMS Import');
+              setIsComingSoonModalVisible(true);
+            }}
+          >
+            <MaterialIcons name="message" size={24} color="#8B5CF6" />
+            <Text style={styles.actionText}>SMS Import</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={() => router.push('/cashflow')}
+          >
+            <MaterialIcons name="trending-up" size={24} color="#8B5CF6" />
+            <Text style={styles.actionText}>View Trends</Text>
+          </TouchableOpacity>
+        </View>
     </View>
   );
 
@@ -1463,6 +1487,19 @@ const CreditCardsScreen: React.FC = () => {
           params={{ filterCriteria: txFilter }}
         />
       )}
+      {/* ComingSoonModal for future features */}
+      <ComingSoonModal
+        visible={isComingSoonModalVisible}
+        onClose={() => setIsComingSoonModalVisible(false)}
+        feature={comingSoonFeature}
+        description={
+          comingSoonFeature === 'Upload Statement' 
+            ? 'Upload credit card statements to automatically import transactions. Supports PDF and CSV formats.'
+            : comingSoonFeature === 'SMS Import'
+            ? 'Scan SMS messages to automatically detect and import credit card transactions from bank notifications.'
+            : 'This feature is coming soon!'
+        }
+      />
     </ScreenLayout>
   );
 };
@@ -1553,9 +1590,9 @@ const styles = StyleSheet.create({
   actionButton: {
     alignItems: 'center',
     backgroundColor: Colors.background.secondary,
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
-    width: '47%',
+    width: '31%',  // 3 columns instead of 2
     marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
@@ -1564,9 +1601,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   actionText: {
-    fontSize: 12,
+    fontSize: 11,  // Slightly smaller to fit 3 columns
     color: Colors.text.primary,
-    marginTop: 8,
+    marginTop: 6,
     textAlign: 'center',
   },
   cardsContainer: {
@@ -1968,7 +2005,6 @@ const styles = StyleSheet.create({
     color: '#8B5CF6',
     fontWeight: '600',
   },
-
 
 });
 

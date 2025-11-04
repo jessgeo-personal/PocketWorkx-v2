@@ -26,7 +26,7 @@ import { StatusBar } from 'expo-status-bar';
 import type { TransactionRecord, FilterCriteria, AccountTransaction } from '../types/transactions';
 import { DebitCategoryType, getDebitCategoryOptions } from '../types/categories';
 import AppFooter from '../components/AppFooter';
-import ComingSoonModal from '../components/ui/ComingSoonModal';
+import ComingSoonModal from '../components/modals/ComingSoonModal';
 
 
 type Currency = 'INR';

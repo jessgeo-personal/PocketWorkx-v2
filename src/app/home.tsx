@@ -17,7 +17,7 @@ import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/the
 import { formatCurrency } from '../utils/currency';
 import { useStorage } from '../services/storage/StorageProvider';
 import AppFooter from '../components/AppFooter';
-import ComingSoonModal from '../components/ui/ComingSoonModal';
+import ComingSoonModal from '../components/modals/ComingSoonModal';
 
 
 // Import the logo image

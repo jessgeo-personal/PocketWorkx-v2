@@ -5,7 +5,6 @@
  * Fields marked as optional are for asset-specific use (bank, loan, credit card)
  */
 export interface TransactionRecord {
-  bankName: any;
   // Core transaction fields (all assets)
   id: string;
   datetime: Date;
@@ -19,19 +18,25 @@ export interface TransactionRecord {
   // Cash-specific fields
   cashCategory?: string; // 'Wallet', 'Home Safe', 'Loose change car', 'Loose change home'
   expenseCategory?: string; // 'Food', 'Grocery', 'Shopping', etc.
+
+  // Canonical type for this row
   type:
-  | 'ADD_CASH'
-  | 'RECORD_EXPENSE' 
-  | 'MOVE_CASH'
-  | 'DEPOSIT_TO_BANK'
-  | 'ACCOUNT'
-  | 'LOAN' 
-  | 'CREDIT_CARD'
-  | 'ACCT_OPENING_BAL';
+    | 'ADD_CASH'
+    | 'RECORD_EXPENSE'
+    | 'MOVE_CASH'
+    | 'DEPOSIT_TO_BANK'
+    | 'ACCOUNT'
+    | 'LOAN'
+    | 'CREDIT_CARD'
+    | 'ACCT_OPENING_BAL'
+    | 'EMI_PAYMENT'
+    | 'CHARGE'
+    | 'PAYMENT';
 
   // Bank account-specific fields (optional)
+  bankName?: string;            // made optional to allow non-account rows
   merchant?: string;
-  balance?: number; // Balance after transaction
+  balance?: number;             // Balance after transaction
   referenceNumber?: string;
 
   // Loan-specific fields (optional)
@@ -39,14 +44,14 @@ export interface TransactionRecord {
   remainingBalance?: number; // Loan balance after payment
 
   // Credit card-specific fields (optional)
-  cardEnding?: string; // Last 4 digits like "1234"
-  merchantCategory?: string; // MCC category
-  availableCredit?: number; // Remaining credit after transaction
+  cardEnding?: string;        // Last 4 digits like "1234"
+  merchantCategory?: string;  // MCC category
+  availableCredit?: number;   // Remaining credit after transaction
 
   // Metadata
-  assetType: 'cash' | 'account' | 'loan' | 'credit_card';
-  assetId: string; // ID of the cash category, bank account, loan, or card
-  assetLabel: string; // Display name (e.g., 'Wallet', 'HDFC Savings', 'Home Loan')
+  assetType: 'cash' | 'account' | 'loan' | 'creditcard';
+  assetId: string;     // ID of the cash category, bank account, loan, or card
+  assetLabel: string;  // Display name (e.g., 'Wallet', 'HDFC Savings', 'Home Loan')
 }
 
 /**

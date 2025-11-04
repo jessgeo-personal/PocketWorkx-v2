@@ -16,7 +16,7 @@ import {
 
 import BottomMenuButton from '../ui/BottomMenuButton';
 import BottomMenu from '../navigation/BottomMenu';
-import ComingSoonModal from '../ui/ComingSoonModal';
+import ComingSoonModal from '../modals/ComingSoonModal';
 import { Colors } from '../../utils/theme';
 
 interface AppLayoutProps {

@@ -70,12 +70,15 @@ const getAssetIcon = (assetType: string, assetLabel: string) => {
   }
   
   // Credit cards - enhanced icon selection  
+  // In getAssetIcon
   if (type === 'creditcard') {
     if (label.includes('visa')) return 'credit-card';
     if (label.includes('mastercard')) return 'credit-card';
     if (label.includes('amex')) return 'credit-card';
+    if (label.includes('rupay')) return 'credit-card';
     return 'credit-card';
   }
+
   
   // Default fallback
   return 'account-balance-wallet';
@@ -340,38 +343,41 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     else if (params.filterCriteria.assetType === 'creditcard') {
       const creditCardTransactions = (state?.creditCardTransactions ?? []) as any[];
       const creditCards = (state?.creditCardEntries ?? []) as any[];
-      
-      // Create a map of card ID to card details for labeling
-      const cardMap = creditCards.reduce((acc: any, card: any) => {
+
+      // Map for card details
+      const cardMap = creditCards.reduce((acc: Record<string, any>, card: any) => {
         acc[card.id] = card;
         return acc;
       }, {});
 
       combined = creditCardTransactions.map((tx: any) => {
         const card = cardMap[tx.cardId];
-        const isCharge = tx.type === 'CHARGE';
-        
-        return {
+        const isCharge = (tx.type === 'CHARGE');
+        const signedAmount = isCharge ? Math.abs(tx.amount?.amount ?? 0) : -Math.abs(tx.amount?.amount ?? 0);
+
+        const record: TransactionRecord = {
           id: tx.id,
           datetime: new Date(tx.timestamp),
-          amount: { 
-            amount: isCharge ? Math.abs(tx.amount.amount) : -Math.abs(tx.amount.amount), // charges positive, payments negative
-            currency: 'INR' 
-          },
+          amount: { amount: signedAmount, currency: 'INR' },
           description: tx.description || (isCharge ? 'Credit Card Charge' : 'Credit Card Payment'),
           notes: tx.notes,
-          type: tx.type,
+          type: isCharge ? 'CHARGE' : 'PAYMENT',
           assetType: 'creditcard',
           assetId: tx.cardId,
           assetLabel: card ? `${card.cardName} • ${card.cardNumber}` : 'Credit Card',
-          // Credit card specific fields
-          cardEnding: card?.cardNumber?.slice(-4),
+          // Credit card-specific optional fields
+          cardEnding: card?.cardNumber ? String(card.cardNumber).slice(-4) : undefined,
           merchantCategory: tx.category,
           merchant: tx.merchantName,
-          availableCredit: card?.availableCredit?.amount ?? 0,
-        } as TransactionRecord;
+          availableCredit: card?.availableCredit?.amount,
+          // Bank name is optional now, but include it if present on the card
+          bankName: card?.bank,
+        };
+
+        return record;
       });
     }
+
     
 
     // Future asset types (loans, credit cards, etc.)

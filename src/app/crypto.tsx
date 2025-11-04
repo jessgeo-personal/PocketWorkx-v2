@@ -18,7 +18,7 @@ import {
 import { formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';  // ← Added
 import AppFooter from '../components/AppFooter';
-import ComingSoonModal from '../components/ui/ComingSoonModal';
+import ComingSoonModal from '../components/modals/ComingSoonModal';
 
 
 const CryptoScreen: React.FC = () => {
