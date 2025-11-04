@@ -228,7 +228,7 @@ const LoansScreen: React.FC = () => {
         startDate: startDate,
         endDate: endDate,
         isActive: true,
-        preferredAccountId: preferredAccountId || null,
+        preferredAccountId: preferredAccountId || '',
         monthlyDueDay: dueDay,
         timestamp: now,
         encryptedData: {
