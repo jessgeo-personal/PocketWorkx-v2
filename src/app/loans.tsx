@@ -578,7 +578,7 @@ const markEmiAsPaid = async (loan: LoanEntry, dueDate: Date, amount: number) => 
 };
 
 const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number, sourceAccount: any) => {
-  try {
+  
     const now = new Date();
     const roundedAmount = Math.round(amount);
 
@@ -675,18 +675,14 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
     // Close modal and reopen with fresh data after a brief delay
     setScheduleModalVisible(false);
 
-    // Force reload to ensure state is completely fresh
-    const { reload } = useStorage();
-    await reload();
-
-    // Reopen with reloaded loan
     setTimeout(() => {
+      // State was updated by save() via setLocal(next); read the updated loan now
       const updatedLoan = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
       if (updatedLoan) {
         setSelectedLoanForSchedule(updatedLoan);
         setScheduleModalVisible(true);
       }
-    }, 100);
+    }, 200);
 
     Alert.alert(
       'EMI Processed', 
@@ -694,9 +690,7 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
     );
 
 
-  } catch (e) {
-    Alert.alert('Error', 'Failed to process EMI payment. Please try again.');
-  }
+
 };
 
 
