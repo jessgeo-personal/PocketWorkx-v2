@@ -100,6 +100,11 @@ const LoansScreen: React.FC = () => {
   const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
   const [selectedLoanForSchedule, setSelectedLoanForSchedule] = useState<LoanEntry | null>(null);
 
+  // EMI Payment account selection states
+  const [paymentAccountModalVisible, setPaymentAccountModalVisible] = useState(false);
+  const [selectedEmiItem, setSelectedEmiItem] = useState<{dueDate: Date, amount: number} | null>(null);
+  const [selectedPaymentAccount, setSelectedPaymentAccount] = useState<string>('');
+
   // Read from storage
   const loans: LoanEntry[] = (state?.loanEntries as LoanEntry[] | undefined) ?? [];
 
@@ -540,6 +545,151 @@ const LoansScreen: React.FC = () => {
     );
   }
 
+// Enhanced dual-entry EMI payment processing 
+const markEmiAsPaid = async (loan: LoanEntry, dueDate: Date, amount: number) => {
+  const accounts = (state?.accounts ?? []) as Array<{
+    id: string;
+    nickname: string;
+    balance: { amount: number; currency: string };
+  }>;
+
+  if (accounts.length === 0) {
+    Alert.alert('No Accounts', 'Please add a bank account first to process EMI payment.');
+    return;
+  }
+
+  // For now, use first available account. Future: store preferred account in loan.
+  const sourceAccount = accounts[0];
+
+  // Optional: Check balance before processing
+  if (sourceAccount.balance.amount < amount) {
+    Alert.alert(
+      'Insufficient Balance',
+      `Account: ${formatFullINR(sourceAccount.balance.amount)}\nEMI: ${formatFullINR(amount)}\n\nThis will result in negative balance. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue', onPress: () => processEmiPayment(loan, dueDate, amount, sourceAccount) }
+      ]
+    );
+    return;
+  }
+
+  processEmiPayment(loan, dueDate, amount, sourceAccount);
+};
+
+const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number, sourceAccount: any) => {
+  try {
+    const now = new Date();
+    const roundedAmount = Math.round(amount);
+
+    await save((draft: AppModel) => {
+      // 1. Update loan: add linkedTransaction, reduce balance, advance nextPaymentDate
+      const nextLoans: LoanEntry[] = (draft.loanEntries ?? []).map((l: any) => {
+        if (l.id !== loan.id) return l as LoanEntry;
+
+        const txs = Array.isArray(l.linkedTransactions) ? [...l.linkedTransactions] : [];
+        const exists = txs.some((t: any) => 
+          t?.type === 'EMI_PAYMENT' &&
+          t?.dueDate &&
+          new Date(t.dueDate).getFullYear() === dueDate.getFullYear() &&
+          new Date(t.dueDate).getMonth() === dueDate.getMonth()
+        );
+
+        if (!exists) {
+          txs.push({
+            id: `${Date.now()}-emi`,
+            type: 'EMI_PAYMENT',
+            amount: { amount: roundedAmount, currency: 'INR' },
+            dueDate: dueDate,
+            paidOn: now,
+            notes: `EMI paid from ${sourceAccount.nickname}`,
+            sourceAccountId: sourceAccount.id,
+            status: 'completed',
+          });
+        }
+
+        // Reduce loan balance and advance next payment date
+        const newBalance = Math.max(0, l.currentBalance.amount - roundedAmount);
+        const nextDue = new Date(l.nextPaymentDate);
+        nextDue.setMonth(nextDue.getMonth() + 1);
+
+        return {
+          ...l,
+          linkedTransactions: txs,
+          currentBalance: { ...l.currentBalance, amount: newBalance },
+          nextPaymentDate: nextDue,
+          auditTrail: l.auditTrail ? {
+            ...l.auditTrail,
+            updatedAt: now,
+            version: (l.auditTrail.version ?? 1) + 1,
+            changes: [
+              ...(l.auditTrail.changes ?? []),
+              {
+                action: 'EMI_PAYMENT_PROCESSED',
+                timestamp: now,
+                dueDate,
+                amount: roundedAmount,
+                sourceAccountId: sourceAccount.id,
+                newBalance,
+              }
+            ],
+          } : undefined,
+        } as LoanEntry;
+      });
+
+      // 2. Update bank account: add withdrawal transaction and reduce balance
+      const nextAccounts = (draft.accounts ?? []).map((account: any) => {
+        if (account.id === sourceAccount.id) {
+          const existingTransactions = account.transactions ?? [];
+          const emiWithdrawal = {
+            id: `${Date.now()}-emi-withdrawal`,
+            datetime: now,
+            amount: { amount: -roundedAmount, currency: 'INR' },
+            description: `EMI Payment - ${loan.bank} ${loan.type.toUpperCase()}`,
+            type: 'withdrawal',
+            notes: `EMI for ${dueDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`,
+            source: 'manual',
+            status: 'completed',
+          };
+
+          return {
+            ...account,
+            transactions: [...existingTransactions, emiWithdrawal],
+            balance: {
+              ...account.balance,
+              amount: account.balance.amount - roundedAmount
+            },
+            lastSynced: now,
+          };
+        }
+        return account;
+      });
+
+      return {
+        ...draft,
+        loanEntries: nextLoans,
+        accounts: nextAccounts,
+      };
+    });
+
+    // Refresh modal data and show success
+    const refreshed = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
+    if (refreshed) {
+      setSelectedLoanForSchedule(refreshed);
+    }
+
+    Alert.alert(
+      'EMI Processed', 
+      `EMI of ${formatFullINR(roundedAmount)} processed successfully.\n\nFrom: ${sourceAccount.nickname}\nLoan Balance Reduced: ${formatFullINR(roundedAmount)}`
+    );
+  } catch (e) {
+    Alert.alert('Error', 'Failed to process EMI payment. Please try again.');
+  }
+};
+
+
+
+
   // EMI Schedule modal renderer - must be inside LoansScreen to access state
   const renderScheduleModal = () => {
     if (!selectedLoanForSchedule) return null;
@@ -621,7 +771,17 @@ const LoansScreen: React.FC = () => {
                           item.status === 'paid' && styles.statusButtonPaid,
                           item.status === 'overdue' && styles.statusButtonOverdue
                         ]}
-                        onPress={() => Alert.alert('Coming Soon', 'Mark as paid functionality next phase')}
+                        onPress={() => {
+                          if (!selectedLoanForSchedule) return;
+                          if (item.status === 'paid') {
+                            Alert.alert('Already Paid', 'This EMI is already marked as paid.');
+                            return;
+                          }
+                          
+                          // Set up account selection for this EMI
+                          setSelectedEmiItem({ dueDate: item.dueDate, amount: item.amount });
+                          setPaymentAccountModalVisible(true);
+                        }}
                       >
                         <MaterialIcons 
                           name={item.status === 'paid' ? 'check-circle' : 'radio-button-unchecked'} 
@@ -640,6 +800,102 @@ const LoansScreen: React.FC = () => {
     );
   };
 
+  // Account selection modal for EMI payments
+  const renderPaymentAccountModal = () => {
+    const accounts = (state?.accounts ?? []) as Array<{
+      id: string;
+      nickname: string;
+      bankName: string;
+      balance: { amount: number; currency: string };
+    }>;
+
+    if (!selectedEmiItem) return null;
+
+    return (
+      <Modal
+        visible={paymentAccountModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPaymentAccountModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '60%' }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Payment Account</Text>
+              <TouchableOpacity onPress={() => setPaymentAccountModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.inputLabel}>
+                EMI Amount: {formatFullINR(selectedEmiItem.amount)}
+              </Text>
+              <Text style={[styles.inputLabel, { marginBottom: 16 }]}>
+                Due: {selectedEmiItem.dueDate.toLocaleDateString('en-IN')}
+              </Text>
+
+              {accounts.length > 0 ? accounts.map((account) => (
+                <TouchableOpacity
+                  key={account.id}
+                  style={[
+                    styles.accountOption,
+                    selectedPaymentAccount === account.id && styles.accountOptionSelected
+                  ]}
+                  onPress={() => setSelectedPaymentAccount(account.id)}
+                >
+                  <View style={styles.accountOptionLeft}>
+                    <Text style={styles.accountOptionName}>{account.nickname}</Text>
+                    <Text style={styles.accountOptionBank}>{account.bankName}</Text>
+                  </View>
+                  <View style={styles.accountOptionRight}>
+                    <Text style={[
+                      styles.accountOptionBalance,
+                      account.balance.amount < selectedEmiItem.amount && styles.insufficientBalance
+                    ]}>
+                      {formatFullINR(account.balance.amount)}
+                    </Text>
+                    {account.balance.amount < selectedEmiItem.amount && (
+                      <Text style={styles.warningText}>Insufficient</Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )) : (
+                <Text style={styles.emptyText}>No accounts available</Text>
+              )}
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={styles.cancelButton} 
+                onPress={() => setPaymentAccountModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.primaryButton,
+                  (!selectedPaymentAccount || !selectedLoanForSchedule) && styles.disabledButton
+                ]}
+                onPress={async () => {
+                  if (!selectedPaymentAccount || !selectedLoanForSchedule || !selectedEmiItem) return;
+                  
+                  const account = accounts.find(a => a.id === selectedPaymentAccount);
+                  if (!account) return;
+
+                  setPaymentAccountModalVisible(false);
+                  await processEmiPayment(selectedLoanForSchedule, selectedEmiItem.dueDate, selectedEmiItem.amount, account);
+                }}
+                disabled={!selectedPaymentAccount || !selectedLoanForSchedule}
+              >
+                <Text style={styles.primaryButtonText}>Process EMI Payment</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
 
   return (
@@ -685,6 +941,7 @@ const LoansScreen: React.FC = () => {
         />
       )}
       {renderScheduleModal()}
+      {renderPaymentAccountModal()}
     </ScreenLayout>
   );
 };
@@ -1065,6 +1322,51 @@ const styles = StyleSheet.create({
   statusButtonOverdue: {
     backgroundColor: '#E74C3C' + '15',
     borderRadius: 12,
+  },
+  accountOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    marginVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: Colors.background.secondary,
+  },
+  accountOptionSelected: {
+    borderColor: '#8B5CF6',
+    backgroundColor: '#8B5CF6' + '10',
+  },
+  accountOptionLeft: {
+    flex: 1,
+  },
+  accountOptionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  accountOptionBank: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginTop: 2,
+  },
+  accountOptionRight: {
+    alignItems: 'flex-end',
+  },
+  accountOptionBalance: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  insufficientBalance: {
+    color: '#E74C3C',
+  },
+  warningText: {
+    fontSize: 10,
+    color: '#E74C3C',
+    fontWeight: '600',
+    marginTop: 2,
   },
 
 });
