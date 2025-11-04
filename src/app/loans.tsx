@@ -10,6 +10,7 @@ import {
   TextInput,
   Alert,
   Image,
+  FlatList,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -21,7 +22,7 @@ import TransactionsModal from '../components/modals/TransactionsModal';
 import type { FilterCriteria } from '../types/transactions';
 
 // Use shared storage
-import { useStorage, type AppModel, type LoanEntry as SPLoanEntry } from '../services/storage/StorageProvider';
+import { useStorage, type AppModel, type LoanEntry as SPLoanEntry, type LoanScheduleItem } from '../services/storage/StorageProvider';
 
 type Currency = 'INR';
 type Money = { amount: number; currency: Currency };
@@ -68,6 +69,23 @@ const getLoanAccent = (t: string) => {
     default: return '#D32F2F';
   }
 };
+
+const buildFullSchedule = (loan: LoanEntry): LoanScheduleItem[] => {
+  const items: LoanScheduleItem[] = [];
+  const start = new Date(loan.startDate);
+  for (let i = 0; i < loan.tenureMonths; i++) {
+    const dueDate = new Date(start.getFullYear(), start.getMonth() + i + 1, start.getDate());
+    const id = `${loan.id}-${dueDate.getFullYear()}${String(dueDate.getMonth()+1).padStart(2,'0')}`;
+    items.push({
+      id,
+      dueDate,
+      amount: { amount: loan.emiAmount.amount, currency: 'INR' },
+      status: dueDate < new Date() ? 'overdue' : 'due',
+    });
+  }
+  return items;
+};
+
 
 const LoansScreen: React.FC = () => {
   // Hook into global storage
@@ -362,14 +380,32 @@ const LoansScreen: React.FC = () => {
             <View style={styles.actionRow}>
               <TouchableOpacity 
                 style={styles.scheduleButton}
-                onPress={() => {
-                  setSelectedLoanForSchedule(loan);
+                onPress={async () => {
+                  // Ensure persisted schedule exists
+                  if (!loan.schedule || loan.schedule.length === 0) {
+                    await save((draft: AppModel) => {
+                      const nextLoans = (draft.loanEntries ?? []).map((l: any) => {
+                        if (l.id !== loan.id) return l;
+                        return {
+                          ...l,
+                          schedule: buildFullSchedule(l as LoanEntry),
+                        };
+                      });
+                      return { ...draft, loanEntries: nextLoans };
+                    });
+                    // Get refreshed loan with schedule
+                    const refreshed = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
+                    setSelectedLoanForSchedule(refreshed ?? loan);
+                  } else {
+                    setSelectedLoanForSchedule(loan);
+                  }
                   setScheduleModalVisible(true);
                 }}
               >
                 <MaterialIcons name="calendar-today" size={16} color="#8B5CF6" />
                 <Text style={styles.scheduleButtonText}>View Schedule</Text>
               </TouchableOpacity>
+
             </View>
         </View>
       </TouchableOpacity>
@@ -578,15 +614,16 @@ const markEmiAsPaid = async (loan: LoanEntry, dueDate: Date, amount: number) => 
 };
 
 const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number, sourceAccount: any) => {
-  
-    const now = new Date();
-    const roundedAmount = Math.round(amount);
+  const now = new Date();
+  const roundedAmount = Math.round(amount);
 
+  try {
     await save((draft: AppModel) => {
-      // 1. Update loan: add linkedTransaction, reduce balance, advance nextPaymentDate
+      // 1. Update loan: persist to both schedule AND linkedTransactions
       const nextLoans: LoanEntry[] = (draft.loanEntries ?? []).map((l: any) => {
         if (l.id !== loan.id) return l as LoanEntry;
 
+        // Update linkedTransactions
         const txs = Array.isArray(l.linkedTransactions) ? [...l.linkedTransactions] : [];
         const exists = txs.some((t: any) => 
           t?.type === 'EMI_PAYMENT' &&
@@ -608,7 +645,24 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
           });
         }
 
-        // Reduce loan balance and advance next payment date
+        // Update persisted schedule item to paid (PRIMARY STATUS SOURCE)
+        const schedule: LoanScheduleItem[] = Array.isArray(l.schedule) ? [...l.schedule] : buildFullSchedule(l as LoanEntry);
+        const scheduleIdx = schedule.findIndex((it) => 
+          it.dueDate.getFullYear() === dueDate.getFullYear() && 
+          it.dueDate.getMonth() === dueDate.getMonth()
+        );
+        
+        if (scheduleIdx >= 0) {
+          schedule[scheduleIdx] = {
+            ...schedule[scheduleIdx],
+            status: 'paid',
+            paidOn: now,
+            sourceAccountId: sourceAccount.id,
+            notes: `Paid from ${sourceAccount.nickname}`,
+          };
+        }
+
+        // Reduce loan balance and advance nextPaymentDate
         const newBalance = Math.max(0, l.currentBalance.amount - roundedAmount);
         const nextDue = new Date(l.nextPaymentDate);
         nextDue.setMonth(nextDue.getMonth() + 1);
@@ -616,6 +670,7 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
         return {
           ...l,
           linkedTransactions: txs,
+          schedule: schedule,
           currentBalance: { ...l.currentBalance, amount: newBalance },
           nextPaymentDate: nextDue,
           auditTrail: l.auditTrail ? {
@@ -672,11 +727,10 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
       };
     });
 
-    // Close modal and reopen with fresh data after a brief delay
+    // Success: Close and reopen modal with fresh data (no more hooks in handlers)
     setScheduleModalVisible(false);
-
+    
     setTimeout(() => {
-      // State was updated by save() via setLocal(next); read the updated loan now
       const updatedLoan = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
       if (updatedLoan) {
         setSelectedLoanForSchedule(updatedLoan);
@@ -689,124 +743,114 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
       `EMI of ${formatFullINR(roundedAmount)} processed successfully.\n\nFrom: ${sourceAccount.nickname}\nLoan Balance Reduced: ${formatFullINR(roundedAmount)}`
     );
 
-
-
+  } catch (e) {
+    console.error('EMI payment error:', e);
+    Alert.alert('Error', 'Failed to process EMI payment. Please try again.');
+  }
 };
 
 
 
 
+
   // EMI Schedule modal renderer - must be inside LoansScreen to access state
-  const renderScheduleModal = () => {
-    if (!selectedLoanForSchedule) return null;
+const renderScheduleModal = () => {
+  if (!selectedLoanForSchedule) return null;
 
-    // Generate basic 12-month EMI schedule (simplified for now)
-    const scheduleItems: Array<{
-      id: string;
-      month: number;
-      dueDate: Date;
-      amount: number;
-      status: 'due' | 'paid' | 'overdue';
-    }> = [];
+  // Use persisted schedule; if missing, derive once (fallback)
+  const persistedSchedule = selectedLoanForSchedule.schedule ?? buildFullSchedule(selectedLoanForSchedule);
 
-    const startDate = new Date(selectedLoanForSchedule.startDate);
+  // Find index to scroll to: first upcoming or last overdue
+  const today = new Date();
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const scrollToIndex = Math.max(0, persistedSchedule.findIndex(s => s.dueDate >= currentMonthStart));
 
-    for (let i = 0; i < Math.min(12, selectedLoanForSchedule.tenureMonths); i++) {
-      const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, startDate.getDate());
-      const isPaid = (selectedLoanForSchedule.linkedTransactions ?? []).some((t: any) => 
-        t?.type === 'EMI_PAYMENT' && 
-        t?.dueDate && 
-        new Date(t.dueDate).getMonth() === dueDate.getMonth() &&
-        new Date(t.dueDate).getFullYear() === dueDate.getFullYear()
-      );
+  return (
+    <Modal
+      visible={scheduleModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setScheduleModalVisible(false)}
+      key={selectedLoanForSchedule?.id ?? 'no-loan'}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              EMI Schedule - {selectedLoanForSchedule.type.toUpperCase()}
+            </Text>
+            <TouchableOpacity onPress={() => setScheduleModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
 
-      scheduleItems.push({
-        id: `emi-${i + 1}`,
-        month: i + 1,
-        dueDate,
-        amount: selectedLoanForSchedule.emiAmount.amount,
-        status: isPaid ? 'paid' : (dueDate < new Date() ? 'overdue' : 'due'),
-      });
-    }
+          <View style={styles.modalBody}>
+            <Text style={styles.scheduleSubtitle}>
+              {selectedLoanForSchedule.bank} • {selectedLoanForSchedule.loanNumber}
+            </Text>
+            <Text style={[styles.scheduleSubtitle, { fontSize: 12, marginBottom: 8 }]}>
+              {persistedSchedule.length} EMIs • Showing full tenure
+            </Text>
 
-    return (
-      <Modal
-        visible={scheduleModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setScheduleModalVisible(false)}
-        // Re-render when loan changes to recompute schedule immediately
-        key={selectedLoanForSchedule?.id ?? 'no-loan'}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                EMI Schedule - {selectedLoanForSchedule.type.toUpperCase()}
-              </Text>
-              <TouchableOpacity onPress={() => setScheduleModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              <View style={styles.modalBody}>
-                <Text style={styles.scheduleSubtitle}>
-                  {selectedLoanForSchedule.bank} • {selectedLoanForSchedule.loanNumber}
-                </Text>
-
-                {scheduleItems.map(item => (
-                  <View key={item.id} style={styles.scheduleRow}>
-                    <View style={styles.scheduleLeft}>
-                      <Text style={styles.scheduleMonth}>
-                        {item.dueDate.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}
-                      </Text>
-                      <Text style={styles.scheduleDate}>
-                        Due: {item.dueDate.getDate()}/{item.dueDate.getMonth() + 1}
-                      </Text>
-                    </View>
-
-                    <View style={styles.scheduleCenter}>
-                      <Text style={styles.scheduleAmount}>
-                        {formatFullINR(item.amount)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.scheduleRight}>
-                      <TouchableOpacity 
-                        style={[
-                          styles.statusButton, 
-                          item.status === 'paid' && styles.statusButtonPaid,
-                          item.status === 'overdue' && styles.statusButtonOverdue
-                        ]}
-                        onPress={() => {
-                          if (!selectedLoanForSchedule) return;
-                          if (item.status === 'paid') {
-                            Alert.alert('Already Paid', 'This EMI is already marked as paid.');
-                            return;
-                          }
-                          
-                          // Set up account selection for this EMI
-                          setSelectedEmiItem({ dueDate: item.dueDate, amount: item.amount });
-                          setPaymentAccountModalVisible(true);
-                        }}
-                      >
-                        <MaterialIcons 
-                          name={item.status === 'paid' ? 'check-circle' : 'radio-button-unchecked'} 
-                          size={20} 
-                          color={item.status === 'paid' ? '#27AE60' : '#999'} 
-                        />
-                      </TouchableOpacity>
-                    </View>
+            {/* Auto-scrolling list from start→end */}
+            <FlatList
+              data={persistedSchedule}
+              keyExtractor={(item) => item.id}
+              initialScrollIndex={scrollToIndex}
+              getItemLayout={(data, index) => ({ length: 56, offset: 56 * index, index })}
+              showsVerticalScrollIndicator={true}
+              style={{ maxHeight: 300 }}
+              renderItem={({ item }) => (
+                <View style={styles.scheduleRow}>
+                  <View style={styles.scheduleLeft}>
+                    <Text style={styles.scheduleMonth}>
+                      {item.dueDate.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}
+                    </Text>
+                    <Text style={styles.scheduleDate}>
+                      Due: {item.dueDate.getDate()}/{item.dueDate.getMonth() + 1}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            </ScrollView>
+
+                  <View style={styles.scheduleCenter}>
+                    <Text style={styles.scheduleAmount}>
+                      {formatFullINR(item.amount.amount)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.scheduleRight}>
+                    <TouchableOpacity 
+                      style={[
+                        styles.statusButton, 
+                        item.status === 'paid' && styles.statusButtonPaid,
+                        item.status === 'overdue' && styles.statusButtonOverdue
+                      ]}
+                      onPress={() => {
+                        if (!selectedLoanForSchedule) return;
+                        if (item.status === 'paid') {
+                          Alert.alert('Already Paid', 'This EMI is already marked as paid.');
+                          return;
+                        }
+                        setSelectedEmiItem({ dueDate: item.dueDate, amount: item.amount.amount });
+                        setPaymentAccountModalVisible(true);
+                      }}
+                    >
+                      <MaterialIcons 
+                        name={item.status === 'paid' ? 'check-circle' : 'radio-button-unchecked'} 
+                        size={20} 
+                        color={item.status === 'paid' ? '#27AE60' : '#999'} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            />
           </View>
         </View>
-      </Modal>
-    );
-  };
+      </View>
+    </Modal>
+  );
+};
+
 
   // Account selection modal for EMI payments
   const renderPaymentAccountModal = () => {

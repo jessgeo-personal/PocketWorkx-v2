@@ -98,7 +98,7 @@ type PocketWorkxState = {
   }>;
 
 // NEW: loans domain persisted as raw JSON; StorageProvider normalizes to Date in memory
-  loanEntries?: Array<{
+   loanEntries?: Array<{
     id: string;
     type: 'home' | 'car' | 'personal' | 'education' | 'other';
     bank: string;
@@ -113,6 +113,16 @@ type PocketWorkxState = {
     endDate?: string | Date;
     isActive: boolean;
     timestamp?: string | Date;
+    // NEW: persisted full EMI schedule
+    schedule?: Array<{
+      id: string;
+      dueDate?: string | Date;
+      amount: { amount: number; currency: 'INR' };
+      status: 'due' | 'paid' | 'overdue';
+      paidOn?: string | Date;
+      notes?: string;
+      sourceAccountId?: string;
+    }>;
     encryptedData?: {
       encryptionKey: string;
       encryptionAlgorithm: string;
@@ -129,6 +139,7 @@ type PocketWorkxState = {
     };
     linkedTransactions?: any[];
   }>;
+
 
   // meta
   _version?: number;
