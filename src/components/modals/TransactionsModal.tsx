@@ -60,13 +60,15 @@ const getAssetIcon = (assetType: string, assetLabel: string) => {
   }
 
   
-  // Loans (future)
+  // Loans - enhanced icon selection
   if (type === 'loan') {
     if (label.includes('home') || label.includes('mortgage')) return 'home';
-    if (label.includes('car') || label.includes('auto')) return 'directions-car';
+    if (label.includes('car') || label.includes('auto') || label.includes('vehicle')) return 'directions-car';
     if (label.includes('personal')) return 'person';
+    if (label.includes('education') || label.includes('student')) return 'school';
     return 'trending-up'; // default loan icon
   }
+
   
   // Credit cards (future)
   if (type === 'credit_card') {
@@ -110,13 +112,15 @@ const getAssetColor = (assetType: string, assetLabel: string) => {
     return '#1976D2'; // default account color
   }
   
-  // Loans (future) - red/orange tones
+  // Loans - red/orange tones for debt
   if (type === 'loan') {
-    if (label.includes('home')) return '#D32F2F'; // red
-    if (label.includes('car')) return '#F57C00'; // orange
+    if (label.includes('home') || label.includes('mortgage')) return '#D32F2F'; // red
+    if (label.includes('car') || label.includes('auto')) return '#F57C00'; // orange  
     if (label.includes('personal')) return '#E64A19'; // deep orange
+    if (label.includes('education')) return '#C2185B'; // pink
     return '#D32F2F'; // default loan color
   }
+
   
   // Credit cards (future) - purple tones
   if (type === 'credit_card') {
@@ -262,88 +266,67 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
             // Include opening row at the end; the global sorter will handle order
             return [...realTransactions, openingRow];
           }
-        }
-
-        // LOAN transactions - EMI payments and linked transactions
-        else if (params.filterCriteria.assetType === 'loan') {
-          const loans = (state?.loanEntries ?? []) as any[];
-          combined = loans.flatMap((loan) => {
-            // Get transactions from loan's linkedTransactions array
-            const loanTransactions = (loan.linkedTransactions ?? []).map((tx: any) => ({
-              id: tx.id,
-              datetime: new Date(tx.paidOn || tx.dueDate || tx.timestamp || Date.now()),
-              amount: { amount: tx.amount?.amount ?? 0, currency: 'INR' },
-              description: tx.notes || `EMI Payment - ${loan.bank}`,
-              notes: tx.notes,
-              type: tx.type || 'EMI_PAYMENT',
-              assetType: 'loan',
-              assetId: loan.id,
-              assetLabel: `${loan.bank} • ${loan.type.toUpperCase()}`,
-              paymentType: 'emi',
-              remainingBalance: loan.currentBalance?.amount ?? 0,
-            })) as TransactionRecord[];
-
-            // Also include EMI schedule items that are marked as 'paid'
-            const schedulePayments = (loan.schedule ?? [])
-              .filter((item: any) => item.status === 'paid' && item.paidOn)
-              .map((item: any) => ({
-                id: `${item.id}-schedule`,
-                datetime: new Date(item.paidOn),
-                amount: { amount: -item.amount.amount, currency: 'INR' }, // negative for payments
-                description: `EMI Payment - ${new Date(item.dueDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`,
-                notes: item.notes || `EMI for ${loan.type.toUpperCase()} loan`,
-                type: 'EMI_PAYMENT',
-                assetType: 'loan',
-                assetId: loan.id,
-                assetLabel: `${loan.bank} • ${loan.type.toUpperCase()}`,
-                paymentType: 'emi',
-                remainingBalance: loan.currentBalance?.amount ?? 0,
-              })) as TransactionRecord[];
-
-            return [...loanTransactions, ...schedulePayments];
-          });
-        }
-
-        // CREDIT CARD transactions - charges and payments
-        else if (params.filterCriteria.assetType === 'creditcard') {
-          const creditCardTransactions = (state?.creditCardTransactions ?? []) as any[];
-          const creditCards = (state?.creditCardEntries ?? []) as any[];
-          
-          // Create a map of card ID to card details for labeling
-          const cardMap = creditCards.reduce((acc: any, card: any) => {
-            acc[card.id] = card;
-            return acc;
-          }, {});
-
-          combined = creditCardTransactions.map((tx: any) => {
-            const card = cardMap[tx.cardId];
-            const isCharge = tx.type === 'CHARGE';
-            
-            return {
-              id: tx.id,
-              datetime: new Date(tx.timestamp),
-              amount: { 
-                amount: isCharge ? tx.amount.amount : -Math.abs(tx.amount.amount), // charges positive, payments negative
-                currency: 'INR' 
-              },
-              description: tx.description || (isCharge ? 'Credit Card Charge' : 'Credit Card Payment'),
-              notes: tx.notes,
-              type: tx.type,
-              assetType: 'creditcard',
-              assetId: tx.cardId,
-              assetLabel: card ? `${card.cardName} • ${card.cardNumber}` : 'Credit Card',
-              // Credit card specific fields
-              cardEnding: card?.cardNumber?.slice(-4),
-              merchantCategory: tx.category,
-              merchant: tx.merchantName,
-              availableCredit: card?.availableCredit?.amount ?? 0,
-            } as TransactionRecord;
-          });
-        }
-
+        }   
         // Default return: only real transactions
         return realTransactions;
 
+      });
+    }
+    
+    
+    // LOAN transactions - EMI payments from linkedTransactions and schedule
+    else if (params.filterCriteria.assetType === 'loan') {
+      const loans = (state?.loanEntries ?? []) as any[];
+      combined = loans.flatMap((loan) => {
+        const transactions: TransactionRecord[] = [];
+
+        // 1. Get EMI payments from loan's linkedTransactions array
+        const linkedTxs = (loan.linkedTransactions ?? [])
+          .filter((tx: any) => tx.type === 'EMI_PAYMENT' && tx.status === 'completed')
+          .map((tx: any) => ({
+            id: tx.id,
+            datetime: new Date(tx.paidOn || tx.timestamp || Date.now()),
+            amount: { amount: -Math.abs(tx.amount?.amount ?? 0), currency: 'INR' }, // EMI payments are negative
+            description: tx.notes || `EMI Payment - ${loan.bank} ${loan.type.toUpperCase()}`,
+            notes: tx.notes || `Paid from ${tx.sourceAccountId ? 'Bank Account' : 'Manual'}`,
+            type: 'EMI_PAYMENT',
+            assetType: 'loan',
+            assetId: loan.id,
+            assetLabel: `${loan.bank} • ${loan.type.toUpperCase()}`,
+            paymentType: 'emi',
+            remainingBalance: loan.currentBalance?.amount ?? 0,
+          })) as TransactionRecord[];
+
+        transactions.push(...linkedTxs);
+
+        // 2. Get EMI payments from schedule items marked as 'paid' (backup/additional source)
+        const schedulePayments = (loan.schedule ?? [])
+          .filter((item: any) => item.status === 'paid' && item.paidOn)
+          .map((item: any) => ({
+            id: `${item.id}-schedule-payment`,
+            datetime: new Date(item.paidOn),
+            amount: { amount: -Math.abs(item.amount?.amount ?? 0), currency: 'INR' }, // EMI payments are negative
+            description: `EMI Payment - ${new Date(item.dueDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`,
+            notes: item.notes || `Scheduled EMI for ${loan.bank} ${loan.type.toUpperCase()} loan`,
+            type: 'EMI_PAYMENT',
+            assetType: 'loan',
+            assetId: loan.id,
+            assetLabel: `${loan.bank} • ${loan.type.toUpperCase()}`,
+            paymentType: 'emi',
+            remainingBalance: loan.currentBalance?.amount ?? 0,
+          })) as TransactionRecord[];
+
+        // Avoid duplicates: only add schedule payments if no matching linkedTransaction exists
+        const linkedTxIds = new Set(linkedTxs.map(tx => tx.id));
+        const uniqueSchedulePayments = schedulePayments.filter(sp => {
+          // Check if any linked transaction matches this schedule payment by date proximity
+          const spDate = sp.datetime.toDateString();
+          return !linkedTxs.some(ltx => ltx.datetime.toDateString() === spDate);
+        });
+
+        transactions.push(...uniqueSchedulePayments);
+
+        return transactions;
       });
     }
 
@@ -474,6 +457,11 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           {!!item.bankName && (
             <View style={styles.chip}>
               <Text style={styles.chipText}>{item.bankName}</Text>
+            </View>
+          )}
+          {!!item.paymentType && (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{item.paymentType.toUpperCase()}</Text>
             </View>
           )}
         </View>
