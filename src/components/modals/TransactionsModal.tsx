@@ -350,25 +350,40 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
     if (filterCriteria.filterType === 'category' && filterCriteria.assetLabel) {
       return allTransactions
         .filter((t) => {
-          // For cash: filter by cashCategory
+          // CASH: filter by cashCategory
           if (filterCriteria.assetType === 'cash') {
             return (t.cashCategory || '') === filterCriteria.assetLabel;
           }
-          // For accounts: filter by stable assetId, fallback to assetLabel
+
+          // ACCOUNTS: filter by stable assetId, fallback to assetLabel
           if (filterCriteria.assetType === 'account') {
-            // Prefer stable matching by assetId to survive name/type edits
             if (filterCriteria.assetId) {
               return t.assetId === filterCriteria.assetId;
             }
-            // Fallback to label match if assetId is absent (legacy compatibility)
             return t.assetLabel === filterCriteria.assetLabel;
           }
 
-          // Add other asset type filters here
+          // LOANS: filter by stable assetId, fallback to assetLabel
+          if (filterCriteria.assetType === 'loan') {
+            if (filterCriteria.assetId) {
+              return t.assetId === filterCriteria.assetId;
+            }
+            return t.assetLabel === filterCriteria.assetLabel;
+          }
+
+          // CREDIT CARDS (future Phase 1B): filter by stable assetId, fallback to assetLabel
+          if (filterCriteria.assetType === 'creditcard') {
+            if (filterCriteria.assetId) {
+              return t.assetId === filterCriteria.assetId;
+            }
+            return t.assetLabel === filterCriteria.assetLabel;
+          }
+
           return false;
         })
         .sort((a, b) => +new Date(b.datetime) - +new Date(a.datetime));
     }
+
     
     return allTransactions;
   }, [params, allTransactions]);
