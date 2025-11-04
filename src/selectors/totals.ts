@@ -5,6 +5,7 @@
 import type { AppModel } from '../services/storage/StorageProvider';
 
 export type Totals = {
+  totalCash: number;
   totalBankAccounts: number;
   totalLoans: number;
   totalCreditCards: number;
@@ -21,8 +22,13 @@ type Options = {
 
 const sum = (nums: number[]) => nums.reduce((a, b) => a + (b || 0), 0);
 
-export const computeTotals = (state: AppModel | undefined, opts: Options = {}): Totals => {
+export const computeTotals = (state: AppModel | null | undefined, opts: Options = {}): Totals => {
   const includeCrypto = !!opts.includeCryptoInLiquidity;
+
+  // CASH: sum of all cash entries (centralized calculation)
+  const totalCash = sum(
+    ((state?.cashEntries ?? []) as any[]).map(e => e?.amount?.amount ?? 0)
+  );
 
   // Bank Accounts: sum of account.balance.amount (trust running balance)
   const totalBankAccounts = sum(
@@ -63,6 +69,7 @@ export const computeTotals = (state: AppModel | undefined, opts: Options = {}): 
   const totalLiquidity = totalBankAccounts + (includeCrypto ? totalCrypto : 0);
 
   return {
+    totalCash,           // NEW: centralized cash calculation
     totalBankAccounts,
     totalLoans,
     totalCreditCards,

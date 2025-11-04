@@ -52,6 +52,7 @@ const HomeScreen: React.FC = () => {
 
   // Use centralized totals computation
   const {
+    totalCash,               // NEW: use centralized cash calculation
     totalBankAccounts,
     totalLoans,
     totalCreditCards,
@@ -59,24 +60,17 @@ const HomeScreen: React.FC = () => {
     totalPhysicalAssets,
     totalCrypto,
     netWorth,
-    totalLiquidity,
+    totalLiquidity,          // Now = totalCash + totalBankAccounts
   } = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
 
-  // Legacy cash total for backward compatibility with existing UI
-  const cashEntries = (state?.cashEntries ?? []) as Array<{
-    amount: { amount: number; currency: string };
-    type: string;
-    timestamp: string | Date;
-    description?: string;
-    cashCategory?: string;
-  }>;
-  const liquidCash = cashEntries.reduce((sum, e) => sum + (e.amount?.amount ?? 0), 0);
+  // Use centralized cash calculation (liquidCash kept for backward compatibility)
+  const liquidCash = totalCash;
 
   // Total liabilities = loans + credit cards
   const totalLiabilities = totalLoans + totalCreditCards;
 
   // Formula text for UI display
-  const totalLiquidityFormulaText = 'Cash + Bank Accounts + Short-term investments';
+  const totalLiquidityFormulaText = 'Cash + Bank Accounts';
   const totalLiabilitiesFormulaText = 'Loans + Credit Cards';
 
   // Live calculations from actual data using centralized totals
