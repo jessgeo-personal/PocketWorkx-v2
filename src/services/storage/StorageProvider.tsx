@@ -25,7 +25,6 @@ export interface CashTransaction {
 }
 
 // ===== Credit Cards domain types =====
-// ===== Credit Cards domain types =====
 export interface CreditCardEntry {
   id: string;
   bank: string;
@@ -92,6 +91,19 @@ export interface CreditCardTransaction {
 }
 
 // ===== Loans domain types =====
+
+// ===== Loans domain types =====
+// EMI schedule item stored with each loan
+export interface LoanScheduleItem {
+  id: string;                          // stable id: `${loan.id}-${yyyyMM}`
+  dueDate: Date;
+  amount: { amount: number; currency: 'INR' };
+  status: 'due' | 'paid' | 'overdue';
+  paidOn?: Date;
+  notes?: string;
+  sourceAccountId?: string;
+}
+
 export interface LoanEntry {
   id: string;
   type: 'home' | 'car' | 'personal' | 'education' | 'other';
@@ -107,6 +119,8 @@ export interface LoanEntry {
   endDate: Date;
   isActive: boolean;
   timestamp: Date;
+  // NEW: persisted full EMI schedule
+  schedule?: LoanScheduleItem[];
   encryptedData?: {
     encryptionKey: string;
     encryptionAlgorithm: string;
@@ -123,6 +137,7 @@ export interface LoanEntry {
   };
   linkedTransactions?: any[];
 }
+
 
 // ===== Persisted AppModel from localFileStore =====
 // getState() returns a JSON object. It may or may not have the new cash fields yet.
@@ -222,6 +237,14 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
           startDate: l.startDate ? new Date(l.startDate) : new Date(),
           endDate: l.endDate ? new Date(l.endDate) : new Date(),
           timestamp: l.timestamp ? new Date(l.timestamp) : new Date(),
+          // normalize persisted schedule (if present)
+          schedule: Array.isArray(l.schedule)
+            ? l.schedule.map((it: any) => ({
+                ...it,
+                dueDate: it.dueDate ? new Date(it.dueDate) : new Date(),
+                paidOn: it.paidOn ? new Date(it.paidOn) : undefined,
+              }))
+            : undefined,
           auditTrail: l.auditTrail
             ? {
                 ...l.auditTrail,
