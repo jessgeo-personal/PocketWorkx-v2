@@ -68,10 +68,12 @@ const getAssetIcon = (assetType: string, assetLabel: string) => {
     if (label.includes('education') || label.includes('student')) return 'school';
     return 'trending-up'; // default loan icon
   }
-
   
-  // Credit cards (future)
-  if (type === 'credit_card') {
+  // Credit cards - enhanced icon selection  
+  if (type === 'creditcard') {
+    if (label.includes('visa')) return 'credit-card';
+    if (label.includes('mastercard')) return 'credit-card';
+    if (label.includes('amex')) return 'credit-card';
     return 'credit-card';
   }
   
@@ -122,9 +124,13 @@ const getAssetColor = (assetType: string, assetLabel: string) => {
   }
 
   
-  // Credit cards (future) - purple tones
-  if (type === 'credit_card') {
-    return '#8B5CF6'; // purple accent color
+  // Credit cards - enhanced color selection
+  if (type === 'creditcard') {
+    if (label.includes('visa')) return '#1A1F71'; // visa blue
+    if (label.includes('mastercard')) return '#EB001B'; // mastercard red
+    if (label.includes('amex')) return '#006FCF'; // amex blue
+    if (label.includes('rupay')) return '#00A3E0'; // rupay blue
+    return '#8B5CF6'; // default purple accent
   }
   
   // Default fallback
@@ -330,6 +336,42 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
       });
     }
 
+    // CREDIT CARD transactions - charges and payments
+    else if (params.filterCriteria.assetType === 'creditcard') {
+      const creditCardTransactions = (state?.creditCardTransactions ?? []) as any[];
+      const creditCards = (state?.creditCardEntries ?? []) as any[];
+      
+      // Create a map of card ID to card details for labeling
+      const cardMap = creditCards.reduce((acc: any, card: any) => {
+        acc[card.id] = card;
+        return acc;
+      }, {});
+
+      combined = creditCardTransactions.map((tx: any) => {
+        const card = cardMap[tx.cardId];
+        const isCharge = tx.type === 'CHARGE';
+        
+        return {
+          id: tx.id,
+          datetime: new Date(tx.timestamp),
+          amount: { 
+            amount: isCharge ? Math.abs(tx.amount.amount) : -Math.abs(tx.amount.amount), // charges positive, payments negative
+            currency: 'INR' 
+          },
+          description: tx.description || (isCharge ? 'Credit Card Charge' : 'Credit Card Payment'),
+          notes: tx.notes,
+          type: tx.type,
+          assetType: 'creditcard',
+          assetId: tx.cardId,
+          assetLabel: card ? `${card.cardName} • ${card.cardNumber}` : 'Credit Card',
+          // Credit card specific fields
+          cardEnding: card?.cardNumber?.slice(-4),
+          merchantCategory: tx.category,
+          merchant: tx.merchantName,
+          availableCredit: card?.availableCredit?.amount ?? 0,
+        } as TransactionRecord;
+      });
+    }
     
 
     // Future asset types (loans, credit cards, etc.)
@@ -474,9 +516,19 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
               <Text style={styles.chipText}>{item.bankName}</Text>
             </View>
           )}
-          {!!item.paymentType && (
+          {!!item.merchantCategory && (
             <View style={styles.chip}>
-              <Text style={styles.chipText}>{item.paymentType.toUpperCase()}</Text>
+              <Text style={styles.chipText}>{item.merchantCategory}</Text>
+            </View>
+          )}
+          {!!item.merchant && (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>{item.merchant}</Text>
+            </View>
+          )}
+          {!!item.cardEnding && (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>****{item.cardEnding}</Text>
             </View>
           )}
         </View>
