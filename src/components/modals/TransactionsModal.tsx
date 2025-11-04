@@ -264,12 +264,90 @@ const TransactionsModal: React.FC<Props> = ({ visible, onClose, params }) => {
           }
         }
 
+        // LOAN transactions - EMI payments and linked transactions
+        else if (params.filterCriteria.assetType === 'loan') {
+          const loans = (state?.loanEntries ?? []) as any[];
+          combined = loans.flatMap((loan) => {
+            // Get transactions from loan's linkedTransactions array
+            const loanTransactions = (loan.linkedTransactions ?? []).map((tx: any) => ({
+              id: tx.id,
+              datetime: new Date(tx.paidOn || tx.dueDate || tx.timestamp || Date.now()),
+              amount: { amount: tx.amount?.amount ?? 0, currency: 'INR' },
+              description: tx.notes || `EMI Payment - ${loan.bank}`,
+              notes: tx.notes,
+              type: tx.type || 'EMI_PAYMENT',
+              assetType: 'loan',
+              assetId: loan.id,
+              assetLabel: `${loan.bank} • ${loan.type.toUpperCase()}`,
+              paymentType: 'emi',
+              remainingBalance: loan.currentBalance?.amount ?? 0,
+            })) as TransactionRecord[];
+
+            // Also include EMI schedule items that are marked as 'paid'
+            const schedulePayments = (loan.schedule ?? [])
+              .filter((item: any) => item.status === 'paid' && item.paidOn)
+              .map((item: any) => ({
+                id: `${item.id}-schedule`,
+                datetime: new Date(item.paidOn),
+                amount: { amount: -item.amount.amount, currency: 'INR' }, // negative for payments
+                description: `EMI Payment - ${new Date(item.dueDate).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`,
+                notes: item.notes || `EMI for ${loan.type.toUpperCase()} loan`,
+                type: 'EMI_PAYMENT',
+                assetType: 'loan',
+                assetId: loan.id,
+                assetLabel: `${loan.bank} • ${loan.type.toUpperCase()}`,
+                paymentType: 'emi',
+                remainingBalance: loan.currentBalance?.amount ?? 0,
+              })) as TransactionRecord[];
+
+            return [...loanTransactions, ...schedulePayments];
+          });
+        }
+
+        // CREDIT CARD transactions - charges and payments
+        else if (params.filterCriteria.assetType === 'creditcard') {
+          const creditCardTransactions = (state?.creditCardTransactions ?? []) as any[];
+          const creditCards = (state?.creditCardEntries ?? []) as any[];
+          
+          // Create a map of card ID to card details for labeling
+          const cardMap = creditCards.reduce((acc: any, card: any) => {
+            acc[card.id] = card;
+            return acc;
+          }, {});
+
+          combined = creditCardTransactions.map((tx: any) => {
+            const card = cardMap[tx.cardId];
+            const isCharge = tx.type === 'CHARGE';
+            
+            return {
+              id: tx.id,
+              datetime: new Date(tx.timestamp),
+              amount: { 
+                amount: isCharge ? tx.amount.amount : -Math.abs(tx.amount.amount), // charges positive, payments negative
+                currency: 'INR' 
+              },
+              description: tx.description || (isCharge ? 'Credit Card Charge' : 'Credit Card Payment'),
+              notes: tx.notes,
+              type: tx.type,
+              assetType: 'creditcard',
+              assetId: tx.cardId,
+              assetLabel: card ? `${card.cardName} • ${card.cardNumber}` : 'Credit Card',
+              // Credit card specific fields
+              cardEnding: card?.cardNumber?.slice(-4),
+              merchantCategory: tx.category,
+              merchant: tx.merchantName,
+              availableCredit: card?.availableCredit?.amount ?? 0,
+            } as TransactionRecord;
+          });
+        }
+
         // Default return: only real transactions
         return realTransactions;
 
       });
     }
 
+    
 
     // Future asset types (loans, credit cards, etc.)
     // Add more else-if blocks here for other asset types
