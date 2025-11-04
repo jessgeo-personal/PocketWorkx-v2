@@ -77,7 +77,7 @@ const HomeScreen: React.FC = () => {
 
   // Formula text for UI display
   const totalLiquidityFormulaText = 'Cash + Bank Accounts + Short-term investments';
-
+  const totalLiabilitiesFormulaText = 'Loans + Credit Cards';
 
   // Live calculations from actual data using centralized totals
   const dashboardData = useMemo(() => ({  
@@ -237,14 +237,18 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.primaryLabel}>Your Total Net Worth</Text>
         <Feather name="chevron-right" size={20} color={Colors.text.secondary} />
       </View>
-      <Text style={styles.primaryAmount}>
-        {formatCurrency(dashboardData.netWorth, 'INR')}
+      <Text style={[
+        styles.primaryAmount,
+        netWorth < 0 && styles.negativeNetWorth
+      ]}>
+        {formatCurrency(netWorth, 'INR')}
       </Text>
       <Text style={styles.tapHint}>
         Formula: (Bank Accounts + Crypto + Investments + Physical Assets) − (Loans + Credit Cards)
       </Text>
     </TouchableOpacity>
   );
+
 
   const renderMetricsGrid = () => (
     <View style={styles.metricsGrid}>
@@ -263,7 +267,6 @@ const HomeScreen: React.FC = () => {
           {totalLiquidityFormulaText}
         </Text>
       </TouchableOpacity>
-
       
       <TouchableOpacity 
         style={styles.metricCard}
@@ -274,7 +277,10 @@ const HomeScreen: React.FC = () => {
           <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
         </View>
         <Text style={[styles.metricAmount, { color: Colors.error.main }]}>
-          {formatCurrency(dashboardData.totalLiabilities, 'INR')}
+          {formatCurrency(totalLiabilities, 'INR')}
+        </Text>
+        <Text style={styles.metricFormula}>
+          {totalLiabilitiesFormulaText}
         </Text>
       </TouchableOpacity>
       
@@ -812,6 +818,9 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+  },
+  negativeNetWorth: {
+  color: '#E74C3C', // Red for negative net worth
   },
   primaryLabel: {
     fontSize: Typography.fontSize.base,
