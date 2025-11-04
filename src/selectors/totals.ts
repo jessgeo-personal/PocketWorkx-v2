@@ -39,19 +39,19 @@ export const computeTotals = (state: AppModel | undefined, opts: Options = {}): 
     ((state?.creditCardEntries ?? []) as any[]).map(c => c?.currentBalance?.amount ?? 0)
   );
 
-  // Investments: placeholder 0 until implemented
+  // Investments: placeholder 0 until implemented (safe property access)
   const totalInvestments = sum(
-    ((state?.investments ?? []) as any[]).map((inv: any) => inv?.currentValue?.amount ?? 0)
+    (((state as any)?.investments ?? []) as any[]).map((inv: any) => inv?.currentValue?.amount ?? 0)
   );
 
-  // Physical Assets: placeholder 0 until implemented
+  // Physical Assets: placeholder 0 until implemented (safe property access)
   const totalPhysicalAssets = sum(
-    ((state?.physicalAssets ?? []) as any[]).map((pa: any) => pa?.currentValue?.amount ?? 0)
+    (((state as any)?.physicalAssets ?? []) as any[]).map((pa: any) => pa?.currentValue?.amount ?? 0)
   );
 
-  // Crypto: placeholder 0 unless state has entries
+  // Crypto: placeholder 0 until implemented (safe property access)
   const totalCrypto = sum(
-    ((state?.cryptoHoldings ?? []) as any[]).map((h: any) => h?.currentValue?.amount ?? 0)
+    (((state as any)?.cryptoHoldings ?? []) as any[]).map((h: any) => h?.currentValue?.amount ?? 0)
   );
 
   // Net Worth = (bank + crypto + investments + physical) - (loans + credit cards)

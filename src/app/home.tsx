@@ -50,7 +50,19 @@ const HomeScreen: React.FC = () => {
   // Hook into global storage
   const { state } = useStorage();
 
-  // 1) Cash totals
+  // Use centralized totals computation
+  const {
+    totalBankAccounts,
+    totalLoans,
+    totalCreditCards,
+    totalInvestments,
+    totalPhysicalAssets,
+    totalCrypto,
+    netWorth,
+    totalLiquidity,
+  } = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
+
+  // Legacy cash total for backward compatibility with existing UI
   const cashEntries = (state?.cashEntries ?? []) as Array<{
     amount: { amount: number; currency: string };
     type: string;
@@ -60,55 +72,23 @@ const HomeScreen: React.FC = () => {
   }>;
   const liquidCash = cashEntries.reduce((sum, e) => sum + (e.amount?.amount ?? 0), 0);
 
-  // 2) Bank accounts total balance  
-  const accounts = (state?.accounts ?? []) as Array<{
-    id: string;
-    nickname: string;
-    bankName: string;
-    type: string;
-    balance: { amount: number; currency: string };
-  }>;
-    // Real total bank accounts balance
-  const accountsTotal = useMemo(
-    () => accounts.reduce((sum, a) => sum + (a.balance?.amount ?? 0), 0),
-    [accounts]
-  );
+  // Total liabilities = loans + credit cards
+  const totalLiabilities = totalLoans + totalCreditCards;
 
-  // Total Liquidity formula per project rules:
-  // Total Liquidity = cash + bank accounts + short-term investments (+ optional crypto if enabled in settings)
-  // For now, use cash + bank accounts only; shortTermInvestments placeholder 0 (to be wired later)
-  const shortTermInvestments = 0; // TODO: wire from investments when ready
-  const includeCryptoInLiquidity = false; // TODO: wire from user settings
-  const cryptoLiquid = 0; // TODO: wire from crypto state when ready
-
-  const totalLiquidity = useMemo(() => {
-    let base = liquidCash + accountsTotal + shortTermInvestments;
-    if (includeCryptoInLiquidity) base += cryptoLiquid;
-    return base;
-  }, [liquidCash, accountsTotal, shortTermInvestments, includeCryptoInLiquidity, cryptoLiquid]);
-
-  const totalLiquidityFormulaText = includeCryptoInLiquidity
-    ? 'Cash + Bank Accounts + Short-term investments + Crypto (enabled)'
-    : 'Cash + Bank Accounts + Short-term investments';
+  // Formula text for UI display
+  const totalLiquidityFormulaText = 'Cash + Bank Accounts + Short-term investments';
 
 
-  // 3) For now, liabilities and investments placeholders (to be wired in later phases)
-  const totalLiabilities = 0;     // loans + credit cards totals will fill this
-  const investmentsReceivables = 0;      // investments + receivables totals will fill this
-
-  // 4) Net worth per verified formula: accounts + liquidCash - liabilities + investments
-  const netWorth = accountsTotal + liquidCash - totalLiabilities + investmentsReceivables;
-
-  // Live calculations from actual data
+  // Live calculations from actual data using centralized totals
   const dashboardData = useMemo(() => ({  
       liquidCash,
-      accountsTotal,
       netWorth,
       totalLiabilities,
-      investmentsReceivables,
+      investmentsReceivables: totalInvestments, // Use computed value
       userName: 'Donna',
       userEmail: 'hello@reallygreatsite.com',
-  }), [accountsTotal, netWorth, liquidCash, totalLiabilities, investmentsReceivables]);
+  }), [liquidCash, netWorth, totalLiabilities, totalInvestments]);
+
 
   // Build unified recent transactions from cash + accounts
   const recentTransactions = useMemo((): Transaction[] => {
