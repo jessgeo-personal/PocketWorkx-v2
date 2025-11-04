@@ -672,40 +672,27 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
       };
     });
 
-    // Refresh modal data from the latest draft result and show success
-    // Re-read state immediately after save via reload pattern: since save already setLocal(next), 
-    // get the loan directly from updated state in the next tick.
+    // Close modal and reopen with fresh data after a brief delay
+    setScheduleModalVisible(false);
+
+    // Force reload to ensure state is completely fresh
+    const { reload } = useStorage();
+    await reload();
+
+    // Reopen with reloaded loan
     setTimeout(() => {
-      // Use the updated state that save() just committed
       const updatedLoan = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
-
-      // If state hasn’t propagated yet (rare), fall back to optimistic refresh by merging
-      const optimisticFallback: LoanEntry = {
-        ...loan,
-        currentBalance: { ...loan.currentBalance, amount: Math.max(0, loan.currentBalance.amount - roundedAmount) },
-        nextPaymentDate: new Date(new Date(loan.nextPaymentDate).setMonth(new Date(loan.nextPaymentDate).getMonth() + 1)),
-        linkedTransactions: [
-          ...(loan.linkedTransactions ?? []),
-          {
-            id: `${Date.now()}-emi`,
-            type: 'EMI_PAYMENT',
-            amount: { amount: roundedAmount, currency: 'INR' },
-            dueDate: dueDate,
-            paidOn: new Date(),
-            notes: `EMI paid from ${sourceAccount.nickname}`,
-            sourceAccountId: sourceAccount.id,
-            status: 'completed',
-          }
-        ],
-      } as LoanEntry;
-
-      setSelectedLoanForSchedule(updatedLoan ?? optimisticFallback);
-    }, 0);
+      if (updatedLoan) {
+        setSelectedLoanForSchedule(updatedLoan);
+        setScheduleModalVisible(true);
+      }
+    }, 100);
 
     Alert.alert(
       'EMI Processed', 
       `EMI of ${formatFullINR(roundedAmount)} processed successfully.\n\nFrom: ${sourceAccount.nickname}\nLoan Balance Reduced: ${formatFullINR(roundedAmount)}`
     );
+
 
   } catch (e) {
     Alert.alert('Error', 'Failed to process EMI payment. Please try again.');
