@@ -470,8 +470,12 @@ const LoansScreen: React.FC = () => {
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.modalBody}>
-                {/* Basic Loan Information */}
-                <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12 }]}>Basic Information</Text>
+                {/* Basic Information Section */}
+                <View style={styles.sectionDivider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.sectionDividerText}>Basic Information</Text>
+                </View>
+
                 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Bank/Lender Name *</Text>
@@ -541,7 +545,10 @@ const LoansScreen: React.FC = () => {
                 </View>
 
                 {/* Loan Terms Section */}
-                <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12, marginTop: 20 }]}>Loan Terms</Text>
+                <View style={styles.sectionDivider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.sectionDividerText}>Loan Terms</Text>
+                </View>
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Principal Amount (₹) *</Text>
@@ -587,8 +594,8 @@ const LoansScreen: React.FC = () => {
                   />
                 </View>
 
-                {/* Payment Settings Section */}
-                <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12, marginTop: 20 }]}>Payment Settings</Text>
+               {/* Payment Settings Section */}
+                <View style={styles.sectionDivider}>
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Monthly Due Day *</Text>
@@ -868,23 +875,12 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
     LOAN DETAILS:
     Previous Outstanding: ${formatFullINR(loan.currentBalance.amount)}
     EMI Amount: ${formatFullINR(roundedAmount)}
-    New Outstanding: ${formatFullINR(Math.max(0, loan.currentBalance.amount - roundedAmount))}`,
-      [
-        {
-          text: 'View Schedule',
-          onPress: () => {
-            setTimeout(() => {
-              const updatedLoan = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
-              if (updatedLoan) {
-                setSelectedLoanForSchedule(updatedLoan);
-                setScheduleModalVisible(true);
-              }
-            }, 100);
-          }
-        },
-        { text: 'OK', style: 'default' }
-      ]
+    New Outstanding: ${formatFullINR(Math.max(0, loan.currentBalance.amount - roundedAmount))}
+
+    Use "View Schedule" on the loan card to see updated payment status.`,
+      [{ text: 'OK', style: 'default' }]
     );
+
   } catch (e) {
     console.error('EMI payment error:', e);
     Alert.alert('Error', 'Failed to process EMI payment. Please try again.');
