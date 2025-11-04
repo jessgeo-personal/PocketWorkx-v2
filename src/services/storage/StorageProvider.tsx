@@ -118,6 +118,9 @@ export interface LoanEntry {
   startDate: Date;
   endDate: Date;
   isActive: boolean;
+  // Enhanced loan fields
+  preferredAccountId?: string;
+  monthlyDueDay?: number;
   timestamp: Date;
   // NEW: persisted full EMI schedule
   schedule?: LoanScheduleItem[];
@@ -137,6 +140,7 @@ export interface LoanEntry {
   };
   linkedTransactions?: any[];
 }
+
 
 
 // ===== Persisted AppModel from localFileStore =====

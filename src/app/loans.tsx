@@ -266,7 +266,6 @@ const LoansScreen: React.FC = () => {
       setNewLoanNumber('');
       setNewLoanType('home');
       setNewPrincipalAmount('');
-      setNewCurrentBalance('');
       setNewInterestRate('');
       setNewTenureMonths('');
       setNewEmiAmount('');
@@ -505,17 +504,6 @@ const LoansScreen: React.FC = () => {
                   style={styles.textInput}
                   value={newPrincipalAmount}
                   onChangeText={setNewPrincipalAmount}
-                  placeholder="0"
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Current Outstanding Balance (₹) *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newCurrentBalance}
-                  onChangeText={setNewCurrentBalance}
                   placeholder="0"
                   keyboardType="numeric"
                 />

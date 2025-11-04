@@ -112,6 +112,8 @@ type PocketWorkxState = {
     startDate?: string | Date;
     endDate?: string | Date;
     isActive: boolean;
+    preferredAccountId?: string;
+    monthlyDueDay?: number;
     timestamp?: string | Date;
     // NEW: persisted full EMI schedule
     schedule?: Array<{
