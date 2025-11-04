@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
+import { computeTotals } from '../selectors/totals';
 import { useStorage } from '../services/storage/StorageProvider';
 import AppFooter from '../components/AppFooter';
 import ComingSoonModal from '../components/modals/ComingSoonModal';
