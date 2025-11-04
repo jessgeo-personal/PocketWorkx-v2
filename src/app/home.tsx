@@ -50,18 +50,20 @@ const HomeScreen: React.FC = () => {
   // Hook into global storage
   const { state } = useStorage();
 
-  // Use centralized totals computation
-  const {
-    totalCash,               // NEW: use centralized cash calculation
-    totalBankAccounts,
-    totalLoans,
-    totalCreditCards,
-    totalInvestments,
-    totalPhysicalAssets,
-    totalCrypto,
-    netWorth,
-    totalLiquidity,          // Now = totalCash + totalBankAccounts
-  } = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
+// Use centralized totals computation
+const {
+  totalCash,
+  totalBankAccounts,
+  totalLoans,
+  totalCreditCards,
+  totalFixedIncome,          // NEW: Fixed Income subtotal
+  totalInvestments,
+  totalPhysicalAssets,
+  totalCrypto,
+  netWorth,
+  totalLiquidity,
+} = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
+
 
   // Use centralized cash calculation (liquidCash kept for backward compatibility)
   const liquidCash = totalCash;
@@ -277,8 +279,7 @@ const HomeScreen: React.FC = () => {
           {totalLiabilitiesFormulaText}
         </Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+            <TouchableOpacity 
         style={styles.metricCard}
         onPress={() => router.push('/investments')}
       >
@@ -288,6 +289,23 @@ const HomeScreen: React.FC = () => {
         </View>
         <Text style={styles.metricAmount}>
           {formatCurrency(dashboardData.investmentsReceivables, 'INR')}
+        </Text>
+      </TouchableOpacity>
+
+      {/* ADD this Fixed Income card immediately after the above */}
+      <TouchableOpacity 
+        style={styles.metricCard}
+        onPress={() => router.push('/fixed-income')}
+      >
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>Fixed Income Deposits</Text>
+          <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
+        </View>
+        <Text style={[styles.metricAmount, { color: '#1976D2' }]}>
+          {formatCurrency(totalFixedIncome, 'INR')}
+        </Text>
+        <Text style={styles.metricFormula}>
+          FDs + RDs + NRE/FCNR + Company Deposits
         </Text>
       </TouchableOpacity>
     </View>

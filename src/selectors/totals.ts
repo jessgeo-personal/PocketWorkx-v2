@@ -9,7 +9,8 @@ export type Totals = {
   totalBankAccounts: number;
   totalLoans: number;
   totalCreditCards: number;
-  totalInvestments: number;
+  totalFixedIncome: number;      // NEW: Fixed Income subtotal
+  totalInvestments: number;      // Will be sum of all investment subtypes
   totalPhysicalAssets: number;
   totalCrypto: number;
   netWorth: number;
@@ -45,10 +46,13 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
     ((state?.creditCardEntries ?? []) as any[]).map(c => c?.currentBalance?.amount ?? 0)
   );
 
-  // Investments: placeholder 0 until implemented (safe property access)
-  const totalInvestments = sum(
-    (((state as any)?.investments ?? []) as any[]).map((inv: any) => inv?.currentValue?.amount ?? 0)
+  // Fixed Income: sum of currentValue.amount
+  const totalFixedIncome = sum(
+    ((state?.fixedIncomeEntries ?? []) as any[]).map(fi => fi?.currentValue?.amount ?? 0)
   );
+
+  // Investments: will be sum of Fixed Income + Stocks/Commodities/Forex when implemented
+  const totalInvestments = totalFixedIncome; // For now, only Fixed Income
 
   // Physical Assets: placeholder 0 until implemented (safe property access)
   const totalPhysicalAssets = sum(
@@ -69,11 +73,12 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
   const totalLiquidity = totalBankAccounts + (includeCrypto ? totalCrypto : 0);
 
   return {
-    totalCash,           // NEW: centralized cash calculation
+    totalCash,
     totalBankAccounts,
     totalLoans,
     totalCreditCards,
-    totalInvestments,
+    totalFixedIncome,        // NEW: expose Fixed Income subtotal
+    totalInvestments,        // Sum of all investment types
     totalPhysicalAssets,
     totalCrypto,
     netWorth,

@@ -141,6 +141,67 @@ export interface LoanEntry {
   linkedTransactions?: any[];
 }
 
+// ===== Fixed Income domain types =====
+export interface FixedIncomeEntry {
+  id: string;
+  instrumentType: 'fd' | 'rd' | 'nre' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
+  bankOrIssuer: string;
+  instrumentName: string; // e.g., "HDFC 5-Year FD", "SBI RD"
+  principalAmount: { amount: number; currency: 'INR' };
+  currentValue: { amount: number; currency: 'INR' }; // principal + accrued interest
+  interestRate: number; // annual percentage
+  compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
+  startDate: Date;
+  maturityDate: Date;
+  autoRenew: boolean;
+  isActive: boolean;
+  // Optional fields
+  nomineeDetails?: string;
+  jointHolders?: string[];
+  notes?: string;
+  timestamp: Date;
+  encryptedData?: {
+    encryptionKey: string;
+    encryptionAlgorithm: string;
+    lastEncrypted: Date;
+    isEncrypted: boolean;
+  };
+  auditTrail?: {
+    createdBy: string;
+    createdAt: Date;
+    updatedBy: string;
+    updatedAt: Date;
+    version: number;
+    changes: any[];
+  };
+  linkedTransactions?: any[];
+}
+
+export interface FixedIncomeTransaction {
+  id: string;
+  description: string;
+  amount: { amount: number; currency: 'INR' };
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST_CREDIT' | 'MATURITY' | 'RENEWAL';
+  category: string;
+  instrumentId: string;
+  notes?: string;
+  timestamp: Date;
+  encryptedData?: {
+    encryptionKey: string;
+    encryptionAlgorithm: string;
+    lastEncrypted: Date;
+    isEncrypted: boolean;
+  };
+  auditTrail?: {
+    createdBy: string;
+    createdAt: Date;
+    updatedBy: string;
+    updatedAt: Date;
+    version: number;
+    changes: any[];
+  };
+  linkedTransactions?: any[];
+}
 
 
 // ===== Persisted AppModel from localFileStore =====
@@ -156,6 +217,10 @@ export type AppModel = Awaited<ReturnType<typeof getState>> & {
 
   // Loans
   loanEntries?: LoanEntry[];
+
+  // Fixed Income
+  fixedIncomeEntries?: FixedIncomeEntry[];
+  fixedIncomeTransactions?: FixedIncomeTransaction[];
 };
 
 
@@ -257,6 +322,34 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
               }
             : undefined,
         })) ?? [],
+
+        // NEW: initialize fixed income entries with date normalization
+        fixedIncomeEntries: (s.fixedIncomeEntries as any[] | undefined)?.map((fi) => ({
+          ...fi,
+          startDate: fi.startDate ? new Date(fi.startDate) : new Date(),
+          maturityDate: fi.maturityDate ? new Date(fi.maturityDate) : new Date(),
+          timestamp: fi.timestamp ? new Date(fi.timestamp) : new Date(),
+          auditTrail: fi.auditTrail
+            ? {
+                ...fi.auditTrail,
+                createdAt: fi.auditTrail.createdAt ? new Date(fi.auditTrail.createdAt) : new Date(),
+                updatedAt: fi.auditTrail.updatedAt ? new Date(fi.auditTrail.updatedAt) : new Date(),
+              }
+            : undefined,
+        })) ?? [],
+
+        fixedIncomeTransactions: (s.fixedIncomeTransactions as any[] | undefined)?.map((t) => ({
+          ...t,
+          timestamp: t.timestamp ? new Date(t.timestamp) : new Date(),
+          auditTrail: t.auditTrail
+            ? {
+                ...t.auditTrail,
+                createdAt: t.auditTrail.createdAt ? new Date(t.auditTrail.createdAt) : new Date(),
+                updatedAt: t.auditTrail.updatedAt ? new Date(t.auditTrail.updatedAt) : new Date(),
+              }
+            : undefined,
+        })) ?? [],
+
       };
 
 
