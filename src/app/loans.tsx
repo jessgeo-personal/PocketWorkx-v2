@@ -359,9 +359,20 @@ const LoansScreen: React.FC = () => {
     </View>
   );
 
+  // Update the renderLoanCard function - Add these calculations before the return statement
+
   const renderLoanCard = (loan: LoanEntry) => {
     const daysUntilDue = Math.ceil((loan.nextPaymentDate.getTime() - Date.now()) / (1000 * 86400));
     const isOverdue = daysUntilDue < 0;
+
+    // NEW: Calculate EMI paid/pending counts from schedule
+    const schedule = loan.schedule ?? buildFullSchedule(loan);
+    const emiCounts = {
+      total: schedule.length,
+      paid: schedule.filter(item => item.status === 'paid').length,
+      pending: schedule.filter(item => item.status === 'due' || item.status === 'overdue').length,
+      overdue: schedule.filter(item => item.status === 'overdue').length,
+    };
 
     const onOpenLoanTransactions = () => {
       setTxFilter({
@@ -402,46 +413,63 @@ const LoansScreen: React.FC = () => {
             <Text style={styles.balanceLabel}>EMI</Text>
             <Text style={styles.emiAmount}>{formatFullINR(loan.emiAmount.amount)}</Text>
           </View>
-            <View style={styles.balanceRow}>
-              <Text style={[styles.dueLabel, isOverdue && styles.overdueText]}>
-                {isOverdue ? `Overdue by ${Math.abs(daysUntilDue)} days` : `Due in ${daysUntilDue} days`}
+          
+          {/* NEW: EMI Progress Row */}
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceLabel}>EMI Progress</Text>
+            <View style={styles.emiProgressContainer}>
+              <Text style={styles.emiProgressText}>
+                {emiCounts.paid}/{emiCounts.total}
               </Text>
-              <Text style={styles.rateLabel}>{loan.interestRate.toFixed(2)}% p.a.</Text>
+              {emiCounts.overdue > 0 && (
+                <View style={styles.overdueChip}>
+                  <Text style={styles.overdueChipText}>{emiCounts.overdue} overdue</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.actionRow}>
-              <TouchableOpacity 
-                style={styles.scheduleButton}
-                onPress={async () => {
-                  // Ensure persisted schedule exists
-                  if (!loan.schedule || loan.schedule.length === 0) {
-                    await save((draft: AppModel) => {
-                      const nextLoans = (draft.loanEntries ?? []).map((l: any) => {
-                        if (l.id !== loan.id) return l;
-                        return {
-                          ...l,
-                          schedule: buildFullSchedule(l as LoanEntry),
-                        };
-                      });
-                      return { ...draft, loanEntries: nextLoans };
-                    });
-                    // Get refreshed loan with schedule
-                    const refreshed = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
-                    setSelectedLoanForSchedule(refreshed ?? loan);
-                  } else {
-                    setSelectedLoanForSchedule(loan);
-                  }
-                  setScheduleModalVisible(true);
-                }}
-              >
-                <MaterialIcons name="calendar-today" size={16} color="#8B5CF6" />
-                <Text style={styles.scheduleButtonText}>View Schedule</Text>
-              </TouchableOpacity>
+          </View>
 
-            </View>
+          <View style={styles.balanceRow}>
+            <Text style={[styles.dueLabel, isOverdue && styles.overdueText]}>
+              {isOverdue ? `Overdue by ${Math.abs(daysUntilDue)} days` : `Due in ${daysUntilDue} days`}
+            </Text>
+            <Text style={styles.rateLabel}>{loan.interestRate.toFixed(2)}% p.a.</Text>
+          </View>
+          
+          <View style={styles.actionRow}>
+            <TouchableOpacity 
+              style={styles.scheduleButton}
+              onPress={async () => {
+                // Ensure persisted schedule exists
+                if (!loan.schedule || loan.schedule.length === 0) {
+                  await save((draft: AppModel) => {
+                    const nextLoans = (draft.loanEntries ?? []).map((l: any) => {
+                      if (l.id !== loan.id) return l;
+                      return {
+                        ...l,
+                        schedule: buildFullSchedule(l as LoanEntry),
+                      };
+                    });
+                    return { ...draft, loanEntries: nextLoans };
+                  });
+                  // Get refreshed loan with schedule
+                  const refreshed = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
+                  setSelectedLoanForSchedule(refreshed ?? loan);
+                } else {
+                  setSelectedLoanForSchedule(loan);
+                }
+                setScheduleModalVisible(true);
+              }}
+            >
+              <MaterialIcons name="calendar-today" size={16} color="#8B5CF6" />
+              <Text style={styles.scheduleButtonText}>View Schedule</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
   };
+
 
   const renderAddLoanModal = () => {
     // Get available accounts for preferred account picker
@@ -595,7 +623,11 @@ const LoansScreen: React.FC = () => {
                 </View>
 
                {/* Payment Settings Section */}
-                <View style={styles.sectionDivider}>
+                <View style={[styles.sectionDivider, { marginTop: 20 }]}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.sectionDividerText}>Payment Settings</Text>
+                </View>
+
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Monthly Due Day *</Text>
@@ -1646,7 +1678,45 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     fontStyle: 'italic',
   },
-
+  sectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E0E0E0',
+  },
+  sectionDividerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+    marginLeft: 12,
+    paddingHorizontal: 8,
+    backgroundColor: Colors.background.secondary,
+  },
+  emiProgressContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    emiProgressText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#4CAF50', // Green for progress
+    },
+    overdueChip: {
+      backgroundColor: '#E74C3C',
+      borderRadius: 10,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    overdueChipText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
 });
 
 export default LoansScreen;
