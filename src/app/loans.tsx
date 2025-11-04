@@ -100,15 +100,17 @@ const LoansScreen: React.FC = () => {
   const [newLoanNumber, setNewLoanNumber] = useState('');
   const [newLoanType, setNewLoanType] = useState<'home' | 'car' | 'personal' | 'education' | 'other'>('home');
   const [newPrincipalAmount, setNewPrincipalAmount] = useState('');
-  const [newCurrentBalance, setNewCurrentBalance] = useState('');
   const [newInterestRate, setNewInterestRate] = useState('');
   const [newTenureMonths, setNewTenureMonths] = useState('');
   const [newEmiAmount, setNewEmiAmount] = useState('');
 
-  // New: start date (day/month/year pickers - simple numeric inputs for now)
+  // Enhanced fields
   const [startDay, setStartDay] = useState<string>('');
-  const [startMonth, setStartMonth] = useState<string>('');   // 1-12
-  const [startYear, setStartYear] = useState<string>('');     // yyyy
+  const [startMonth, setStartMonth] = useState<string>('');
+  const [startYear, setStartYear] = useState<string>('');
+  const [emisPaidSoFar, setEmisPaidSoFar] = useState<string>('0');
+  const [monthlyDueDay, setMonthlyDueDay] = useState<string>('1');  // 1-31
+  const [preferredAccountId, setPreferredAccountId] = useState<string>('');
 
   // TransactionsModal states
   const [txModalVisible, setTxModalVisible] = useState(false);
@@ -134,25 +136,29 @@ const LoansScreen: React.FC = () => {
   const handleAddLoan = async () => {
     if (isProcessing) return;
     
-    if (!newLoanBank.trim() || !newLoanNumber.trim() || !newPrincipalAmount.trim() || 
-        !newCurrentBalance.trim() || !newInterestRate.trim() || !newTenureMonths.trim() || 
-        !newEmiAmount.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
+      if (!newLoanBank.trim() || !newLoanNumber.trim() || !newPrincipalAmount.trim() || 
+          !newInterestRate.trim() || !newTenureMonths.trim() || !newEmiAmount.trim()) {
+        Alert.alert('Error', 'Please fill in all required fields');
+        return;
+      }
 
     const principal = parseFloat(newPrincipalAmount);
-    const balance = parseFloat(newCurrentBalance);
     const rate = parseFloat(newInterestRate);
     const tenure = parseInt(newTenureMonths);
     const emi = parseFloat(newEmiAmount);
+    const paidCount = parseInt(emisPaidSoFar);
+    const dueDay = parseInt(monthlyDueDay);
 
     if (isNaN(principal) || principal <= 0) {
       Alert.alert('Error', 'Please enter a valid principal amount');
       return;
     }
-    if (isNaN(balance) || balance < 0) {
-      Alert.alert('Error', 'Please enter a valid current balance');
+    if (isNaN(paidCount) || paidCount < 0 || paidCount >= tenure) {
+      Alert.alert('Error', `Please enter EMIs paid (0-${tenure - 1})`);
+      return;
+    }
+    if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) {
+      Alert.alert('Error', 'Please enter a valid due day (1-31)');
       return;
     }
     if (isNaN(rate) || rate <= 0 || rate > 50) {
@@ -167,6 +173,7 @@ const LoansScreen: React.FC = () => {
       Alert.alert('Error', 'Please enter a valid EMI amount');
       return;
     }
+
     const sd = parseInt(startDay);
     const sm = parseInt(startMonth);
     const sy = parseInt(startYear);
@@ -176,6 +183,10 @@ const LoansScreen: React.FC = () => {
       return;
     }
 
+    // Calculate current outstanding balance based on EMIs paid
+    // Simplified: currentBalance = principal - (emisPaid * emi)
+    // Future enhancement: proper amortization with principal/interest split
+    const calculatedBalance = Math.max(0, principal - (paidCount * emi));
 
     setIsProcessing(true);
     try {
@@ -183,11 +194,25 @@ const LoansScreen: React.FC = () => {
       
       // Build start date from user input
       const startDate = new Date(sy, sm - 1, sd);
-      // Compute next EMI date = startDate + 1 month (same day; fallback to end of month if day overflow)
-      const nextEMIBase = new Date(startDate);
-      const nextEMI = new Date(nextEMIBase.getFullYear(), nextEMIBase.getMonth() + 1, nextEMIBase.getDate());
+      // Use the specified due day for EMI dates instead of start date day
+      const nextEMI = new Date(startDate.getFullYear(), startDate.getMonth() + paidCount + 1, dueDay);
       // Compute end date approximately using tenure months from start date
-      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + tenure, startDate.getDate());
+      const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + tenure, dueDay);
+
+      // Generate full initial schedule with pre-paid EMIs marked
+      const initialSchedule: LoanScheduleItem[] = [];
+      for (let i = 0; i < tenure; i++) {
+        const emiDate = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, dueDay);
+        const scheduleId = `${Date.now()}-${emiDate.getFullYear()}${String(emiDate.getMonth()+1).padStart(2,'0')}`;
+        initialSchedule.push({
+          id: scheduleId,
+          dueDate: emiDate,
+          amount: { amount: Math.round(emi), currency: 'INR' },
+          status: i < paidCount ? 'paid' : (emiDate < new Date() ? 'overdue' : 'due'),
+          paidOn: i < paidCount ? new Date(emiDate.getTime() - (7 * 24 * 60 * 60 * 1000)) : undefined, // assume paid 1 week before due
+          notes: i < paidCount ? 'Pre-existing payment' : undefined,
+        });
+      }
 
       const newLoan: LoanEntry = {
         id: Date.now().toString(),
@@ -195,7 +220,7 @@ const LoansScreen: React.FC = () => {
         bank: newLoanBank.trim(),
         loanNumber: newLoanNumber.trim(),
         principalAmount: { amount: Math.round(principal), currency: 'INR' },
-        currentBalance: { amount: Math.round(balance), currency: 'INR' },
+        currentBalance: { amount: Math.round(calculatedBalance), currency: 'INR' },
         interestRate: rate,
         tenureMonths: tenure,
         emiAmount: { amount: Math.round(emi), currency: 'INR' },
@@ -203,6 +228,8 @@ const LoansScreen: React.FC = () => {
         startDate: startDate,
         endDate: endDate,
         isActive: true,
+        preferredAccountId: preferredAccountId || null,
+        monthlyDueDay: dueDay,
         timestamp: now,
         encryptedData: {
           encryptionKey: '',
@@ -225,6 +252,7 @@ const LoansScreen: React.FC = () => {
           }],
         },
         linkedTransactions: [],
+        schedule: initialSchedule,
       };
 
       await save((draft: AppModel) => {
@@ -245,7 +273,11 @@ const LoansScreen: React.FC = () => {
       setStartDay('');
       setStartMonth('');
       setStartYear('');
+      setEmisPaidSoFar('0');
+      setMonthlyDueDay('1');
+      setPreferredAccountId('');
       setIsAddLoanModalVisible(false);
+
 
       Alert.alert('Success', 'Loan added successfully');
     } catch (error) {
@@ -730,19 +762,44 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
     // Success: Close and reopen modal with fresh data (no more hooks in handlers)
     setScheduleModalVisible(false);
     
-    setTimeout(() => {
-      const updatedLoan = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
-      if (updatedLoan) {
-        setSelectedLoanForSchedule(updatedLoan);
-        setScheduleModalVisible(true);
-      }
-    }, 200);
+    //setTimeout(() => {
+    //  const updatedLoan = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
+    //  if (updatedLoan) {
+    //    setSelectedLoanForSchedule(updatedLoan);
+    //    setScheduleModalVisible(true);
+    //  }
+    //}, 200);
 
     Alert.alert(
-      'EMI Processed', 
-      `EMI of ${formatFullINR(roundedAmount)} processed successfully.\n\nFrom: ${sourceAccount.nickname}\nLoan Balance Reduced: ${formatFullINR(roundedAmount)}`
-    );
+      'EMI Payment Confirmed',
+      `EMI for ${dueDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} processed successfully.
 
+    BANK ACCOUNT:
+    ${sourceAccount.nickname}
+    Previous Balance: ${formatFullINR(sourceAccount.balance.amount)}
+    Amount Debited: ${formatFullINR(roundedAmount)}
+    New Balance: ${formatFullINR(sourceAccount.balance.amount - roundedAmount)}
+
+    LOAN DETAILS:
+    Previous Outstanding: ${formatFullINR(loan.currentBalance.amount)}
+    EMI Amount: ${formatFullINR(roundedAmount)}
+    New Outstanding: ${formatFullINR(Math.max(0, loan.currentBalance.amount - roundedAmount))}`,
+      [
+        {
+          text: 'View Schedule',
+          onPress: () => {
+            setTimeout(() => {
+              const updatedLoan = (state?.loanEntries ?? []).find((l: any) => l.id === loan.id) as LoanEntry | undefined;
+              if (updatedLoan) {
+                setSelectedLoanForSchedule(updatedLoan);
+                setScheduleModalVisible(true);
+              }
+            }, 100);
+          }
+        },
+        { text: 'OK', style: 'default' }
+      ]
+    );
   } catch (e) {
     console.error('EMI payment error:', e);
     Alert.alert('Error', 'Failed to process EMI payment. Please try again.');
