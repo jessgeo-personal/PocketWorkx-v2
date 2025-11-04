@@ -443,153 +443,250 @@ const LoansScreen: React.FC = () => {
     );
   };
 
-  const renderAddLoanModal = () => (
-    <Modal
-      visible={isAddLoanModalVisible}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setIsAddLoanModalVisible(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Loan</Text>
-            <TouchableOpacity onPress={() => setIsAddLoanModalVisible(false)}>
-              <MaterialIcons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+  const renderAddLoanModal = () => {
+    // Get available accounts for preferred account picker
+    const accounts = (state?.accounts ?? []) as Array<{
+      id: string;
+      nickname: string;
+      bankName: string;
+      balance: { amount: number; currency: string };
+    }>;
 
-          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-            <View style={styles.modalBody}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Bank/Lender Name *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newLoanBank}
-                  onChangeText={setNewLoanBank}
-                  placeholder="e.g., HDFC Bank, ICICI Bank"
-                />
-              </View>
+    return (
+      <Modal
+        visible={isAddLoanModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsAddLoanModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Loan</Text>
+              <TouchableOpacity onPress={() => setIsAddLoanModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Loan Number *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newLoanNumber}
-                  onChangeText={setNewLoanNumber}
-                  placeholder="e.g., HL001, CAR-8921"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Loan Type *</Text>
-                <View style={styles.pickerRow}>
-                  {(['home', 'car', 'personal', 'education', 'other'] as const).map(type => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.pickerPill, newLoanType === type && styles.pickerPillSelected]}
-                      onPress={() => setNewLoanType(type)}
-                    >
-                      <Text style={[styles.pickerPillText, newLoanType === type && styles.pickerPillTextSelected]}>
-                        {type.toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalBody}>
+                {/* Basic Loan Information */}
+                <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12 }]}>Basic Information</Text>
+                
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Bank/Lender Name *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={newLoanBank}
+                    onChangeText={setNewLoanBank}
+                    placeholder="e.g., HDFC Bank, ICICI Bank"
+                  />
                 </View>
-              </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Principal Amount (₹) *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newPrincipalAmount}
-                  onChangeText={setNewPrincipalAmount}
-                  placeholder="0"
-                  keyboardType="numeric"
-                />
-              </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Loan Number *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={newLoanNumber}
+                    onChangeText={setNewLoanNumber}
+                    placeholder="e.g., HL001, CAR-8921"
+                  />
+                </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Interest Rate (% p.a.) *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newInterestRate}
-                  onChangeText={setNewInterestRate}
-                  placeholder="e.g., 7.35"
-                  keyboardType="numeric"
-                />
-              </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Loan Type *</Text>
+                  <View style={styles.pickerRow}>
+                    {(['home', 'car', 'personal', 'education', 'other'] as const).map(type => (
+                      <TouchableOpacity
+                        key={type}
+                        style={[styles.pickerPill, newLoanType === type && styles.pickerPillSelected]}
+                        onPress={() => setNewLoanType(type)}
+                      >
+                        <Text style={[styles.pickerPillText, newLoanType === type && styles.pickerPillTextSelected]}>
+                          {type.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Tenure (Months) *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newTenureMonths}
-                  onChangeText={setNewTenureMonths}
-                  placeholder="e.g., 240 (20 years)"
-                  keyboardType="numeric"
-                />
-              </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Loan Start Date (DD/MM/YYYY) *</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput
+                      style={[styles.textInput, { flex: 1 }]}
+                      value={startDay}
+                      onChangeText={setStartDay}
+                      placeholder="DD"
+                      keyboardType="number-pad"
+                      maxLength={2}
+                    />
+                    <TextInput
+                      style={[styles.textInput, { flex: 1 }]}
+                      value={startMonth}
+                      onChangeText={setStartMonth}
+                      placeholder="MM"
+                      keyboardType="number-pad"
+                      maxLength={2}
+                    />
+                    <TextInput
+                      style={[styles.textInput, { flex: 2 }]}
+                      value={startYear}
+                      onChangeText={setStartYear}
+                      placeholder="YYYY"
+                      keyboardType="number-pad"
+                      maxLength={4}
+                    />
+                  </View>
+                </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>EMI Amount (₹) *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newEmiAmount}
-                  onChangeText={setNewEmiAmount}
-                  placeholder="0"
-                  keyboardType="numeric"
-                />
+                {/* Loan Terms Section */}
+                <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12, marginTop: 20 }]}>Loan Terms</Text>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Principal Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={newPrincipalAmount}
+                    onChangeText={setNewPrincipalAmount}
+                    placeholder="0"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Interest Rate (% p.a.) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={newInterestRate}
+                    onChangeText={setNewInterestRate}
+                    placeholder="e.g., 7.35"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Tenure (Months) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={newTenureMonths}
+                    onChangeText={setNewTenureMonths}
+                    placeholder="e.g., 240 (20 years)"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>EMI Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={newEmiAmount}
+                    onChangeText={setNewEmiAmount}
+                    placeholder="0"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                {/* Payment Settings Section */}
+                <Text style={[styles.sectionTitle, { fontSize: 16, marginBottom: 12, marginTop: 20 }]}>Payment Settings</Text>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Monthly Due Day *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={monthlyDueDay}
+                    onChangeText={setMonthlyDueDay}
+                    placeholder="e.g., 15 (15th of every month)"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>EMIs Already Paid *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={emisPaidSoFar}
+                    onChangeText={setEmisPaidSoFar}
+                    placeholder="0"
+                    keyboardType="number-pad"
+                  />
+                  <Text style={styles.helpText}>Enter 0 for new loans, or number of EMIs already paid</Text>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Preferred Payment Account</Text>
+                  {accounts.length > 0 ? (
+                    <View style={styles.accountPickerContainer}>
+                      {accounts.map((account) => (
+                        <TouchableOpacity
+                          key={account.id}
+                          style={[
+                            styles.accountPickerOption,
+                            preferredAccountId === account.id && styles.accountPickerOptionSelected
+                          ]}
+                          onPress={() => setPreferredAccountId(account.id)}
+                        >
+                          <View style={styles.accountPickerLeft}>
+                            <Text style={styles.accountPickerName}>{account.nickname}</Text>
+                            <Text style={styles.accountPickerBank}>{account.bankName}</Text>
+                          </View>
+                          <View style={styles.accountPickerRight}>
+                            <MaterialIcons 
+                              name={preferredAccountId === account.id ? 'radio-button-checked' : 'radio-button-unchecked'} 
+                              size={20} 
+                              color={preferredAccountId === account.id ? '#8B5CF6' : '#999'} 
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                      {preferredAccountId && (
+                        <TouchableOpacity
+                          style={styles.clearSelectionButton}
+                          onPress={() => setPreferredAccountId('')}
+                        >
+                          <Text style={styles.clearSelectionText}>Clear Selection</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={styles.noAccountsText}>No bank accounts available. Add accounts first for EMI auto-debit setup.</Text>
+                  )}
+                </View>
+
+                {/* Calculated Balance Display */}
+                {newPrincipalAmount && newEmiAmount && emisPaidSoFar && (
+                  <View style={styles.calculatedSection}>
+                    <Text style={styles.calculatedLabel}>Calculated Current Outstanding:</Text>
+                    <Text style={styles.calculatedAmount}>
+                      {formatFullINR(Math.max(0, parseFloat(newPrincipalAmount || '0') - (parseInt(emisPaidSoFar || '0') * parseFloat(newEmiAmount || '0'))))}
+                    </Text>
+                    <Text style={styles.calculatedFormula}>
+                      Principal - (EMIs Paid × EMI Amount)
+                    </Text>
+                  </View>
+                )}
               </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddLoanModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.primaryButton, isProcessing && styles.disabledButton]}
+                onPress={handleAddLoan}
+                disabled={isProcessing}
+              >
+                <Text style={styles.primaryButtonText}>{isProcessing ? 'Adding...' : 'Add Loan'}</Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Loan Start Date (DD/MM/YYYY) *</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TextInput
-                style={[styles.textInput, { flex: 1 }]}
-                value={startDay}
-                onChangeText={setStartDay}
-                placeholder="DD"
-                keyboardType="number-pad"
-                maxLength={2}
-              />
-              <TextInput
-                style={[styles.textInput, { flex: 1 }]}
-                value={startMonth}
-                onChangeText={setStartMonth}
-                placeholder="MM"
-                keyboardType="number-pad"
-                maxLength={2}
-              />
-              <TextInput
-                style={[styles.textInput, { flex: 2 }]}
-                value={startYear}
-                onChangeText={setStartYear}
-                placeholder="YYYY"
-                keyboardType="number-pad"
-                maxLength={4}
-              />
-            </View>
-          </View>
-
-          <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddLoanModalVisible(false)}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.primaryButton, isProcessing && styles.disabledButton]}
-              onPress={handleAddLoan}
-              disabled={isProcessing}
-            >
-              <Text style={styles.primaryButtonText}>{isProcessing ? 'Adding...' : 'Add Loan'}</Text>
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
+
 
   if (loading) {
     return (
@@ -1467,6 +1564,91 @@ const styles = StyleSheet.create({
     color: '#E74C3C',
     fontWeight: '600',
     marginTop: 2,
+  },
+  helpText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  accountPickerContainer: {
+    marginTop: 8,
+  },
+  accountPickerOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    marginVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: Colors.background.secondary,
+  },
+  accountPickerOptionSelected: {
+    borderColor: '#8B5CF6',
+    backgroundColor: '#8B5CF6' + '10',
+  },
+  accountPickerLeft: {
+    flex: 1,
+  },
+  accountPickerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  accountPickerBank: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    marginTop: 2,
+  },
+  accountPickerRight: {
+    paddingLeft: 8,
+  },
+  clearSelectionButton: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 8,
+  },
+  clearSelectionText: {
+    fontSize: 12,
+    color: '#666',
+    textDecorationLine: 'underline',
+  },
+  noAccountsText: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
+    padding: 12,
+    backgroundColor: '#FFF3CD',
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FFC107',
+  },
+  calculatedSection: {
+    backgroundColor: '#E8F5E8',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+  },
+  calculatedLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  calculatedAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2E7D32',
+    marginBottom: 4,
+  },
+  calculatedFormula: {
+    fontSize: 11,
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
   },
 
 });
