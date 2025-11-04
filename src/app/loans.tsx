@@ -924,11 +924,21 @@ const processEmiPayment = async (loan: LoanEntry, dueDate: Date, amount: number,
 
 
   // EMI Schedule modal renderer - must be inside LoansScreen to access state
+// Update the renderScheduleModal function - Add EMI Progress Display
+
 const renderScheduleModal = () => {
   if (!selectedLoanForSchedule) return null;
 
   // Use persisted schedule; if missing, derive once (fallback)
   const persistedSchedule = selectedLoanForSchedule.schedule ?? buildFullSchedule(selectedLoanForSchedule);
+
+  // NEW: Calculate EMI progress for modal header
+  const emiProgress = {
+    total: persistedSchedule.length,
+    paid: persistedSchedule.filter(item => item.status === 'paid').length,
+    pending: persistedSchedule.filter(item => item.status === 'due' || item.status === 'overdue').length,
+    overdue: persistedSchedule.filter(item => item.status === 'overdue').length,
+  };
 
   // Find index to scroll to: first upcoming or last overdue
   const today = new Date();
@@ -958,6 +968,38 @@ const renderScheduleModal = () => {
             <Text style={styles.scheduleSubtitle}>
               {selectedLoanForSchedule.bank} • {selectedLoanForSchedule.loanNumber}
             </Text>
+            
+            {/* NEW: EMI Progress Display */}
+            <View style={styles.emiProgressModalContainer}>
+              <View style={styles.emiProgressModalRow}>
+                <Text style={styles.emiProgressModalLabel}>EMI Progress</Text>
+                <Text style={styles.emiProgressModalValue}>
+                  {emiProgress.paid}/{emiProgress.total}
+                </Text>
+              </View>
+              
+              <View style={styles.emiProgressStats}>
+                <View style={styles.emiProgressStat}>
+                  <Text style={styles.emiProgressStatValue}>{emiProgress.paid}</Text>
+                  <Text style={styles.emiProgressStatLabel}>Paid</Text>
+                </View>
+                <View style={styles.emiProgressStat}>
+                  <Text style={styles.emiProgressStatValue}>{emiProgress.pending}</Text>
+                  <Text style={styles.emiProgressStatLabel}>Pending</Text>
+                </View>
+                {emiProgress.overdue > 0 && (
+                  <View style={styles.emiProgressStat}>
+                    <Text style={[styles.emiProgressStatValue, styles.overdueStatValue]}>
+                      {emiProgress.overdue}
+                    </Text>
+                    <Text style={[styles.emiProgressStatLabel, styles.overdueStatLabel]}>
+                      Overdue
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
             <Text style={[styles.scheduleSubtitle, { fontSize: 12, marginBottom: 8 }]}>
               {persistedSchedule.length} EMIs • Showing full tenure
             </Text>
@@ -1020,6 +1062,7 @@ const renderScheduleModal = () => {
     </Modal>
   );
 };
+
 
 
   // Account selection modal for EMI payments
@@ -1697,26 +1740,79 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.secondary,
   },
   emiProgressContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    emiProgressText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#4CAF50', // Green for progress
-    },
-    overdueChip: {
-      backgroundColor: '#E74C3C',
-      borderRadius: 10,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-    },
-    overdueChipText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: '#FFFFFF',
-    },
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  emiProgressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50', // Green for progress
+  },
+  overdueChip: {
+    backgroundColor: '#E74C3C',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  overdueChipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+      // NEW STYLES for EMI Progress in Modal
+  emiProgressModalContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#8B5CF6',
+  },
+  emiProgressModalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  emiProgressModalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+  },
+  emiProgressModalValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#4CAF50',
+  },
+  emiProgressStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  emiProgressStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  emiProgressStatValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  emiProgressStatLabel: {
+    fontSize: 12,
+    color: Colors.text.secondary,
+    textTransform: 'uppercase',
+  },
+  overdueStatValue: {
+    color: '#E74C3C',
+  },
+  overdueStatLabel: {
+    color: '#E74C3C',
+  },
 });
 
 export default LoansScreen;
