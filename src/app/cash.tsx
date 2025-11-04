@@ -744,6 +744,15 @@ const CashScreen: React.FC = () => {
                 Last updated: {formatWithTZ(group.lastUpdated)}
               </Text>
             </View>
+            <View style={styles.cashAmount}>
+              <Text style={styles.amountLabel}>Category Total</Text>
+              <Text style={[
+                styles.amountValue,
+                group.totalAmount < 0 && styles.negativeAmount
+              ]}>
+                {formatFullINR(group.totalAmount)}
+              </Text>
+            </View>
           </View>
           <View style={styles.rightIconsRow}>
             <MaterialIcons name="chevron-right" size={22} color={Colors.text.secondary} />
