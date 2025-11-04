@@ -142,7 +142,66 @@ type PocketWorkxState = {
     linkedTransactions?: any[];
   }>;
 
+  // NEW: Fixed Income persisted as raw JSON; normalized to Date in StorageProvider
+    fixedIncomeEntries?: Array<{
+      id: string;
+      instrumentType: 'fd' | 'rd' | 'nre' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
+      bankOrIssuer: string;
+      instrumentName: string;
+      principalAmount: { amount: number; currency: 'INR' };
+      currentValue: { amount: number; currency: 'INR' };
+      interestRate: number;
+      compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
+      startDate?: string | Date;
+      maturityDate?: string | Date;
+      autoRenew: boolean;
+      isActive: boolean;
+      nomineeDetails?: string;
+      jointHolders?: string[];
+      notes?: string;
+      timestamp?: string | Date;
+      encryptedData?: {
+        encryptionKey: string;
+        encryptionAlgorithm: string;
+        lastEncrypted: string | Date;
+        isEncrypted: boolean;
+      };
+      auditTrail?: {
+        createdBy: string;
+        createdAt?: string | Date;
+        updatedBy: string;
+        updatedAt?: string | Date;
+        version: number;
+        changes: any[];
+      };
+      linkedTransactions?: any[];
+    }>;
 
+    fixedIncomeTransactions?: Array<{
+      id: string;
+      description: string;
+      amount: { amount: number; currency: 'INR' };
+      type: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST_CREDIT' | 'MATURITY' | 'RENEWAL';
+      category: string;
+      instrumentId: string;
+      notes?: string;
+      timestamp?: string | Date;
+      encryptedData?: {
+        encryptionKey: string;
+        encryptionAlgorithm: string;
+        lastEncrypted: string | Date;
+        isEncrypted: boolean;
+      };
+      auditTrail?: {
+        createdBy: string;
+        createdAt?: string | Date;
+        updatedBy: string;
+        updatedAt?: string | Date;
+        version: number;
+        changes: any[];
+      };
+      linkedTransactions?: any[];
+    }>;
   // meta
   _version?: number;
   _updatedAt?: string; // ISO date
@@ -176,6 +235,8 @@ async function ensureDataFile(): Promise<void> {
             creditCardTransactions: [],
               // NEW: loans
             loanEntries: [],
+            fixedIncomeEntries: [],
+            fixedIncomeTransactions: [],
             _version: 1,
             _updatedAt: new Date().toISOString(),
         };
@@ -210,6 +271,8 @@ export async function getState(): Promise<PocketWorkxState> {
         creditCardTransactions: [],
           // NEW: loans
         loanEntries: [],
+        fixedIncomeEntries: [],
+        fixedIncomeTransactions: [],
         _version: 1,
         _updatedAt: new Date().toISOString(),
     };
