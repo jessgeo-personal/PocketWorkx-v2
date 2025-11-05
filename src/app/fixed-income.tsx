@@ -71,10 +71,12 @@ const FixedIncomeScreen: React.FC = () => {
   const [isCompanyDepositModalVisible, setIsCompanyDepositModalVisible] = useState(false);
   const [isFCNRModalVisible, setIsFCNRModalVisible] = useState(false);
   const [isDebtModalVisible, setIsDebtModalVisible] = useState(false);
+  const [isRecurringModalVisible, setIsRecurringModalVisible] = useState(false);
 
   // Add form state
     const [instrumentType, setInstrumentType] = useState<'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt'>('fd');
     const [bankOrIssuer, setBankOrIssuer] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
     const [instrumentName, setInstrumentName] = useState('');
     const [principalAmount, setPrincipalAmount] = useState('');
     const [interestRate, setInterestRate] = useState('');
@@ -107,6 +109,7 @@ const FixedIncomeScreen: React.FC = () => {
     const [yieldToMaturity, setYieldToMaturity] = useState('');
     const [hasCallOption, setHasCallOption] = useState(false);
     const [hasPutOption, setHasPutOption] = useState(false);
+    const [maturityAmountStr, setMaturityAmountStr] = useState('');
 
 
   // TransactionsModal
@@ -142,7 +145,7 @@ const FixedIncomeScreen: React.FC = () => {
 
   // REPLACE the handleAddFixedIncome function with these 4 handlers:
 
-    const saveBankDeposit = async () => {
+  const saveBankDeposit = async () => {
     if (isProcessing) return;
 
     // Enhanced Validation
@@ -154,6 +157,17 @@ const FixedIncomeScreen: React.FC = () => {
     const principal = Number(principalAmount);
     if (!Number.isFinite(principal) || principal <= 0) {
       Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
+      return;
+    }
+
+    // Maturity Amount validation
+    if (!maturityAmountStr.trim()) {
+      Alert.alert('Missing Info', 'Please enter maturity amount.');
+      return;
+    }
+    const maturityAmountNum = Number(maturityAmountStr);
+    if (!Number.isFinite(maturityAmountNum) || maturityAmountNum <= 0) {
+      Alert.alert('Invalid Maturity Amount', 'Please enter a valid maturity amount.');
       return;
     }
 
@@ -215,6 +229,8 @@ const FixedIncomeScreen: React.FC = () => {
         instrumentName: instrumentName.trim() || `${instrumentType.toUpperCase()} - ${bankOrIssuer.trim()}`,
         principalAmount: { amount: Math.round(principal), currency: 'INR' },
         currentValue: { amount: Math.round(principal), currency: 'INR' },
+        maturityAmount: { amount: Math.round(maturityAmountNum), currency: 'INR' },
+        accountNumber: accountNumber.trim() as any,
         interestRate: Number(interestRate) || 0,
         compoundingFrequency,
         interestPayout,
@@ -264,9 +280,126 @@ const FixedIncomeScreen: React.FC = () => {
     } finally {
         setIsProcessing(false);
     }
-    };
+  };
 
-    const saveCompanyDeposit = async () => {
+  const saveRecurringDeposit = async () => {
+    if (isProcessing) return;
+
+    // Validation
+    if (!bankOrIssuer.trim() || !accountNumber.trim()) {
+      Alert.alert('Missing Info', 'Please fill bank name and account number.');
+      return;
+    }
+    if (!installmentAmount.trim()) {
+      Alert.alert('Missing Info', 'Please enter monthly installment amount for RD.');
+      return;
+    }
+    const installment = Number(installmentAmount);
+    if (!Number.isFinite(installment) || installment <= 0) {
+      Alert.alert('Invalid Installment', 'Please enter a valid installment amount.');
+      return;
+    }
+    if (recurringDepositDay < 1 || recurringDepositDay > 31) {
+      Alert.alert('Invalid Date', 'Please enter a valid deposit day (1-31).');
+      return;
+    }
+
+    // Date validation (past allowed; maturity must be after start)
+    let start = new Date();
+    let maturity = new Date(start.getTime() + 365 * 24 * 3600 * 1000);
+
+    if (startDateStr.trim()) {
+      const parsedStart = new Date(startDateStr);
+      if (isNaN(parsedStart.getTime())) {
+        Alert.alert('Invalid Date', 'Please enter a valid start date.');
+        return;
+      }
+      start = parsedStart;
+    }
+
+    if (maturityDateStr.trim()) {
+      const parsedMaturity = new Date(maturityDateStr);
+      if (isNaN(parsedMaturity.getTime())) {
+        Alert.alert('Invalid Date', 'Please enter a valid maturity date.');
+        return;
+      }
+      if (parsedMaturity <= start) {
+        Alert.alert('Invalid Date', 'Maturity date must be after start date.');
+        return;
+      }
+      maturity = parsedMaturity;
+    }
+
+    setIsProcessing(true);
+    try {
+      const now = new Date();
+
+      const entry: FixedIncomeEntry = {
+        id: `${Date.now()}`,
+        instrumentType: 'rd',
+        bankOrIssuer: bankOrIssuer.trim(),
+        bankName: bankOrIssuer.trim(),
+        instrumentName: instrumentName.trim() || `RD - ${bankOrIssuer.trim()}`,
+        // RD does not have a single principal; store currentValue as 0 for now; future accrual can compute balance
+        principalAmount: { amount: 0, currency: 'INR' },
+        currentValue: { amount: 0, currency: 'INR' },
+        interestRate: Number(interestRate) || 0,
+        compoundingFrequency: 'monthly',
+        interestPayout: 'maturity',
+        startDate: start,
+        maturityDate: maturity,
+        autoRenew: false,
+        isActive: true,
+        nomineeDetails: undefined,
+        jointHolders: undefined,
+        notes: notes?.trim() || undefined,
+        timestamp: now,
+        // NEW metadata additions:
+        accountNumber: accountNumber.trim() as any,            // saved for reference
+        rdMonthlyInstallment: Number(installmentAmount) as any,
+        rdDayOfMonth: recurringDepositDay as any,
+        rdSourceAccountId: sourceAccountId.trim() as any,
+        encryptedData: {
+          encryptionKey: '',
+          encryptionAlgorithm: 'AES-256',
+          lastEncrypted: now,
+          isEncrypted: false,
+        },
+        auditTrail: {
+          createdBy: 'user',
+          createdAt: now,
+          updatedBy: 'user',
+          updatedAt: now,
+          version: 1,
+          changes: [{
+            action: 'ADD_FIXED_INCOME',
+            timestamp: now,
+            principal: 0,
+            bankOrIssuer: bankOrIssuer.trim(),
+            instrumentType: 'rd',
+          }],
+        },
+        linkedTransactions: [],
+      };
+
+      await save((draft: AppModel) => {
+        const next = draft.fixedIncomeEntries ? [...draft.fixedIncomeEntries] as FixedIncomeEntry[] : [];
+        next.push(entry);
+        return { ...draft, fixedIncomeEntries: next };
+      });
+
+      resetFormFields();
+      setIsRecurringModalVisible(false);
+
+    } catch (e) {
+      Alert.alert('Error', 'Failed to add Recurring Deposit. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+
+  const saveCompanyDeposit = async () => {
     if (isProcessing) return;
 
     if (!companyName.trim() || !principalAmount.trim()) {
@@ -277,6 +410,17 @@ const FixedIncomeScreen: React.FC = () => {
     if (!Number.isFinite(principal) || principal <= 0) {
         Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
         return;
+    }
+
+    // Maturity Amount validation
+    if (!maturityAmountStr.trim()) {
+      Alert.alert('Missing Info', 'Please enter maturity amount.');
+      return;
+    }
+    const maturityAmountNum = Number(maturityAmountStr);
+    if (!Number.isFinite(maturityAmountNum) || maturityAmountNum <= 0) {
+      Alert.alert('Invalid Maturity Amount', 'Please enter a valid maturity amount.');
+      return;
     }
 
     setIsProcessing(true);
@@ -293,6 +437,8 @@ const FixedIncomeScreen: React.FC = () => {
         instrumentName: instrumentName.trim() || `Company Deposit - ${companyName.trim()}`,
         principalAmount: { amount: Math.round(principal), currency: 'INR' },
         currentValue: { amount: Math.round(principal), currency: 'INR' },
+        maturityAmount: { amount: Math.round(maturityAmountNum), currency: 'INR' },
+        accountNumber: accountNumber.trim() as any,
         interestRate: Number(interestRate) || 0,
         compoundingFrequency,
         interestPayout,
@@ -325,7 +471,7 @@ const FixedIncomeScreen: React.FC = () => {
             }],
         },
         linkedTransactions: [],
-        };
+      };
 
         await save((draft: AppModel) => {
         const next = draft.fixedIncomeEntries ? [...draft.fixedIncomeEntries] as FixedIncomeEntry[] : [];
@@ -341,9 +487,9 @@ const FixedIncomeScreen: React.FC = () => {
     } finally {
         setIsProcessing(false);
     }
-    };
+  };
 
-    const saveFCNRDeposit = async () => {
+  const saveFCNRDeposit = async () => {
     if (isProcessing) return;
 
     if (!bankOrIssuer.trim() || !principalAmount.trim()) {
@@ -354,6 +500,17 @@ const FixedIncomeScreen: React.FC = () => {
     if (!Number.isFinite(principal) || principal <= 0) {
         Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
         return;
+    }
+
+    // Maturity Amount validation
+    if (!maturityAmountStr.trim()) {
+      Alert.alert('Missing Info', 'Please enter maturity amount.');
+      return;
+    }
+    const maturityAmountNum = Number(maturityAmountStr);
+    if (!Number.isFinite(maturityAmountNum) || maturityAmountNum <= 0) {
+      Alert.alert('Invalid Maturity Amount', 'Please enter a valid maturity amount.');
+      return;
     }
 
     setIsProcessing(true);
@@ -370,6 +527,8 @@ const FixedIncomeScreen: React.FC = () => {
         instrumentName: instrumentName.trim() || `FCNR ${currency} - ${bankOrIssuer.trim()}`,
         principalAmount: { amount: Math.round(principal), currency: currency as Currency },
         currentValue: { amount: Math.round(principal), currency: currency as Currency },
+        maturityAmount: { amount: Math.round(maturityAmountNum), currency: currency as Currency },
+        accountNumber: accountNumber.trim() as any,
         interestRate: Number(interestRate) || 0,
         compoundingFrequency,
         interestPayout,
@@ -418,9 +577,9 @@ const FixedIncomeScreen: React.FC = () => {
     } finally {
         setIsProcessing(false);
     }
-    };
+  };
 
-    const saveDebtInstrument = async () => {
+  const saveDebtInstrument = async () => {
     if (isProcessing) return;
 
     if (!bankOrIssuer.trim() || !principalAmount.trim()) {
@@ -431,6 +590,16 @@ const FixedIncomeScreen: React.FC = () => {
     if (!Number.isFinite(principal) || principal <= 0) {
         Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
         return;
+    }
+    // Maturity Amount validation
+    if (!maturityAmountStr.trim()) {
+      Alert.alert('Missing Info', 'Please enter maturity amount.');
+      return;
+    }
+    const maturityAmountNum = Number(maturityAmountStr);
+    if (!Number.isFinite(maturityAmountNum) || maturityAmountNum <= 0) {
+      Alert.alert('Invalid Maturity Amount', 'Please enter a valid maturity amount.');
+      return;
     }
 
     setIsProcessing(true);
@@ -447,6 +616,8 @@ const FixedIncomeScreen: React.FC = () => {
         instrumentName: instrumentName.trim() || `${bondType.toUpperCase()} Bond - ${bankOrIssuer.trim()}`,
         principalAmount: { amount: Math.round(principal), currency: 'INR' },
         currentValue: { amount: Math.round(principal), currency: 'INR' },
+        maturityAmount: { amount: Math.round(maturityAmountNum), currency: 'INR' },
+        accountNumber: accountNumber.trim() as any,
         interestRate: Number(interestRate) || 0,
         compoundingFrequency,
         interestPayout,
@@ -495,35 +666,36 @@ const FixedIncomeScreen: React.FC = () => {
     } finally {
         setIsProcessing(false);
     }
-    };
+  };
 
     // ADD this helper function for form reset:
     const resetFormFields = () => {
-    setInstrumentType('fd');
-    setBankOrIssuer('');
-    setInstrumentName('');
-    setPrincipalAmount('');
-    setInterestRate('');
-    setCompoundingFrequency('annually');
-    setStartDateStr('');
-    setMaturityDateStr('');
-    setAutoRenew(false);
-    setNotes('');
-    setInterestPayout('maturity');
-    setPayoutAccountId('');
-    setCurrency('INR');
-    setRecurringDepositDay(1);
-    setSourceAccountId('');
-    setInstallmentAmount('');
-    setCompanyName('');
-    setBondType('government');
-    setCreditRating('');
-    setIsinCode('');
-    setFaceValueStr('');
-    setCouponRate('');
-    setYieldToMaturity('');
-    setHasCallOption(false);
-    setHasPutOption(false);
+      setInstrumentType('fd');
+      setBankOrIssuer('');
+      setAccountNumber('');
+      setInstrumentName('');
+      setPrincipalAmount('');
+      setInterestRate('');
+      setCompoundingFrequency('annually');
+      setStartDateStr('');
+      setMaturityDateStr('');
+      setAutoRenew(false);
+      setNotes('');
+      setInterestPayout('maturity');
+      setPayoutAccountId('');
+      setCurrency('INR');
+      setRecurringDepositDay(1);
+      setSourceAccountId('');
+      setInstallmentAmount('');
+      setCompanyName('');
+      setBondType('government');
+      setCreditRating('');
+      setIsinCode('');
+      setFaceValueStr('');
+      setCouponRate('');
+      setYieldToMaturity('');
+      setHasCallOption(false);
+      setMaturityAmountStr('');
     };
 
 
@@ -576,46 +748,75 @@ const FixedIncomeScreen: React.FC = () => {
         </View>
         <MaterialIcons name="chevron-right" size={22} color={Colors.text.secondary} />
       </View>
-
       <View style={styles.balanceRow}>
         <View>
           <Text style={styles.balanceLabel}>Principal</Text>
-          <Text style={styles.balanceAmountSecondary}>{formatFullINR(fi.principalAmount.amount)}</Text>
+          <Text style={styles.balanceAmountSecondary}>
+            {fi.principalAmount?.currency === 'INR' 
+              ? formatFullINR(fi.principalAmount.amount) 
+              : `${fi.principalAmount.currency} ${fi.principalAmount.amount.toLocaleString()}`}
+          </Text>
         </View>
+
+        <View>
+          <Text style={styles.balanceLabel}>Maturity Amount</Text>
+          <Text style={styles.balanceAmountSecondary}>
+            {fi.maturityAmount
+              ? (fi.maturityAmount.currency === 'INR'
+                  ? formatFullINR(fi.maturityAmount.amount)
+                  : `${fi.maturityAmount.currency} ${fi.maturityAmount.amount.toLocaleString()}`)
+              : '—'}
+          </Text>
+        </View>
+
         <View>
           <Text style={styles.balanceLabel}>Current Value</Text>
-          <Text style={styles.balanceAmountPrimary}>{formatFullINR(fi.currentValue.amount)}</Text>
+          <Text style={styles.balanceAmountPrimary}>
+            {fi.currentValue?.currency === 'INR' 
+              ? formatFullINR(fi.currentValue.amount) 
+              : `${fi.currentValue.currency} ${fi.currentValue.amount.toLocaleString()}`}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
   );
   
   const renderQuickActions = () => (
-  <View style={styles.quickActionsContainer}>
+    <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
-       <View style={styles.quickActionGrid}>
-      <TouchableOpacity style={styles.actionButton} onPress={() => setIsBankDepositModalVisible(true)}>
-           <MaterialIcons name="account-balance" size={24} color="#1976D2" />
-           <Text style={styles.actionText}>Add Bank Deposits</Text>
-       </TouchableOpacity>
-       <TouchableOpacity style={styles.actionButton} onPress={() => setIsCompanyDepositModalVisible(true)}>
-           <MaterialIcons name="domain" size={24} color="#1976D2" />
-           <Text style={styles.actionText}>Add Company Deposit</Text>
-       </TouchableOpacity>
-       <TouchableOpacity style={styles.actionButton} onPress={() => setIsFCNRModalVisible(true)}>
+      <View style={styles.quickActionGrid}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setInstrumentType('fd'); setIsBankDepositModalVisible(true); }}>
+          <MaterialIcons name="account-balance" size={24} color="#1976D2" />
+          <Text style={styles.actionText}>Add Bank Deposit</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setIsRecurringModalVisible(true); }}>
+          <MaterialIcons name="repeat" size={24} color="#1976D2" />
+          <Text style={styles.actionText}>Add Recurring Deposit</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setIsFCNRModalVisible(true); }}>
           <MaterialIcons name="currency-exchange" size={24} color="#1976D2" />
-          <Text style={styles.actionText}>Add FCNR Deposits</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.actionButton} onPress={() => setIsDebtModalVisible(true)}>
+          <Text style={styles.actionText}>Add FCNR Deposit</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setIsCompanyDepositModalVisible(true); }}>
+          <MaterialIcons name="domain" size={24} color="#1976D2" />
+          <Text style={styles.actionText}>Add Company Deposit</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setIsDebtModalVisible(true); }}>
           <MaterialIcons name="receipt-long" size={24} color="#1976D2" />
-           <Text style={styles.actionText}>Add Debt Instruments</Text>
-      </TouchableOpacity>
+          <Text style={styles.actionText}>Add Debt Instruments</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('Coming Soon', 'More deposit types and features will be added soon.')}>
+          <MaterialIcons name="rocket-launch" size={24} color="#1976D2" />
+          <Text style={styles.actionText}>Coming Soon</Text>
+        </TouchableOpacity>
       </View>
-   </View>   
-   );
-
-
-
+    </View>
+  );
 
 // ADD: Bank Deposit Modal (FD/RD/NRE/NRO) - ENHANCED VERSION
   const renderBankDepositModal = () => (
@@ -666,6 +867,17 @@ const FixedIncomeScreen: React.FC = () => {
                     value={bankOrIssuer}
                     onChangeText={setBankOrIssuer}
                     placeholder="e.g., HDFC Bank, SBI, ICICI Bank"
+                  />
+                </View>
+
+                {/* Account Number */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Account Number *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={accountNumber}
+                    onChangeText={setAccountNumber}
+                    placeholder="Enter linked deposit account number"
                   />
                 </View>
 
@@ -720,6 +932,18 @@ const FixedIncomeScreen: React.FC = () => {
                       </TouchableOpacity>
                     ))}
                   </View>
+                </View>
+
+                {/* Maturity Amount */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Maturity Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={maturityAmountStr}
+                    onChangeText={setMaturityAmountStr}
+                    placeholder="110000"
+                    keyboardType="numeric"
+                  />
                 </View>
 
                 {/* Dates Row */}
@@ -809,7 +1033,13 @@ const FixedIncomeScreen: React.FC = () => {
               </View>
             </ScrollView>
             <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsBankDepositModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  resetFormFields();
+                  setIsBankDepositModalVisible(false);
+                }}
+              >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
@@ -826,6 +1056,148 @@ const FixedIncomeScreen: React.FC = () => {
         </View>
       </Modal>
      );
+
+  const renderRecurringDepositModal = () => (
+    <Modal
+      visible={isRecurringModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => { resetFormFields(); setIsRecurringModalVisible(false); }}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Recurring Deposit</Text>
+            <TouchableOpacity onPress={() => { resetFormFields(); setIsRecurringModalVisible(false); }}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              {/* Bank Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bank Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={bankOrIssuer}
+                  onChangeText={setBankOrIssuer}
+                  placeholder="e.g., HDFC Bank, SBI"
+                />
+              </View>
+
+              {/* Account Number */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Number *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={accountNumber}
+                  onChangeText={setAccountNumber}
+                  placeholder="Enter linked deposit account number"
+                />
+              </View>
+
+              {/* Deposit Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Deposit Name (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={instrumentName}
+                  onChangeText={setInstrumentName}
+                  placeholder={`RD - ${bankOrIssuer || 'Bank Name'}`}
+                />
+              </View>
+
+              {/* Installment and Day */}
+              <View className="row" style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Monthly Installment (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={installmentAmount}
+                    onChangeText={setInstallmentAmount}
+                    placeholder="5000"
+                    keyboardType="numeric"
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Deposit Day (1–31) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={recurringDepositDay.toString()}
+                    onChangeText={(val) => setRecurringDepositDay(parseInt(val) || 1)}
+                    placeholder="15"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              {/* Source Account */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Source Account (Auto-debit)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={sourceAccountId}
+                  onChangeText={setSourceAccountId}
+                  placeholder="Enter account name/number"
+                />
+              </View>
+
+              {/* Dates */}
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Start Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={startDateStr}
+                    onChangeText={setStartDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Maturity Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={maturityDateStr}
+                    onChangeText={setMaturityDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+              </View>
+
+              {/* Notes */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.textInput, { minHeight: 80 }]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Additional details"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          </ScrollView>
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => { resetFormFields(); setIsRecurringModalVisible(false); }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryButton, isProcessing && styles.disabledButton]}
+              onPress={saveRecurringDeposit}
+              disabled={isProcessing}
+            >
+              <Text style={styles.primaryButtonText}>{isProcessing ? 'Saving...' : 'Save RD'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
 
 
   // ADD: FCNR Modal - ENHANCED VERSION
@@ -872,6 +1244,17 @@ const FixedIncomeScreen: React.FC = () => {
                   value={bankOrIssuer}
                   onChangeText={setBankOrIssuer}
                   placeholder="e.g., SBI, HDFC Bank, ICICI Bank"
+                />
+              </View>
+
+              {/* Account Number */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Number *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={accountNumber}
+                  onChangeText={setAccountNumber}
+                  placeholder="Enter linked deposit account number"
                 />
               </View>
 
@@ -928,6 +1311,18 @@ const FixedIncomeScreen: React.FC = () => {
                 </View>
               </View>
 
+              {/* Maturity Amount */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Maturity Amount ({currency}) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={maturityAmountStr}
+                  onChangeText={setMaturityAmountStr}
+                  placeholder={currency === 'USD' ? '11000' : currency === 'EUR' ? '9000' : '6000'}
+                  keyboardType="numeric"
+                />
+              </View>
+
               {/* Dates Row */}
               <View style={styles.row}>
                 <View style={styles.half}>
@@ -980,7 +1375,13 @@ const FixedIncomeScreen: React.FC = () => {
             </View>
           </ScrollView>
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsFCNRModalVisible(false)}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                resetFormFields();
+                setIsBankDepositModalVisible(false);
+              }}
+            >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -1024,7 +1425,18 @@ const FixedIncomeScreen: React.FC = () => {
                   style={styles.textInput}
                   value={companyName}
                   onChangeText={setCompanyName}
-                  placeholder="e.g., Mahindra Finance, Bajaj Finserv, Shriram Finance"
+                  placeholder="e.g., Mahindra Finance, Bajaj Finserv"
+                />
+              </View>
+
+              {/* Account Number */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Account Number *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={accountNumber}
+                  onChangeText={setAccountNumber}
+                  placeholder="Enter linked deposit account number"
                 />
               </View>
 
@@ -1051,6 +1463,18 @@ const FixedIncomeScreen: React.FC = () => {
                 />
               </View>
 
+              {/* Maturity Amount */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Maturity Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={maturityAmountStr}
+                  onChangeText={setMaturityAmountStr}
+                  placeholder="550000"
+                  keyboardType="numeric"
+                />
+              </View>
+
               {/* Interest Rate */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Interest Rate (% p.a.)</Text>
@@ -1061,24 +1485,6 @@ const FixedIncomeScreen: React.FC = () => {
                   placeholder="9.5"
                   keyboardType="decimal-pad"
                 />
-              </View>
-
-              {/* Interest Payout */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Interest Payout</Text>
-                <View style={styles.pickerRow}>
-                  {(['monthly','quarterly','annually','cumulative','maturity'] as const).map(payout => (
-                    <TouchableOpacity
-                      key={payout}
-                      style={[styles.pill, interestPayout === payout && styles.pillSelected]}
-                      onPress={() => setInterestPayout(payout)}
-                    >
-                      <Text style={[styles.pillText, interestPayout === payout && styles.pillTextSelected]}>
-                        {payout.toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
               </View>
 
               {/* Dates Row */}
@@ -1103,21 +1509,6 @@ const FixedIncomeScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Auto-Renewal */}
-              <View style={styles.inputContainer}>
-                <TouchableOpacity 
-                  style={styles.checkboxRow} 
-                  onPress={() => setAutoRenew(!autoRenew)}
-                >
-                  <MaterialIcons 
-                    name={autoRenew ? "check-box" : "check-box-outline-blank"} 
-                    size={24} 
-                    color="#8B5CF6" 
-                  />
-                  <Text style={styles.checkboxText}>Auto-renew on maturity</Text>
-                </TouchableOpacity>
-              </View>
-
               {/* Notes */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Notes (Optional)</Text>
@@ -1131,9 +1522,16 @@ const FixedIncomeScreen: React.FC = () => {
                 />
               </View>
             </View>
+
           </ScrollView>
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsCompanyDepositModalVisible(false)}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                resetFormFields();
+                setIsBankDepositModalVisible(false);
+              }}
+            >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -1350,7 +1748,13 @@ const FixedIncomeScreen: React.FC = () => {
             </View>
           </ScrollView>
           <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsDebtModalVisible(false)}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                resetFormFields();
+                setIsBankDepositModalVisible(false);
+              }}
+            >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -1412,6 +1816,7 @@ const FixedIncomeScreen: React.FC = () => {
       </ScrollView>
 
       {renderBankDepositModal()}
+      {renderRecurringDepositModal()}
       {renderCompanyDepositModal()}
       {renderFCNRModal()}
       {renderDebtModal()}
@@ -1466,8 +1871,15 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: '600', color: Colors.text.primary, marginBottom: 2 },
   cardSubtitle: { fontSize: 14, color: Colors.text.secondary, marginBottom: 4 },
   cardSubtle: { fontSize: 12, color: Colors.text.tertiary },
-  balanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  balanceLabel: { fontSize: 12, color: Colors.text.secondary, marginBottom: 2 },
+  balanceRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start', 
+    marginTop: 8,
+    flexWrap: 'wrap',
+    gap: 8
+  },
+balanceLabel: { fontSize: 12, color: Colors.text.secondary, marginBottom: 2 },
   balanceAmountSecondary: { fontSize: 16, fontWeight: '700', color: Colors.text.primary },
   balanceAmountPrimary: { fontSize: 18, fontWeight: '700', color: '#1976D2' },
   quickActionsContainer: { paddingHorizontal: 16, marginBottom: 24 },
