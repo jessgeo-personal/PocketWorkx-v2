@@ -125,47 +125,53 @@ const FixedIncomeScreen: React.FC = () => {
   const [isRecurringModalVisible, setIsRecurringModalVisible] = useState(false);
 
   // Add form state
-    const [instrumentType, setInstrumentType] = useState<'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt'>('fd');
-    const [bankOrIssuer, setBankOrIssuer] = useState('');
-    const [accountNumber, setAccountNumber] = useState('');
-    const [instrumentName, setInstrumentName] = useState('');
-    const [principalAmount, setPrincipalAmount] = useState('');
-    const [interestRate, setInterestRate] = useState('');
-    const [compoundingFrequency, setCompoundingFrequency] = useState<'annually' | 'monthly' | 'quarterly' | 'daily'>('annually');
-    const [startDateStr, setStartDateStr] = useState('');
-    const [maturityDateStr, setMaturityDateStr] = useState('');
-    const [autoRenew, setAutoRenew] = useState(false);
-    const [notes, setNotes] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
+  const [instrumentType, setInstrumentType] = useState<'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt'>('fd');
+  const [bankOrIssuer, setBankOrIssuer] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [instrumentName, setInstrumentName] = useState('');
+  const [principalAmount, setPrincipalAmount] = useState('');
+  const [interestRate, setInterestRate] = useState('');
+  const [compoundingFrequency, setCompoundingFrequency] = useState<'annually' | 'monthly' | 'quarterly' | 'daily'>('annually');
+  const [startDateStr, setStartDateStr] = useState('');
+  const [maturityDateStr, setMaturityDateStr] = useState('');
+  const [autoRenew, setAutoRenew] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
-    // ADD: New form fields for specialized modals
-    const [interestPayout, setInterestPayout] = useState<'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity'>('maturity');
-    const [payoutAccountId, setPayoutAccountId] = useState('');
-    const [currency, setCurrency] = useState('INR');
+  // ADD: New form fields for specialized modals
+  const [interestPayout, setInterestPayout] = useState<'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity'>('maturity');
+  const [payoutAccountId, setPayoutAccountId] = useState('');
+  const [currency, setCurrency] = useState('INR');
 
-    // RD-specific fields
-    const [recurringDepositDay, setRecurringDepositDay] = useState<number>(1);
-    const [sourceAccountId, setSourceAccountId] = useState('');
-    const [installmentAmount, setInstallmentAmount] = useState('');
+  // RD-specific fields
+  const [recurringDepositDay, setRecurringDepositDay] = useState<number>(1);
+  const [sourceAccountId, setSourceAccountId] = useState('');
+  const [installmentAmount, setInstallmentAmount] = useState('');
 
-    // Company-specific fields
-    const [companyName, setCompanyName] = useState('');
+  // Company-specific fields
+  const [companyName, setCompanyName] = useState('');
 
-    // Debt-specific fields
-    const [bondType, setBondType] = useState<'government' | 'corporate' | 'municipal'>('government');
-    const [creditRating, setCreditRating] = useState('');
-    const [isinCode, setIsinCode] = useState('');
-    const [faceValueStr, setFaceValueStr] = useState('');
-    const [couponRate, setCouponRate] = useState('');
-    const [yieldToMaturity, setYieldToMaturity] = useState('');
-    const [hasCallOption, setHasCallOption] = useState(false);
-    const [hasPutOption, setHasPutOption] = useState(false);
-    const [maturityAmountStr, setMaturityAmountStr] = useState('');
-
+  // Debt-specific fields
+  const [bondType, setBondType] = useState<'government' | 'corporate' | 'municipal'>('government');
+  const [creditRating, setCreditRating] = useState('');
+  const [isinCode, setIsinCode] = useState('');
+  const [faceValueStr, setFaceValueStr] = useState('');
+  const [couponRate, setCouponRate] = useState('');
+  const [yieldToMaturity, setYieldToMaturity] = useState('');
+  const [hasCallOption, setHasCallOption] = useState(false);
+  const [hasPutOption, setHasPutOption] = useState(false);
+  const [maturityAmountStr, setMaturityAmountStr] = useState('');
 
   // TransactionsModal
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
+
+  // Close Deposit modal state
+  const [isCloseModalVisible, setIsCloseModalVisible] = useState(false);
+  const [closingTarget, setClosingTarget] = useState<FixedIncomeEntry | null>(null);
+  const [closeDateStr, setCloseDateStr] = useState('');
+  const [closeMaturityStr, setCloseMaturityStr] = useState('');
+  const [closeTransferAccount, setCloseTransferAccount] = useState('');
 
   const formatDateLabel = (d: Date) => {
     try {
@@ -204,103 +210,16 @@ const FixedIncomeScreen: React.FC = () => {
   };
 
   const onCloseDeposit = (fi: FixedIncomeEntry) => {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
-
-    // Three-step prompt chain for closure details
-    Alert.prompt(
-      'Close Deposit - Step 1/3',
-      'Enter closure date (YYYY-MM-DD):',
-      (closureDateInput) => {
-        const closureDate = (closureDateInput || '').trim() || today;
-        
-        // Validate date
-        const parsed = new Date(closureDate);
-        if (isNaN(parsed.getTime())) {
-          Alert.alert('Invalid Date', 'Please enter a valid date.');
-          return;
-        }
-
-        // Step 2: Maturity amount
-        const defaultMaturity = (fi as any).maturityAmount?.amount?.toString() || fi.currentValue?.amount?.toString() || '';
-          Alert.prompt(
-          'Close Deposit - Step 2/3',
-          `Enter maturity amount received (${fi.currentValue?.currency || 'INR'}):`,
-          (maturityInput) => {
-            const maturityAmount = Number((maturityInput || '').trim());
-            
-            if (!Number.isFinite(maturityAmount) || maturityAmount <= 0) {
-              Alert.alert('Invalid Amount', 'Please enter a valid maturity amount.');
-              return;
-            }
-
-            // Step 3: Transfer account
-            Alert.prompt(
-              'Close Deposit - Step 3/3',
-              'Enter bank account where amount was credited:',
-              async (transferAccount) => {
-                const account = (transferAccount || '').trim();
-                
-                if (!account) {
-                  Alert.alert('Missing Info', 'Please enter the transfer account.');
-                  return;
-                }
-
-                // Execute closure
-                try {
-                  await save((draft: AppModel) => {
-                    const entries = (draft.fixedIncomeEntries || []) as any[];
-                    const index = entries.findIndex((e: any) => e.id === fi.id);
-                    
-                    if (index >= 0) {
-                      entries[index] = {
-                        ...entries[index],
-                        isClosed: true,
-                        closureDate: parsed,
-                        transferAccount: account,
-                        maturityAmount: {
-                          amount: Math.round(maturityAmount),
-                          currency: fi.currentValue?.currency || 'INR'
-                        },
-                        currentValue: {
-                          amount: 0,
-                          currency: fi.currentValue?.currency || 'INR'
-                        },
-                        auditTrail: {
-                          ...entries[index].auditTrail,
-                          updatedAt: new Date(),
-                          changes: [
-                            ...(entries[index].auditTrail?.changes || []),
-                            {
-                              action: 'CLOSE_FIXED_INCOME',
-                              timestamp: new Date(),
-                              closureDate,
-                              transferAccount: account,
-                              maturityAmount: Math.round(maturityAmount),
-                            }
-                          ]
-                        }
-                      };
-                    }
-                    
-                    return { ...draft, fixedIncomeEntries: entries };
-                  });
-
-                  Alert.alert('Success', `${fi.instrumentName} closed successfully. Amount credited to ${account}.`);
-                } catch (error) {
-                  Alert.alert('Error', 'Failed to close deposit. Please try again.');
-                }
-              }
-            );
-          },
-          undefined,  // ← REMOVE 'numeric', use undefined instead
-          defaultMaturity
-        );
-      },
-      'plain-text',
-      today
-    );
+    setClosingTarget(fi);
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    setCloseDateStr(`${dd}/${mm}/${yyyy}`);
+    setCloseMaturityStr(((fi as any).maturityAmount?.amount ?? fi.currentValue?.amount ?? 0).toString());
+    setCloseTransferAccount('');
+    setIsCloseModalVisible(true);
   };
-
 
   // REPLACE the handleAddFixedIncome function with these 4 handlers:
 
@@ -832,36 +751,113 @@ const FixedIncomeScreen: React.FC = () => {
     }
   };
 
+  const finalizeCloseDeposit = async () => {
+    if (!closingTarget) return;
+    // Validate fields
+    const parsedDate = (() => {
+      // accept DD/MM/YYYY from input
+      const parts = closeDateStr.split('/');
+      if (parts.length === 3) {
+        const [dd, mm, yyyy] = parts;
+        const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const d = new Date(closeDateStr);
+      return isNaN(d.getTime()) ? null : d;
+    })();
+
+    if (!parsedDate) {
+      Alert.alert('Invalid Date', 'Please enter a valid closure date in DD/MM/YYYY.');
+      return;
+    }
+
+    const maturityNum = Number(closeMaturityStr);
+    if (!Number.isFinite(maturityNum) || maturityNum <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid maturity amount.');
+      return;
+    }
+
+    if (!closeTransferAccount.trim()) {
+      Alert.alert('Missing Info', 'Please enter the transfer account.');
+      return;
+    }
+
+    try {
+      await save((draft: AppModel) => {
+        const list = (draft.fixedIncomeEntries || []) as any[];
+        const idx = list.findIndex((e: any) => e.id === closingTarget.id);
+        if (idx >= 0) {
+          list[idx] = {
+            ...list[idx],
+            isClosed: true,
+            closureDate: parsedDate,
+            transferAccount: closeTransferAccount.trim(),
+            maturityAmount: {
+              amount: Math.round(maturityNum),
+              currency: list[idx].currentValue?.currency || 'INR'
+            },
+            currentValue: {
+              amount: 0,
+              currency: list[idx].currentValue?.currency || 'INR'
+            },
+            auditTrail: {
+              ...(list[idx].auditTrail || {}),
+              updatedAt: new Date(),
+              changes: [
+                ...((list[idx].auditTrail?.changes) || []),
+                {
+                  action: 'CLOSE_FIXED_INCOME',
+                  timestamp: new Date(),
+                  closureDate: parsedDate,
+                  transferAccount: closeTransferAccount.trim(),
+                  maturityAmount: Math.round(maturityNum),
+                }
+              ]
+            }
+          };
+        }
+        return { ...draft, fixedIncomeEntries: list };
+      });
+
+      setIsCloseModalVisible(false);
+      setClosingTarget(null);
+      Alert.alert('Closed', 'Deposit closed successfully.');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to close deposit. Please try again.');
+    }
+  };
+
+
     // ADD this helper function for form reset:
-    const resetFormFields = () => {
-      setInstrumentType('fd');
-      setBankOrIssuer('');
-      setAccountNumber('');
-      setInstrumentName('');
-      setPrincipalAmount('');
-      setInterestRate('');
-      setCompoundingFrequency('annually');
-      setStartDateStr('');
-      setMaturityDateStr('');
-      setAutoRenew(false);
-      setNotes('');
-      setInterestPayout('maturity');
-      setPayoutAccountId('');
-      setCurrency('INR');
-      setRecurringDepositDay(1);
-      setSourceAccountId('');
-      setInstallmentAmount('');
-      setCompanyName('');
-      setBondType('government');
-      setCreditRating('');
-      setIsinCode('');
-      setFaceValueStr('');
-      setCouponRate('');
-      setYieldToMaturity('');
-      setHasCallOption(false);
-      setMaturityAmountStr('');
-      setSourceAccountId('');
-    };
+  const resetFormFields = () => {
+    setInstrumentType('fd');
+    setBankOrIssuer('');
+    setAccountNumber('');
+    setInstrumentName('');
+    setPrincipalAmount('');
+    setInterestRate('');
+    setCompoundingFrequency('annually');
+    setStartDateStr('');
+    setMaturityDateStr('');
+    setAutoRenew(false);
+    setNotes('');
+    setInterestPayout('maturity');
+    setPayoutAccountId('');
+    setCurrency('INR');
+    setRecurringDepositDay(1);
+    setSourceAccountId('');
+    setInstallmentAmount('');
+    setCompanyName('');
+    setBondType('government');
+    setCreditRating('');
+    setIsinCode('');
+    setFaceValueStr('');
+    setCouponRate('');
+    setYieldToMaturity('');
+    setHasCallOption(false);
+    setMaturityAmountStr('');
+    setSourceAccountId('');
+  };
 
 
   const renderHeader = () => (
@@ -2032,6 +2028,82 @@ const FixedIncomeScreen: React.FC = () => {
     </Modal>
   );
 
+  const renderCloseDepositModal = () => (
+    <Modal
+      visible={isCloseModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsCloseModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Close Deposit</Text>
+            <TouchableOpacity onPress={() => setIsCloseModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              <Text style={styles.inputLabel}>
+                Deposit: {closingTarget?.instrumentName || ''} • {closingTarget?.bankOrIssuer || closingTarget?.bankName || ''}
+              </Text>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Closure Date (DD/MM/YYYY) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={closeDateStr}
+                  onChangeText={(t) => setCloseDateStr(formatDateInput(t))}
+                  placeholder="DD/MM/YYYY"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Maturity Amount ({closingTarget?.currentValue?.currency || 'INR'}) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={closeMaturityStr}
+                  onChangeText={setCloseMaturityStr}
+                  placeholder="0"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Transfer Account *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={closeTransferAccount}
+                  onChangeText={setCloseTransferAccount}
+                  placeholder="e.g., HDFC ****1234"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                />
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => { setIsCloseModalVisible(false); setClosingTarget(null); }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={finalizeCloseDeposit}
+            >
+              <Text style={styles.primaryButtonText}>Confirm Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
 
   if (loading) {
@@ -2080,6 +2152,7 @@ const FixedIncomeScreen: React.FC = () => {
       {renderCompanyDepositModal()}
       {renderFCNRModal()}
       {renderDebtModal()}
+      {renderCloseDepositModal()}
 
       {txFilter && (
         <TransactionsModal
