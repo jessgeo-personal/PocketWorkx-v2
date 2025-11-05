@@ -22,6 +22,8 @@ import type { FilterCriteria } from '../types/transactions';
 import AppFooter from '../components/AppFooter';
 
 type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'AUD' | 'CAD' | 'SGD' | 'CHF';
+const PLACEHOLDER_COLOR = '#9CA3AF'; // Tailwind zinc-400-like; lighter than regular text
+
 
 const instrumentTypes = [
   { key: 'fd', label: 'Fixed Deposit' },
@@ -75,15 +77,37 @@ const FixedIncomeScreen: React.FC = () => {
   const SourceBankAccounts = useMemo(() => {
     const entries = (state as any)?.accounts ?? [];
     if (!Array.isArray(entries)) return [];
-    return entries.map((a: any) => {
-      const bank = a?.bank || a?.bankName || 'Bank';
-      const acct = `${a?.accountNumber || a?.number || ''}`.trim();
-      const last4 = acct ? acct.slice(-4) : 'XXXX';
-      const id = a?.id ?? `${bank}-${last4}`;
-      const label = `${bank} • ****${last4}`;
+
+    const getDigits = (s: string) => (s || '').replace(/\D/g, '');
+    const getLast4 = (s: string) => {
+      const digits = getDigits(s);
+      return digits.length >= 4 ? digits.slice(-4) : (digits || '');
+    };
+
+    return entries.map((a: any, idx: number) => {
+      const bank = a?.bank || a?.bankName || a?.institution || 'Bank';
+
+      // Try common fields for account numbers
+      const rawAccount =
+        a?.accountNumber ??
+        a?.number ??
+        a?.acctNo ??
+        a?.acctNumber ??
+        a?.iban ??
+        a?.maskedNumber ??
+        '';
+
+      // If masked like 'XXXX-XXXX-1234', take numeric last 4
+      const last4 = getLast4(String(rawAccount));
+      // Fallback if no numeric digits at all: use index-based surrogate
+      const safeLast4 = last4 || String(a?.id || idx).slice(-4).padStart(4, '0');
+
+      const id = a?.id ?? `${bank}-${safeLast4}-${idx}`;
+      const label = `${bank} • ****${safeLast4}`;
       return { id, label };
     });
   }, [state]);
+
 
 
 
@@ -899,6 +923,7 @@ const FixedIncomeScreen: React.FC = () => {
                     value={bankOrIssuer}
                     onChangeText={setBankOrIssuer}
                     placeholder="e.g., HDFC Bank, SBI, ICICI Bank"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                   />
                 </View>
 
@@ -910,6 +935,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={accountNumber}
                     onChangeText={setAccountNumber}
                     placeholder="Enter linked deposit account number"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
 
@@ -921,6 +948,7 @@ const FixedIncomeScreen: React.FC = () => {
                     value={instrumentName}
                     onChangeText={setInstrumentName}
                     placeholder={`${instrumentType.toUpperCase()} - ${bankOrIssuer || 'Bank Name'}`}
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                   />
                 </View>
 
@@ -933,6 +961,7 @@ const FixedIncomeScreen: React.FC = () => {
                     onChangeText={setPrincipalAmount}
                     placeholder="100000"
                     keyboardType="numeric"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                   />
                 </View>
 
@@ -945,6 +974,7 @@ const FixedIncomeScreen: React.FC = () => {
                     onChangeText={setInterestRate}
                     placeholder="7.5"
                     keyboardType="decimal-pad"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                   />
                 </View>
 
@@ -975,6 +1005,7 @@ const FixedIncomeScreen: React.FC = () => {
                     onChangeText={setMaturityAmountStr}
                     placeholder="110000"
                     keyboardType="numeric"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                   />
                 </View>
 
@@ -987,6 +1018,8 @@ const FixedIncomeScreen: React.FC = () => {
                       value={startDateStr}
                       onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                       placeholder="DD/MM/YYYY"
+                      placeholderTextColor={PLACEHOLDER_COLOR}
+                      keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.half}>
@@ -996,6 +1029,8 @@ const FixedIncomeScreen: React.FC = () => {
                       value={maturityDateStr}
                       onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                       placeholder="DD/MM/YYYY"
+                      placeholderTextColor={PLACEHOLDER_COLOR}
+                      keyboardType="numeric"
                     />
                   </View>
                 </View>
@@ -1011,6 +1046,7 @@ const FixedIncomeScreen: React.FC = () => {
                         onChangeText={(val) => setRecurringDepositDay(parseInt(val) || 1)}
                         placeholder="15"
                         keyboardType="numeric"
+                        placeholderTextColor={PLACEHOLDER_COLOR}
                       />
                     </View>
                     <View style={styles.inputContainer}>
@@ -1021,6 +1057,7 @@ const FixedIncomeScreen: React.FC = () => {
                         onChangeText={setInstallmentAmount}
                         placeholder="5000"
                         keyboardType="numeric"
+                        placeholderTextColor={PLACEHOLDER_COLOR}
                       />
                     </View>
                     <View style={styles.inputContainer}>
@@ -1030,6 +1067,7 @@ const FixedIncomeScreen: React.FC = () => {
                         value={sourceAccountId}
                         onChangeText={setSourceAccountId}
                         placeholder="Select account for auto-debit"
+                        placeholderTextColor={PLACEHOLDER_COLOR}
                       />
                     </View>
                   </>
@@ -1058,6 +1096,7 @@ const FixedIncomeScreen: React.FC = () => {
                     value={notes}
                     onChangeText={setNotes}
                     placeholder="Additional details, nominee information, etc."
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                     multiline
                     numberOfLines={3}
                   />
@@ -1114,6 +1153,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={bankOrIssuer}
                   onChangeText={setBankOrIssuer}
                   placeholder="e.g., HDFC Bank, SBI"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1125,6 +1165,8 @@ const FixedIncomeScreen: React.FC = () => {
                   value={accountNumber}
                   onChangeText={setAccountNumber}
                   placeholder="Enter linked deposit account number"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                  keyboardType="numeric"
                 />
               </View>
 
@@ -1136,6 +1178,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={instrumentName}
                   onChangeText={setInstrumentName}
                   placeholder={`RD - ${bankOrIssuer || 'Bank Name'}`}
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1149,6 +1192,7 @@ const FixedIncomeScreen: React.FC = () => {
                     onChangeText={setInstallmentAmount}
                     placeholder="5000"
                     keyboardType="numeric"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                   />
                 </View>
                 <View style={styles.half}>
@@ -1159,6 +1203,7 @@ const FixedIncomeScreen: React.FC = () => {
                     onChangeText={(val) => setRecurringDepositDay(parseInt(val) || 1)}
                     placeholder="15"
                     keyboardType="numeric"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                   />
                 </View>
               </View>
@@ -1166,8 +1211,7 @@ const FixedIncomeScreen: React.FC = () => {
               {/* Source Account (mandatory picker) */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Source Account (Auto-debit) *</Text>
-                <View style={[styles.textInput, { paddingVertical: 6 }]}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  <View style={styles.pickerRow}>
                     {SourceBankAccounts.length === 0 ? (
                       <Text style={{ color: Colors.text.tertiary }}>No accounts found. Add bank accounts first.</Text>
                     ) : (
@@ -1183,8 +1227,7 @@ const FixedIncomeScreen: React.FC = () => {
                         </TouchableOpacity>
                       ))
                     )}
-                  </ScrollView>
-                </View>
+                  </View>
               </View>
 
               {/* Dates */}
@@ -1196,6 +1239,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={startDateStr}
                     onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.half}>
@@ -1205,6 +1250,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={maturityDateStr}
                     onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
               </View>
@@ -1217,6 +1264,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Additional details"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   multiline
                   numberOfLines={3}
                 />
@@ -1289,6 +1337,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={bankOrIssuer}
                   onChangeText={setBankOrIssuer}
                   placeholder="e.g., SBI, HDFC Bank, ICICI Bank"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1300,6 +1349,8 @@ const FixedIncomeScreen: React.FC = () => {
                   value={accountNumber}
                   onChangeText={setAccountNumber}
                   placeholder="Enter linked deposit account number"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                  keyboardType="numeric"
                 />
               </View>
 
@@ -1311,6 +1362,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={instrumentName}
                   onChangeText={setInstrumentName}
                   placeholder={`FCNR ${currency} - ${bankOrIssuer || 'Bank Name'}`}
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1322,6 +1374,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={principalAmount}
                   onChangeText={setPrincipalAmount}
                   placeholder={currency === 'USD' ? '10000' : currency === 'EUR' ? '8500' : '5000'}
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   keyboardType="numeric"
                 />
               </View>
@@ -1334,6 +1387,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={interestRate}
                   onChangeText={setInterestRate}
                   placeholder="2.5"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -1364,6 +1418,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={maturityAmountStr}
                   onChangeText={setMaturityAmountStr}
                   placeholder={currency === 'USD' ? '11000' : currency === 'EUR' ? '9000' : '6000'}
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   keyboardType="numeric"
                 />
               </View>
@@ -1377,6 +1432,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={startDateStr}
                     onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.half}>
@@ -1386,6 +1443,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={maturityDateStr}
                     onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
               </View>
@@ -1413,6 +1472,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Exchange rate at opening, repatriation details, etc."
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   multiline
                   numberOfLines={3}
                 />
@@ -1471,6 +1531,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={companyName}
                   onChangeText={setCompanyName}
                   placeholder="e.g., Mahindra Finance, Bajaj Finserv"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1482,6 +1543,8 @@ const FixedIncomeScreen: React.FC = () => {
                   value={accountNumber}
                   onChangeText={setAccountNumber}
                   placeholder="Enter linked deposit account number"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                  keyboardType="numeric"
                 />
               </View>
 
@@ -1493,6 +1556,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={instrumentName}
                   onChangeText={setInstrumentName}
                   placeholder={`Company Deposit - ${companyName || 'Company Name'}`}
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1504,6 +1568,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={principalAmount}
                   onChangeText={setPrincipalAmount}
                   placeholder="500000"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   keyboardType="numeric"
                 />
               </View>
@@ -1516,6 +1581,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={maturityAmountStr}
                   onChangeText={setMaturityAmountStr}
                   placeholder="550000"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   keyboardType="numeric"
                 />
               </View>
@@ -1528,6 +1594,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={interestRate}
                   onChangeText={setInterestRate}
                   placeholder="9.5"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -1541,6 +1608,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={startDateStr}
                     onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.half}>
@@ -1550,6 +1619,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={maturityDateStr}
                     onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
               </View>
@@ -1562,6 +1633,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Credit rating, deposit insurance, special terms, etc."
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   multiline
                   numberOfLines={3}
                 />
@@ -1643,6 +1715,7 @@ const FixedIncomeScreen: React.FC = () => {
                     bondType === 'corporate' ? 'e.g., Reliance Industries, Tata Motors' :
                     'Municipal Corporation Name'
                   }
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1654,6 +1727,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={instrumentName}
                   onChangeText={setInstrumentName}
                   placeholder={`${bondType.toUpperCase()} Bond - ${bankOrIssuer || 'Issuer'}`}
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1665,6 +1739,8 @@ const FixedIncomeScreen: React.FC = () => {
                   value={isinCode}
                   onChangeText={setIsinCode}
                   placeholder="INE000A01036"
+                  placeholderTextColor={PLACEHOLDER_COLOR}
+                  keyboardType="numeric"
                 />
               </View>
 
@@ -1677,6 +1753,7 @@ const FixedIncomeScreen: React.FC = () => {
                     value={faceValueStr}
                     onChangeText={setFaceValueStr}
                     placeholder="1000"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                     keyboardType="numeric"
                   />
                 </View>
@@ -1687,6 +1764,7 @@ const FixedIncomeScreen: React.FC = () => {
                     value={principalAmount}
                     onChangeText={setPrincipalAmount}
                     placeholder="100000"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                     keyboardType="numeric"
                   />
                 </View>
@@ -1701,6 +1779,7 @@ const FixedIncomeScreen: React.FC = () => {
                     value={couponRate}
                     onChangeText={setCouponRate}
                     placeholder="7.75"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -1711,6 +1790,7 @@ const FixedIncomeScreen: React.FC = () => {
                     value={yieldToMaturity}
                     onChangeText={setYieldToMaturity}
                     placeholder="8.25"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -1724,6 +1804,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={creditRating}
                   onChangeText={setCreditRating}
                   placeholder="AAA, AA, A, BBB, etc."
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                 />
               </View>
 
@@ -1736,6 +1817,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={startDateStr}
                     onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
                 <View style={styles.half}>
@@ -1745,6 +1828,8 @@ const FixedIncomeScreen: React.FC = () => {
                     value={maturityDateStr}
                     onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="numeric"
                   />
                 </View>
               </View>
@@ -1786,6 +1871,7 @@ const FixedIncomeScreen: React.FC = () => {
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Trading details, broker information, tax implications, etc."
+                  placeholderTextColor={PLACEHOLDER_COLOR}
                   multiline
                   numberOfLines={3}
                 />
@@ -1950,9 +2036,9 @@ balanceLabel: { fontSize: 12, color: Colors.text.secondary, marginBottom: 2 },
     borderWidth: 1, borderColor: '#E0E0E0', borderRadius: 8, padding: 12, fontSize: 18, color: Colors.text.primary,
     backgroundColor: Colors.background.secondary,
   },
-  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pickerRow: { flexDirection: 'row', flexWrap: 'wrap' },
   pill: {
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#E0E0E0',
+    marginRight: 8, marginBottom: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: '#E0E0E0',
     backgroundColor: Colors.background.secondary,
   },
   pillSelected: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
