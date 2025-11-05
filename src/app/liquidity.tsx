@@ -24,24 +24,41 @@ const LiquidityScreen: React.FC = () => {
   const {
     totalCash,
     totalBankAccounts,
-    totalFixedIncome,
-    totalFixedIncomeByCurrency,
-    totalMarketInvestments,
     totalLiquidity,
   } = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
-
-  // For now, treat "short-term investments" as Fixed Income INR (guaranteed deposits).
-  // In a future phase, we can filter non-auto-renew FDs or liquid MFs separately.
-  const shortTermInvestmentsINR = totalFixedIncome;
-  const shortTermInvestmentsFX = Object.entries(totalFixedIncomeByCurrency)
-    .filter(([c]) => c !== 'INR')
-    .reduce((sum, [, amt]) => sum + (amt || 0), 0);
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 1000);
   };
+
+  // Cash breakdown by category
+  const cashBreakdown = useMemo(() => {
+    const entries = ((state?.cashEntries ?? []) as any[]);
+    return entries.map((cash: any) => {
+      const category = cash?.category || 'Cash';
+      const amount = cash?.amount?.amount ?? 0;
+      return { category, amount };
+    });
+  }, [state?.cashEntries]);
+
+  // Bank accounts breakdown by account type and institution
+  const bankBreakdown = useMemo(() => {
+    const entries = ((state?.accounts ?? []) as any[]);
+    const grouped: Record<string, { accounts: any[], total: number }> = {};
+
+    entries.forEach((acc: any) => {
+      const type = acc?.type || acc?.accountType || 'Savings';
+      if (!grouped[type]) {
+        grouped[type] = { accounts: [], total: 0 };
+      }
+      grouped[type].accounts.push(acc);
+      grouped[type].total += acc?.balance?.amount ?? 0;
+    });
+
+    return grouped;
+  }, [state?.accounts]);
 
   const renderLiquidityOverview = () => (
     <View style={styles.overviewCard}>
@@ -52,7 +69,7 @@ const LiquidityScreen: React.FC = () => {
       <Text style={styles.overviewAmount}>
         {formatCurrency(totalLiquidity, 'INR')}
       </Text>
-      <Text style={styles.overviewSubtext}>Ready for immediate use</Text>
+      <Text style={styles.overviewSubtext}>Cash + Bank accounts (immediate access)</Text>
     </View>
   );
 
@@ -81,6 +98,17 @@ const LiquidityScreen: React.FC = () => {
             <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
           </View>
         </View>
+        
+        {/* Cash category breakdown */}
+        {cashBreakdown.length > 0 && (
+          <View style={styles.smallBreakdown}>
+            {cashBreakdown.map((item, idx) => (
+              <Text key={idx} style={styles.smallBreakdownText}>
+                {item.category}: {formatCurrency(item.amount, 'INR')}
+              </Text>
+            ))}
+          </View>
+        )}
       </TouchableOpacity>
 
       {/* Bank Accounts */}
@@ -104,88 +132,79 @@ const LiquidityScreen: React.FC = () => {
             <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
           </View>
         </View>
-      </TouchableOpacity>
 
-      {/* Short-term Investments (Fixed Income) */}
-      <TouchableOpacity 
-        style={[styles.breakdownCard, { marginTop: Spacing.md }]}
-        onPress={() => router.push('/fixed-income')}
-        activeOpacity={0.9}
-      >
-        <View style={styles.breakdownItem}>
-          <View style={styles.breakdownLeft}>
-            <Feather name="trending-up" size={20} color={Colors.warning.main} />
-            <View style={styles.breakdownDetails}>
-              <Text style={styles.breakdownLabel}>Short-term Deposits</Text>
-              <Text style={styles.breakdownSubtext}>
-                INR FDs/RDs + NRE/FCNR + Company Deposits
+        {/* Bank accounts breakdown by type */}
+        <View style={styles.smallBreakdown}>
+          {Object.entries(bankBreakdown).map(([accountType, group]) => (
+            <View key={accountType} style={{ marginBottom: 4 }}>
+              <Text style={[styles.smallBreakdownText, { fontWeight: '600', color: Colors.text.secondary }]}>
+                {accountType} ({group.total > 0 ? formatCurrency(group.total, 'INR') : '₹0'})
               </Text>
+              {group.accounts.map((acc: any, idx: number) => {
+                const bank = acc?.bank || acc?.bankName || acc?.institution || 'Bank';
+                const acctRaw = String(acc?.accountNumber || acc?.number || '');
+                const last4 = acctRaw.replace(/\D/g, '').slice(-4) || 'XXXX';
+                const balance = acc?.balance?.amount ?? 0;
+                return (
+                  <Text key={idx} style={[styles.smallBreakdownText, { marginLeft: 8 }]}>
+                    {bank} ****{last4}: {formatCurrency(balance, 'INR')}
+                  </Text>
+                );
+              })}
             </View>
-          </View>
-          <View style={styles.breakdownRight}>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.breakdownAmount}>
-                {formatCurrency(shortTermInvestmentsINR, 'INR')}
-              </Text>
-              {shortTermInvestmentsFX > 0 && (
-                <Text style={[styles.breakdownSubtext, { marginTop: 2 }]}>
-                  {Object.entries(totalFixedIncomeByCurrency)
-                    .filter(([curr]) => curr !== 'INR')
-                    .map(([curr, amount]) => {
-                      const sym = curr === 'USD' ? '$' : curr === 'EUR' ? '€' : curr;
-                      return `${sym} ${amount.toLocaleString()}`;
-                    })
-                    .join(' • ')}
-                </Text>
-              )}
-            </View>
-            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
-          </View>
+          ))}
         </View>
       </TouchableOpacity>
     </View>
   );
 
   const renderLiquidityMetrics = () => {
-    // Placeholder metrics until we compute from real expenses/income datasets
+    // Calculate liquidity metrics from real data
     const liquidityRatio = useMemo(() => {
-      // Future: (Current Assets / Current Liabilities)
-      // For now, approximate as (cash + bank + INR fixed income) / (1) to just display numbers
-      const numerator = totalCash + totalBankAccounts + shortTermInvestmentsINR;
-      return numerator > 0 ? (numerator / Math.max(1, numerator)).toFixed(1) : '0.0';
-    }, [totalCash, totalBankAccounts, shortTermInvestmentsINR]);
+      // Simple ratio: how much liquid assets vs minimum recommended (₹1L)
+      const minRecommended = 100000;
+      return totalLiquidity > 0 ? (totalLiquidity / minRecommended).toFixed(1) : '0.0';
+    }, [totalLiquidity]);
 
     const emergencyFundCoverage = useMemo(() => {
-      // Future: months of coverage = totalLiquidity / averageMonthlyExpenses
-      // For now, show a placeholder based on scale
-      const months = Math.max(1, Math.round((totalLiquidity || 0) / 100000));
-      return months;
+      // Approximate months of coverage assuming ₹50K monthly expenses
+      const assumedMonthlyExpenses = 50000;
+      return Math.max(0, Math.round(totalLiquidity / assumedMonthlyExpenses));
     }, [totalLiquidity]);
 
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Liquidity Metrics</Text>
+        <Text style={styles.sectionTitle}>Liquidity Analysis</Text>
         
         <View style={styles.metricsGrid}>
           <View style={styles.metricCard}>
-            <Text style={styles.metricValue}>{liquidityRatio}</Text>
+            <Text style={styles.metricValue}>{liquidityRatio}x</Text>
             <Text style={styles.metricLabel}>Liquidity Ratio</Text>
-            <Text style={[styles.metricStatus, { color: Colors.success.main }]}>Indicative</Text>
+            <Text style={[styles.metricStatus, { color: totalLiquidity > 100000 ? Colors.success.main : Colors.warning.main }]}>
+              {totalLiquidity > 100000 ? 'Good' : 'Build up'}
+            </Text>
           </View>
           
           <View style={styles.metricCard}>
             <Text style={styles.metricValue}>{emergencyFundCoverage}</Text>
             <Text style={styles.metricLabel}>Emergency Fund</Text>
-            <Text style={styles.metricStatus}>{emergencyFundCoverage} months coverage (approx)</Text>
+            <Text style={styles.metricStatus}>
+              {emergencyFundCoverage} months coverage
+            </Text>
           </View>
         </View>
 
         <View style={styles.recommendationCard}>
           <Feather name="alert-circle" size={20} color={Colors.warning.main} />
           <View style={styles.recommendationText}>
-            <Text style={styles.recommendationTitle}>Recommendation</Text>
+            <Text style={styles.recommendationTitle}>Liquidity Recommendation</Text>
             <Text style={styles.recommendationDescription}>
-              Keep at least 6 months of expenses in liquid assets. Shift excess into market investments for better returns.
+              {totalLiquidity < 300000 
+                ? 'Build emergency fund to 6 months of expenses. Keep liquid assets readily available.'
+                : totalLiquidity > 1000000
+                ? 'Strong liquidity position. Consider investing excess in market investments.'
+                : 'Good liquidity balance. Monitor monthly expenses and adjust as needed.'
+              }
             </Text>
           </View>
         </View>
@@ -291,6 +310,23 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
     color: Colors.info.main,
   },
+  breakdownRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  smallBreakdown: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border.light,
+  },
+  smallBreakdownText: {
+    fontSize: 11,
+    color: Colors.text.tertiary,
+    fontStyle: 'italic',
+    marginBottom: 2,
+  },
   metricsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -347,12 +383,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.lineHeight.xs,
   },
   bottomSpacing: {
-    height: 100, // Space for bottom menu
-  },
-  breakdownRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+    height: 100,
   },
 });
 

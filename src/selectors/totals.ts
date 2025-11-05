@@ -85,8 +85,8 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
     (totalBankAccounts + totalCrypto + totalInvestments + totalPhysicalAssets) -
     (totalLoans + totalCreditCards);
 
-  // Total Liquidity = bank + (optional) crypto + non-auto-renew FDs (future)
-  const totalLiquidity = totalBankAccounts + (includeCrypto ? totalCrypto : 0);
+  // Total Liquidity = cash + bank + (optional) crypto (truly liquid assets only)
+  const totalLiquidity = totalCash + totalBankAccounts + (includeCrypto ? totalCrypto : 0);
 
   return {
     totalCash,
