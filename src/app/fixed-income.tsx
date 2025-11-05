@@ -59,12 +59,38 @@ const formatFullINR = (value: number): string => {
 };
 
 const formatDateInput = (raw: string) => {
-  const digits = raw.replace(/[^\d]/g, '').slice(0, 8); // allow only up to DDMMYYYY
+  const digits = raw.replace(/[^\d]/g, '').slice(0, 8); // DDMMYYYY max
   const len = digits.length;
-  if (len <= 2) return digits;
-  if (len <= 4) return `${digits.slice(0,2)}/${digits.slice(2)}`;
-  return `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4)}`;
+  
+  if (len === 0) return '';
+  
+  if (len === 1) {
+    // Single digit: if it's > 3, auto-pad and move to month (04/, 05/, etc.)
+    const d = parseInt(digits);
+    return d > 3 ? `0${d}/` : digits;
+  }
+  
+  if (len === 2) {
+    // Two digits for day: always add slash and move to month
+    return `${digits}/`;
+  }
+  
+  if (len === 3) {
+    // Day + first month digit: if first month digit > 1, auto-pad month
+    const day = digits.slice(0, 2);
+    const monthFirst = parseInt(digits[2]);
+    return monthFirst > 1 ? `${day}/0${monthFirst}/` : `${day}/${digits[2]}`;
+  }
+  
+  if (len === 4) {
+    // Day + month: add slash and move to year
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/`;
+  }
+  
+  // 5-8 digits: day/month/year in progress
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 };
+
 
 
 const FixedIncomeScreen: React.FC = () => {
@@ -143,7 +169,7 @@ const FixedIncomeScreen: React.FC = () => {
   const [currency, setCurrency] = useState('INR');
 
   // RD-specific fields
-  const [recurringDepositDay, setRecurringDepositDay] = useState<number>(1);
+  const [recurringDepositDay, setRecurringDepositDay] = useState('');
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [installmentAmount, setInstallmentAmount] = useState('');
 
@@ -259,7 +285,8 @@ const FixedIncomeScreen: React.FC = () => {
         Alert.alert('Invalid Installment', 'Please enter a valid installment amount.');
         return;
       }
-      if (recurringDepositDay < 1 || recurringDepositDay > 31) {
+      const dayNum = parseInt(recurringDepositDay) || 0;
+      if (dayNum < 1 || dayNum > 31) {
         Alert.alert('Invalid Date', 'Please enter a valid deposit day (1-31).');
         return;
       }
@@ -384,7 +411,8 @@ const FixedIncomeScreen: React.FC = () => {
       Alert.alert('Invalid Installment', 'Please enter a valid installment amount.');
       return;
     }
-    if (recurringDepositDay < 1 || recurringDepositDay > 31) {
+    const dayNum = parseInt(recurringDepositDay) || 0;
+    if (dayNum < 1 || dayNum > 31) {
       Alert.alert('Invalid Date', 'Please enter a valid deposit day (1-31).');
       return;
     }
@@ -454,7 +482,7 @@ const FixedIncomeScreen: React.FC = () => {
         // NEW metadata additions:
         accountNumber: accountNumber.trim() as any,            // saved for reference
         rdMonthlyInstallment: Number(installmentAmount) as any,
-        rdDayOfMonth: recurringDepositDay as any,
+        rdDayOfMonth: parseInt(recurringDepositDay) || 1,
         rdSourceAccountId: sourceAccountId.trim() as any,
         encryptedData: {
           encryptionKey: '',
@@ -846,7 +874,7 @@ const FixedIncomeScreen: React.FC = () => {
     setInterestPayout('maturity');
     setPayoutAccountId('');
     setCurrency('INR');
-    setRecurringDepositDay(1);
+    setRecurringDepositDay('');
     setSourceAccountId('');
     setInstallmentAmount('');
     setCompanyName('');
@@ -1152,14 +1180,14 @@ const FixedIncomeScreen: React.FC = () => {
                   <>
                     <View style={styles.inputContainer}>
                       <Text style={styles.inputLabel}>Monthly Deposit Day (1-31)</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        value={recurringDepositDay.toString()}
-                        onChangeText={(val) => setRecurringDepositDay(parseInt(val) || 1)}
-                        placeholder="15"
-                        keyboardType="numeric"
-                        placeholderTextColor={PLACEHOLDER_COLOR}
-                      />
+                        <TextInput
+                          style={styles.textInput}
+                          value={recurringDepositDay}
+                          onChangeText={setRecurringDepositDay}
+                          placeholder="15"
+                          keyboardType="numeric"
+                          placeholderTextColor={PLACEHOLDER_COLOR}
+                        />
                     </View>
                     <View style={styles.inputContainer}>
                       <Text style={styles.inputLabel}>Monthly Installment (₹)</Text>
@@ -1312,7 +1340,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={recurringDepositDay.toString()}
-                    onChangeText={(val) => setRecurringDepositDay(parseInt(val) || 1)}
+                    onChangeText={(val) => setRecurringDepositDay(String(parseInt(val) || '1'))}
                     placeholder="15"
                     keyboardType="numeric"
                     placeholderTextColor={PLACEHOLDER_COLOR}
