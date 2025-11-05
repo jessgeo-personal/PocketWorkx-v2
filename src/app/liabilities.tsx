@@ -42,7 +42,7 @@ const LiabilitiesScreen: React.FC = () => {
     const group: Record<string, { total: number; count: number; items: any[] }> = {};
 
     entries.forEach((loan: any) => {
-      const type = loan?.loanType || 'Personal Loan';
+      const type = loan?.type || 'personal';
       const amount = loan?.currentBalance?.amount ?? 0;
       
       if (!group[type]) {
@@ -57,7 +57,7 @@ const LiabilitiesScreen: React.FC = () => {
       .sort(([, a], [, b]) => b.total - a.total) // Sort by total amount desc
       .map(([type, data]) => ({
         type,
-        label: type,
+        label: getLoanTypeLabel(type),
         total: data.total,
         count: data.count,
         items: data.items.sort((a, b) => (b?.currentBalance?.amount ?? 0) - (a?.currentBalance?.amount ?? 0)),
@@ -120,7 +120,7 @@ const LiabilitiesScreen: React.FC = () => {
         
         while (currentDate <= threeMonthsLater && monthCount < 3) {
           if (currentDate >= today) {
-            const lenderName = loan?.lenderName || loan?.bankName || 'Lender';
+            const lenderName = loan?.bank || 'Lender';
             const last4 = String(loan?.accountNumber || '').slice(-4) || '';
             
             payments.push({
@@ -167,14 +167,101 @@ const LiabilitiesScreen: React.FC = () => {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
+  // Add below: const [refreshing, setRefreshing] = useState(false);
+  const loans = (state?.loanEntries ?? []) as Array<{
+    id: string;
+    type: 'home' | 'car' | 'personal' | 'education' | 'other';
+    bank: string;
+    loanNumber: string;
+    currentBalance: { amount: number; currency: 'INR' };
+  }>;
+
+  const maskNumber = (raw: string) => {
+    if (!raw) return '';
+    const last = raw.slice(-4);
+    return `****${last}`;
+  };
+
+  const formatFullINR = (value: number): string => {
+    try {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
+      }).format(Math.round(value));
+    } catch {
+      const abs = Math.abs(Math.round(value));
+      const sign = value < 0 ? '-' : '';
+      const str = abs.toString();
+      const lastThree = str.substring(str.length - 3);
+      const otherNumbers = str.substring(0, str.length - 3);
+      const result = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + (otherNumbers ? ',' : '') + lastThree;
+      return `${sign}₹${result}`;
+    }
+  };
+
+  // Build grouped sections that mirror the "Personal Loan" card structure
+  const loanTypeOrder: Array<'personal' | 'home' | 'car' | 'education' | 'other'> = [
+    'personal', 'home', 'car', 'education', 'other'
+  ];
+
+  const loanTypeTitle: Record<string, string> = {
+    personal: 'Personal Loan',
+    home: 'Home Loan',
+    car: 'Car Loan',
+    education: 'Education Loan',
+    other: 'Other Loans',
+  };
+
+  const loanTypeIcon: Record<string, keyof typeof Feather.glyphMap> = {
+    personal: 'user',
+    home: 'home',
+    car: 'truck',
+    education: 'book',
+    other: 'more-horizontal',
+  };
+
+  const loanGroups = loanTypeOrder.map((typeKey) => {
+    const list = loans.filter(l => l.type === typeKey);
+    const total = list.reduce((s, l) => s + (l.currentBalance?.amount || 0), 0);
+    return {
+      key: typeKey,
+      title: loanTypeTitle[typeKey],
+      icon: loanTypeIcon[typeKey],
+      count: list.length,
+      total,
+      rows: list.map(l => ({
+        id: l.id,
+        left: `${l.bank} ${maskNumber(l.loanNumber)}`,
+        amount: l.currentBalance?.amount || 0,
+      })),
+    };
+  }).filter(group => group.count > 0);
+
+
   const getLoanIcon = (loanType: string) => {
     const type = loanType?.toLowerCase() || '';
-    if (type.includes('home') || type.includes('mortgage')) return 'home';
-    if (type.includes('car') || type.includes('auto') || type.includes('vehicle')) return 'directions-car';
-    if (type.includes('education') || type.includes('student')) return 'school';
-    if (type.includes('business')) return 'business';
+    if (type === 'home') return 'home';
+    if (type === 'car') return 'directions-car';
+    if (type === 'education') return 'school';
+    if (type === 'personal') return 'user';
+    if (type === 'other') return 'more-horizontal';
     return 'trending-down';
   };
+
+  const getLoanTypeLabel = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'home': return 'Home Loan';
+      case 'car': return 'Car Loan';
+      case 'education': return 'Education Loan';
+      case 'personal': return 'Personal Loan';
+      case 'other': return 'Other Loans';
+      default: return 'Other Loans';
+    }
+  };
+
+
 
   const renderLiabilitiesOverview = () => (
     <View style={styles.overviewCard}>
@@ -225,7 +312,7 @@ const LiabilitiesScreen: React.FC = () => {
               <View style={styles.smallBreakdown}>
                 {group.items.map((loan: any, idx: number) => {
                   const lenderName = loan?.lenderName || loan?.bankName || 'Lender';
-                  const last4 = String(loan?.accountNumber || '').slice(-4) || 'XXXX';
+                  const last4 = String(loan?.loanNumber || '').slice(-4) || 'XXXX';
                   const balance = loan?.currentBalance?.amount ?? 0;
                   return (
                     <View key={idx} style={styles.rowJustify}>
