@@ -16,8 +16,33 @@ import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
 import AppFooter from '../components/AppFooter';
 
+//types
+
+type DebtInstrument = {
+  id: string;
+  type: 'debt';
+  name: string;
+  issuer: string;
+  isin?: string;
+  faceValue?: number;
+  couponRate?: number;
+  yieldToMaturity?: number;
+  bondType?: 'government' | 'corporate' | 'municipal';
+  creditRating?: string;
+  currentValue: { amount: number; currency: 'INR' };
+  investedAmount: { amount: number; currency: 'INR' };
+  maturityDate?: Date;
+  isActive: boolean;
+};
+
+//UI-states
+
+//Main
 
 const InvestmentsScreen: React.FC = () => {
+  
+  //useStates
+  
   const [investments, setInvestments] = useState<Investment[]>([
     {
       id: '1',
@@ -141,6 +166,23 @@ const InvestmentsScreen: React.FC = () => {
       linkedTransactions: [],
     },
   ]);
+
+  //Modal states
+  const [isDebtModalVisible, setIsDebtModalVisible] = useState(false);
+  const [diName, setDiName] = useState('');
+  const [diIssuer, setDiIssuer] = useState('');
+  const [diInvested, setDiInvested] = useState('');
+  const [diCurrent, setDiCurrent] = useState('');
+  const [diISIN, setDiISIN] = useState('');
+  const [diBondType, setDiBondType] = useState<'government' | 'corporate' | 'municipal'>('government');
+  const [diRating, setDiRating] = useState('');
+  const [diCoupon, setDiCoupon] = useState('');
+  const [diYTM, setDiYTM] = useState('');
+  const [diMaturityStr, setDiMaturityStr] = useState('');
+
+
+
+  //Calculations
 
   const totalCurrentValue = investments.filter(i => i.isActive).reduce((s, i) => s + i.currentValue.amount, 0);
   const totalInvestedAmount = investments.filter(i => i.isActive).reduce((s, i) => s + i.investedAmount.amount, 0);
@@ -296,30 +338,239 @@ const InvestmentsScreen: React.FC = () => {
     );
   };
 
+
   const renderQuickActions = () => (
     <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionGrid}>
         <TouchableOpacity style={styles.actionButton}>
-          <MaterialIcons name="add-circle" size={24} color="#FF6B35" />
-          <Text style={styles.actionText}>Add Investment</Text>
+          <MaterialIcons name="trending-up" size={24} color="#FF6B35" />
+          <Text style={styles.actionText}>Add Stocks</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="pie-chart" size={24} color="#FF6B35" />
-          <Text style={styles.actionText}>Portfolio</Text>
+          <Text style={styles.actionText}>Add Mutual Funds</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <MaterialIcons name="swap-horiz" size={24} color="#FF6B35" />
-          <Text style={styles.actionText}>Buy/Sell</Text>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => {
+            // reset fields and open modal
+            setDiName('');
+            setDiIssuer('');
+            setDiInvested('');
+            setDiCurrent('');
+            setDiISIN('');
+            setDiBondType('government');
+            setDiRating('');
+            setDiCoupon('');
+            setDiYTM('');
+            setDiMaturityStr('');
+            setIsDebtModalVisible(true);
+          }}
+        >
+          <MaterialIcons name="receipt-long" size={24} color="#FF6B35" />
+          <Text style={styles.actionText}>Add Debt Instruments</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <MaterialIcons name="assessment" size={24} color="#FF6B35" />
-          <Text style={styles.actionText}>Performance</Text>
+          <Text style={styles.actionText}>Portfolio Analysis</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
+  const renderDebtModal = () => (
+    <Modal
+      visible={isDebtModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsDebtModalVisible(false)}
+    >
+      <View style={{
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.25)',
+        justifyContent: 'center', alignItems: 'center'
+      }}>
+        <View style={{
+          backgroundColor: Colors.background.secondary,
+          borderRadius: 16, width: '90%', maxWidth: 420, maxHeight: '85%', overflow: 'hidden'
+        }}>
+          <View style={{
+            flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+            padding: 20, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E0E0E0'
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: Colors.text.primary }}>Add Debt Instrument</Text>
+            <TouchableOpacity onPress={() => setIsDebtModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={{ flexGrow: 1 }}>
+            <View style={{ padding: 20 }}>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={diName}
+                  onChangeText={setDiName}
+                  placeholder="e.g., GOI 7.10% 2033"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>Issuer *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={diIssuer}
+                  onChangeText={setDiIssuer}
+                  placeholder="Government of India / Reliance Industries"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>Bond Type</Text>
+                <View style={styles.pickerRow}>
+                  {(['government','corporate','municipal'] as const).map(type => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.pill, diBondType === type && styles.pillSelected]}
+                      onPress={() => setDiBondType(type)}
+                    >
+                      <Text style={[styles.pillText, diBondType === type && styles.pillTextSelected]}>
+                        {type.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>Invested Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={diInvested}
+                  onChangeText={setDiInvested}
+                  placeholder="100000"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>Current Value (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={diCurrent}
+                  onChangeText={setDiCurrent}
+                  placeholder="102500"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>ISIN (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={diISIN}
+                  onChangeText={setDiISIN}
+                  placeholder="INE... code"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>Coupon %</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={diCoupon}
+                    onChangeText={setDiCoupon}
+                    placeholder="7.10"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>YTM %</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={diYTM}
+                    onChangeText={setDiYTM}
+                    placeholder="7.25"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <View style={{ marginTop: 16 }}>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.text.primary, marginBottom: 8 }}>Maturity (DD/MM/YYYY)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={diMaturityStr}
+                  onChangeText={(t) => setDiMaturityStr(t)}
+                  placeholder="15/08/2033"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+
+            </View>
+          </ScrollView>
+
+          <View style={{
+            flexDirection: 'row', justifyContent: 'flex-end',
+            padding: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E0E0E0'
+          }}>
+            <TouchableOpacity style={{ paddingHorizontal: 16, paddingVertical: 10, marginRight: 12, borderRadius: 10 }} onPress={() => setIsDebtModalVisible(false)}>
+              <Text style={{ fontSize: 16, color: '#666666' }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ backgroundColor: '#8B5CF6', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 }} onPress={() => {
+              // Validation
+              if (!diName.trim() || !diIssuer.trim() || !diInvested.trim() || !diCurrent.trim()) {
+                Alert.alert('Missing Info', 'Please fill name, issuer, invested and current values.');
+                return;
+              }
+              const invested = Number(diInvested);
+              const current = Number(diCurrent);
+              if (!Number.isFinite(invested) || invested <= 0 || !Number.isFinite(current) || current <= 0) {
+                Alert.alert('Invalid Amount', 'Please enter valid invested/current amounts.');
+                return;
+              }
+
+              const newItem: any = {
+                id: `${Date.now()}`,
+                type: 'bonds',            // for icons/colors already present
+                name: diName.trim(),
+                description: diIssuer.trim(),
+                investedAmount: { amount: Math.round(invested), currency: 'INR' },
+                currentValue: { amount: Math.round(current), currency: 'INR' },
+                isin: diISIN || undefined,
+                interestRate: diCoupon ? Number(diCoupon) : undefined,
+                maturityDate: diMaturityStr ? new Date(diMaturityStr.split('/').reverse().join('-')) : undefined,
+                riskLevel: 'low',
+                isActive: true,
+                encryptedData: { encryptionKey: '', encryptionAlgorithm: 'AES-256', lastEncrypted: new Date(), isEncrypted: false },
+                auditTrail: { createdBy: 'user', createdAt: new Date(), updatedBy: 'user', updatedAt: new Date(), version: 1, changes: [] },
+                linkedTransactions: [],
+              };
+
+              setInvestments(prev => [newItem, ...prev]);
+              setIsDebtModalVisible(false);
+            }}>
+              <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.white }}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  
+  
+  // render end
+  
   return (
     <ScreenLayout>
       <StatusBar style="dark" backgroundColor={Colors.background.primary} />
@@ -331,6 +582,7 @@ const InvestmentsScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Your Investments</Text>
           {investments.map(renderInvestmentCard)}
         </View>
+        {renderDebtModal()}
         <AppFooter />
       </ScrollView>
     </ScreenLayout>
