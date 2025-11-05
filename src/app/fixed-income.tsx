@@ -56,6 +56,15 @@ const formatFullINR = (value: number): string => {
   }
 };
 
+const formatDateInput = (raw: string) => {
+  const digits = raw.replace(/[^\d]/g, '').slice(0, 8); // allow only up to DDMMYYYY
+  const len = digits.length;
+  if (len <= 2) return digits;
+  if (len <= 4) return `${digits.slice(0,2)}/${digits.slice(2)}`;
+  return `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4)}`;
+};
+
+
 const FixedIncomeScreen: React.FC = () => {
   const router = useRouter();
   const { state, save, loading } = useStorage();
@@ -64,17 +73,18 @@ const FixedIncomeScreen: React.FC = () => {
   // This intentionally uses a distinct name to avoid confusion with the main Bank Accounts domain.
   // Update the extraction logic when the bank accounts domain is finalized.
   const SourceBankAccounts = useMemo(() => {
-    // Preferred: state.bankAccounts (when implemented)
-    // For now: try to leverage accounts.tsx shape if present in AppModel
     const entries = (state as any)?.accounts ?? [];
     if (!Array.isArray(entries)) return [];
-    // Normalize into id + label
     return entries.map((a: any) => {
-      const id = a?.id ?? `${a?.bank ?? 'Bank'}-${a?.accountNumber ?? 'XXXX'}`;
-      const label = [a?.bank, a?.accountNumber].filter(Boolean).join(' • ') || 'Account';
+      const bank = a?.bank || a?.bankName || 'Bank';
+      const acct = `${a?.accountNumber || a?.number || ''}`.trim();
+      const last4 = acct ? acct.slice(-4) : 'XXXX';
+      const id = a?.id ?? `${bank}-${last4}`;
+      const label = `${bank} • ****${last4}`;
       return { id, label };
     });
   }, [state]);
+
 
 
   const entries: FixedIncomeEntry[] = (state?.fixedIncomeEntries as FixedIncomeEntry[] | undefined) ?? [];
@@ -818,7 +828,7 @@ const FixedIncomeScreen: React.FC = () => {
           <Text style={styles.actionText}>Add Recurring Deposit</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setIsFCNRModalVisible(true); }}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setCurrency('USD'); setIsFCNRModalVisible(true); }}>
           <MaterialIcons name="currency-exchange" size={24} color="#1976D2" />
           <Text style={styles.actionText}>Add FCNR Deposit</Text>
         </TouchableOpacity>
@@ -975,7 +985,7 @@ const FixedIncomeScreen: React.FC = () => {
                     <TextInput
                       style={styles.textInput}
                       value={startDateStr}
-                      onChangeText={setStartDateStr}
+                      onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                       placeholder="DD/MM/YYYY"
                     />
                   </View>
@@ -984,7 +994,7 @@ const FixedIncomeScreen: React.FC = () => {
                     <TextInput
                       style={styles.textInput}
                       value={maturityDateStr}
-                      onChangeText={setMaturityDateStr}
+                      onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                       placeholder="DD/MM/YYYY"
                     />
                   </View>
@@ -1184,7 +1194,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={startDateStr}
-                    onChangeText={setStartDateStr}
+                    onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
@@ -1193,7 +1203,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={maturityDateStr}
-                    onChangeText={setMaturityDateStr}
+                    onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
@@ -1365,7 +1375,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={startDateStr}
-                    onChangeText={setStartDateStr}
+                    onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
@@ -1374,7 +1384,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={maturityDateStr}
-                    onChangeText={setMaturityDateStr}
+                    onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
@@ -1529,7 +1539,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={startDateStr}
-                    onChangeText={setStartDateStr}
+                    onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
@@ -1538,7 +1548,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={maturityDateStr}
-                    onChangeText={setMaturityDateStr}
+                    onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
@@ -1724,7 +1734,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={startDateStr}
-                    onChangeText={setStartDateStr}
+                    onChangeText={(t) => setStartDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
@@ -1733,7 +1743,7 @@ const FixedIncomeScreen: React.FC = () => {
                   <TextInput
                     style={styles.textInput}
                     value={maturityDateStr}
-                    onChangeText={setMaturityDateStr}
+                    onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
                     placeholder="DD/MM/YYYY"
                   />
                 </View>
