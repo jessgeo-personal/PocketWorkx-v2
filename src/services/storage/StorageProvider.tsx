@@ -146,10 +146,12 @@ export interface FixedIncomeEntry {
   id: string;
   instrumentType: 'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt';
   
-  // Issuer information (varies by instrument type)
-  bankName?: string;         // For FD/RD/NRE/NRO/FCNR
-  companyName?: string;      // For company deposits
-  issuerName?: string;       // For debt instruments
+  // IMPORTANT: Keep bankOrIssuer for backward compatibility, but make it optional
+  // Use specific fields based on instrument type
+  bankOrIssuer?: string;      // Legacy field - kept for existing UI
+  bankName?: string;          // For FD/RD/NRE/NRO/FCNR
+  companyName?: string;       // For company deposits  
+  issuerName?: string;        // For debt instruments
   instrumentName: string;
   
   // Multi-currency financial details
@@ -160,23 +162,23 @@ export interface FixedIncomeEntry {
   // Interest structure
   compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
   interestPayout: 'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity';
-  payoutAccountId?: string; // Bank account ID for interest credits
+  payoutAccountId?: string;
   
   // Dates
   startDate: Date;
   maturityDate: Date;
   
   // RD-specific fields
-  recurringDepositDay?: number;           // Day of month (1-31)
-  sourceAccountId?: string;               // Account for RD installments
+  recurringDepositDay?: number;
+  sourceAccountId?: string;
   installmentAmount?: { amount: number; currency: string };
   
   // Debt instrument-specific fields
   bondType?: 'government' | 'corporate' | 'municipal';
-  creditRating?: string;                  // e.g., "AAA", "AA+"
-  isinCode?: string;                      // ISIN identifier
+  creditRating?: string;
+  isinCode?: string;
   faceValue?: { amount: number; currency: string };
-  couponRate?: number;                    // Different from interestRate for bonds
+  couponRate?: number;
   yieldToMaturity?: number;
   hasCallOption?: boolean;
   hasPutOption?: boolean;
@@ -197,8 +199,6 @@ export interface FixedIncomeEntry {
   
   // Status
   isActive: boolean;
-  
-  // Optional metadata
   nomineeDetails?: string;
   jointHolders?: string[];
   notes?: string;
@@ -221,6 +221,7 @@ export interface FixedIncomeEntry {
   };
   linkedTransactions?: any[];
 }
+
 
 
 

@@ -143,50 +143,71 @@ type PocketWorkxState = {
   }>;
 
   // NEW: Fixed Income persisted as raw JSON; normalized to Date in StorageProvider
-    fixedIncomeEntries?: Array<{
-      id: string;
-      instrumentType: 'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
-      bankOrIssuer: string;
-      instrumentName: string;
-      principalAmount: { amount: number; currency: string };
-      currentValue: { amount: number; currency: string };
-      interestRate: number;
-      compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
-      interestPayout: 'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity';
-      payoutAccount?: string;
-      startDate?: string | Date;
-      maturityDate?: string | Date;
-      autoRenew: boolean;
-      renewalNotification?: {
-        enabled: boolean;
-        daysBeforeMaturity: number;
-        lastNotifiedAt?: string | Date;
+  fixedIncomeEntries?: Array<{
+    id: string;
+    instrumentType: 'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt';
+    // Keep legacy field optional for backward compatibility
+    bankOrIssuer?: string;
+    bankName?: string;
+    companyName?: string;
+    issuerName?: string;
+    instrumentName: string;
+    principalAmount: { amount: number; currency: string };
+    currentValue: { amount: number; currency: string };
+    interestRate: number;
+    compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
+    interestPayout: 'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity';
+    payoutAccountId?: string;
+    startDate?: string | Date;
+    maturityDate?: string | Date;
+    // RD-specific
+    recurringDepositDay?: number;
+    sourceAccountId?: string;
+    installmentAmount?: { amount: number; currency: string };
+    // Debt-specific
+    bondType?: 'government' | 'corporate' | 'municipal';
+    creditRating?: string;
+    isinCode?: string;
+    faceValue?: { amount: number; currency: string };
+    couponRate?: number;
+    yieldToMaturity?: number;
+    hasCallOption?: boolean;
+    hasPutOption?: boolean;
+    // Renewal
+    autoRenew: boolean;
+    renewalNotification?: {
+      enabled: boolean;
+      daysBeforeMaturity: number;
+      lastNotifiedAt?: string | Date;
+      pendingRateConfirmation?: {
+        oldRate: number;
+        newRate: number;
+        notificationDate: string | Date;
+        userResponse?: 'pending' | 'confirmed' | 'rejected';
       };
-      // RD-specific
-      recurringDepositDay?: number;
-      sourceAccountId?: string;
-      installmentAmount?: { amount: number; currency: string };
-      isActive: boolean;
-      nomineeDetails?: string;
-      jointHolders?: string[];
-      notes?: string;
-      timestamp?: string | Date;
-      encryptedData?: {
-        encryptionKey: string;
-        encryptionAlgorithm: string;
-        lastEncrypted: string | Date;
-        isEncrypted: boolean;
-      };
-      auditTrail?: {
-        createdBy: string;
-        createdAt?: string | Date;
-        updatedBy: string;
-        updatedAt?: string | Date;
-        version: number;
-        changes: any[];
-      };
-      linkedTransactions?: any[];
-    }>;
+    };
+    isActive: boolean;
+    nomineeDetails?: string;
+    jointHolders?: string[];
+    notes?: string;
+    timestamp?: string | Date;
+    encryptedData?: {
+      encryptionKey: string;
+      encryptionAlgorithm: string;
+      lastEncrypted: string | Date;
+      isEncrypted: boolean;
+    };
+    auditTrail?: {
+      createdBy: string;
+      createdAt?: string | Date;
+      updatedBy: string;
+      updatedAt?: string | Date;
+      version: number;
+      changes: any[];
+    };
+    linkedTransactions?: any[];
+  }>;
+
 
 
     fixedIncomeTransactions?: Array<{

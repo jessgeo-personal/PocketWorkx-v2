@@ -27,11 +27,13 @@ const instrumentTypes = [
   { key: 'fd', label: 'Fixed Deposit' },
   { key: 'rd', label: 'Recurring Deposit' },
   { key: 'nre', label: 'NRE Deposit' },
+  { key: 'nro', label: 'NRO Deposit' },        // ADD this line
   { key: 'fcnr', label: 'FCNR Deposit' },
   { key: 'company_deposit', label: 'Company Deposit' },
   { key: 'debt', label: 'Debt Instrument' },
-  { key: 'other', label: 'Other' },
+  // Remove 'other' option to match the interface
 ] as const;
+
 
 const formatFullINR = (value: number): string => {
   try {
@@ -69,7 +71,7 @@ const FixedIncomeScreen: React.FC = () => {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
 
   // Add form state
-  const [instrumentType, setInstrumentType] = useState<'fd' | 'rd' | 'nre' | 'fcnr' | 'company_deposit' | 'debt' | 'other'>('fd');
+  const [instrumentType, setInstrumentType] = useState<'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt'>('fd');
   const [bankOrIssuer, setBankOrIssuer] = useState('');
   const [instrumentName, setInstrumentName] = useState('');
   const [principalAmount, setPrincipalAmount] = useState('');
@@ -145,6 +147,7 @@ const FixedIncomeScreen: React.FC = () => {
         id: `${Date.now()}`,
         instrumentType,
         bankOrIssuer: bankOrIssuer.trim(),
+        bankName: bankOrIssuer.trim(),
         instrumentName: instrumentName.trim(),
         principalAmount: { amount: Math.round(principal), currency: 'INR' },
         currentValue: { amount: Math.round(currentValue), currency: 'INR' },

@@ -9,14 +9,15 @@ export type Totals = {
   totalBankAccounts: number;
   totalLoans: number;
   totalCreditCards: number;
-  totalFixedIncome: number;      // NEW: Fixed Income subtotal
-  totalFixedIncomeByCurrency: Record<string, number>; 
-  totalInvestments: number;      // Will be sum of all investment subtypes
+  totalFixedIncome: number;                           // INR only
+  totalFixedIncomeByCurrency: Record<string, number>; // Separate currencies
+  totalInvestments: number;                           // INR only for net worth
   totalPhysicalAssets: number;
   totalCrypto: number;
-  netWorth: number;
+  netWorth: number;                                   // INR only
   totalLiquidity: number;
 };
+
 
 type Options = {
   includeCryptoInLiquidity?: boolean; // user-configurable, default false
@@ -47,10 +48,17 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
     ((state?.creditCardEntries ?? []) as any[]).map(c => c?.currentBalance?.amount ?? 0)
   );
 
-  // Fixed Income: sum of currentValue.amount
-  const totalFixedIncome = sum(
-    ((state?.fixedIncomeEntries ?? []) as any[]).map(fi => fi?.currentValue?.amount ?? 0)
-  );
+  // Fixed Income: sum by currency separately, NO conversion
+  const fixedIncomeEntries = (state?.fixedIncomeEntries ?? []) as any[];
+  const totalFixedIncomeByCurrency = fixedIncomeEntries.reduce((acc: Record<string, number>, fi: any) => {
+    const currency = fi?.currentValue?.currency ?? 'INR';
+    const amount = fi?.currentValue?.amount ?? 0;
+    acc[currency] = (acc[currency] ?? 0) + amount;
+    return acc;
+  }, {});
+
+  // Total Fixed Income in INR only (primary currency)
+  const totalFixedIncome = totalFixedIncomeByCurrency['INR'] ?? 0;
 
   // Investments: will be sum of Fixed Income + Stocks/Commodities/Forex when implemented
   const totalInvestments = totalFixedIncome; // For now, only Fixed Income
@@ -79,16 +87,13 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
     totalLoans,
     totalCreditCards,
     totalFixedIncome,
-    totalFixedIncomeByCurrency: fixedIncomeEntries.reduce((acc, fi) => {
-      const currency = fi?.currentValue?.currency ?? 'INR';
-      acc[currency] = (acc[currency] ?? 0) + (fi?.currentValue?.amount ?? 0);
-      return acc;
-    }, {} as Record<string, number>),
+    totalFixedIncomeByCurrency,
     totalInvestments,
     totalPhysicalAssets,
     totalCrypto,
     netWorth,
     totalLiquidity,
   };
+
 
 };

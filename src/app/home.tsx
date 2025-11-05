@@ -57,6 +57,7 @@ const {
   totalLoans,
   totalCreditCards,
   totalFixedIncome,          // NEW: Fixed Income subtotal
+  totalFixedIncomeByCurrency,   // NEW: Fixed Income by currency subtotal
   totalInvestments,
   totalPhysicalAssets,
   totalCrypto,
@@ -304,6 +305,15 @@ const {
         <Text style={[styles.metricAmount, { color: '#1976D2' }]}>
           {formatCurrency(totalFixedIncome, 'INR')}
         </Text>
+        {/* Show other currencies if they exist */}
+        {Object.entries(totalFixedIncomeByCurrency).filter(([curr]) => curr !== 'INR').length > 0 && (
+          <Text style={styles.metricFormula}>
+            {Object.entries(totalFixedIncomeByCurrency)
+              .filter(([curr]) => curr !== 'INR')
+              .map(([curr, amount]) => `${curr} ${amount.toLocaleString()}`)
+              .join(' • ')}
+          </Text>
+        )}
         <Text style={styles.metricFormula}>
           FDs + RDs + NRE/FCNR + Company Deposits
         </Text>
