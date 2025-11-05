@@ -21,7 +21,7 @@ import TransactionsModal from '../components/modals/TransactionsModal';
 import type { FilterCriteria } from '../types/transactions';
 import AppFooter from '../components/AppFooter';
 
-type Currency = 'INR';
+type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'AUD' | 'CAD' | 'SGD' | 'CHF';
 
 const instrumentTypes = [
   { key: 'fd', label: 'Fixed Deposit' },
@@ -140,46 +140,39 @@ const FixedIncomeScreen: React.FC = () => {
     setTxModalVisible(true);
   };
 
-  const handleAddFixedIncome = async () => {
+  // REPLACE the handleAddFixedIncome function with these 4 handlers:
+
+    const saveBankDeposit = async () => {
     if (isProcessing) return;
 
     // Validation
-    if (!bankOrIssuer.trim() || !instrumentName.trim() || !principalAmount.trim()) {
-      Alert.alert('Missing Info', 'Please fill bank/issuer, instrument name, and principal.');
-      return;
+    if (!bankOrIssuer.trim() || !principalAmount.trim()) {
+        Alert.alert('Missing Info', 'Please fill bank name and principal amount.');
+        return;
     }
     const principal = Number(principalAmount);
     if (!Number.isFinite(principal) || principal <= 0) {
-      Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
-      return;
+        Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
+        return;
     }
-    const rate = interestRate.trim() ? Number(interestRate) : 0;
-    if (interestRate.trim() && (!Number.isFinite(rate) || rate < 0)) {
-      Alert.alert('Invalid Rate', 'Please enter a valid interest rate.');
-      return;
-    }
-
-    // Dates
-    const now = new Date();
-    const start = startDateStr ? new Date(startDateStr) : now;
-    const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
-
-    // For v1, currentValue = principal (no accrual); future can compute accrued interest
-    const currentValue = principal;
 
     setIsProcessing(true);
     try {
-      const entry: FixedIncomeEntry = {
+        const now = new Date();
+        const start = startDateStr ? new Date(startDateStr) : now;
+        const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+
+        const entry: FixedIncomeEntry = {
         id: `${Date.now()}`,
         instrumentType,
         bankOrIssuer: bankOrIssuer.trim(),
         bankName: bankOrIssuer.trim(),
-        instrumentName: instrumentName.trim(),
+        instrumentName: instrumentName.trim() || `${instrumentType.toUpperCase()} - ${bankOrIssuer.trim()}`,
         principalAmount: { amount: Math.round(principal), currency: 'INR' },
-        currentValue: { amount: Math.round(currentValue), currency: 'INR' },
-        interestRate: rate,
+        currentValue: { amount: Math.round(principal), currency: 'INR' },
+        interestRate: Number(interestRate) || 0,
         compoundingFrequency,
-        interestPayout: 'maturity',
+        interestPayout,
         startDate: start,
         maturityDate: maturity,
         autoRenew,
@@ -189,53 +182,305 @@ const FixedIncomeScreen: React.FC = () => {
         notes: notes?.trim() || undefined,
         timestamp: now,
         encryptedData: {
-          encryptionKey: '',
-          encryptionAlgorithm: 'AES-256',
-          lastEncrypted: now,
-          isEncrypted: false,
+            encryptionKey: '',
+            encryptionAlgorithm: 'AES-256',
+            lastEncrypted: now,
+            isEncrypted: false,
         },
         auditTrail: {
-          createdBy: 'user',
-          createdAt: now,
-          updatedBy: 'user',
-          updatedAt: now,
-          version: 1,
-          changes: [{
+            createdBy: 'user',
+            createdAt: now,
+            updatedBy: 'user',
+            updatedAt: now,
+            version: 1,
+            changes: [{
             action: 'ADD_FIXED_INCOME',
             timestamp: now,
             principal: Math.round(principal),
             bankOrIssuer: bankOrIssuer.trim(),
             instrumentType,
-          }],
+            }],
         },
         linkedTransactions: [],
-      };
+        };
 
-      await save((draft: AppModel) => {
+        await save((draft: AppModel) => {
         const next = draft.fixedIncomeEntries ? [...draft.fixedIncomeEntries] as FixedIncomeEntry[] : [];
         next.push(entry);
         return { ...draft, fixedIncomeEntries: next };
-      });
+        });
 
-      // Reset and close
-      setInstrumentType('fd');
-      setBankOrIssuer('');
-      setInstrumentName('');
-      setPrincipalAmount('');
-      setInterestRate('');
-      setCompoundingFrequency('annually');
-      setStartDateStr('');
-      setMaturityDateStr('');
-      setAutoRenew(false);
-      setNotes('');
-      setIsAddModalVisible(false);
+        // Reset and close
+        resetFormFields();
+        setIsBankDepositModalVisible(false);
 
     } catch (e) {
-      Alert.alert('Error', 'Failed to add Fixed Income entry. Please try again.');
+        Alert.alert('Error', 'Failed to add bank deposit. Please try again.');
     } finally {
-      setIsProcessing(false);
+        setIsProcessing(false);
     }
-  };
+    };
+
+    const saveCompanyDeposit = async () => {
+    if (isProcessing) return;
+
+    if (!companyName.trim() || !principalAmount.trim()) {
+        Alert.alert('Missing Info', 'Please fill company name and principal amount.');
+        return;
+    }
+    const principal = Number(principalAmount);
+    if (!Number.isFinite(principal) || principal <= 0) {
+        Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
+        return;
+    }
+
+    setIsProcessing(true);
+    try {
+        const now = new Date();
+        const start = startDateStr ? new Date(startDateStr) : now;
+        const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+
+        const entry: FixedIncomeEntry = {
+        id: `${Date.now()}`,
+        instrumentType: 'company_deposit',
+        bankOrIssuer: companyName.trim(),
+        bankName: companyName.trim(),
+        instrumentName: instrumentName.trim() || `Company Deposit - ${companyName.trim()}`,
+        principalAmount: { amount: Math.round(principal), currency: 'INR' },
+        currentValue: { amount: Math.round(principal), currency: 'INR' },
+        interestRate: Number(interestRate) || 0,
+        compoundingFrequency,
+        interestPayout,
+        startDate: start,
+        maturityDate: maturity,
+        autoRenew,
+        isActive: true,
+        nomineeDetails: undefined,
+        jointHolders: undefined,
+        notes: notes?.trim() || undefined,
+        timestamp: now,
+        encryptedData: {
+            encryptionKey: '',
+            encryptionAlgorithm: 'AES-256',
+            lastEncrypted: now,
+            isEncrypted: false,
+        },
+        auditTrail: {
+            createdBy: 'user',
+            createdAt: now,
+            updatedBy: 'user',
+            updatedAt: now,
+            version: 1,
+            changes: [{
+            action: 'ADD_FIXED_INCOME',
+            timestamp: now,
+            principal: Math.round(principal),
+            bankOrIssuer: companyName.trim(),
+            instrumentType: 'company_deposit',
+            }],
+        },
+        linkedTransactions: [],
+        };
+
+        await save((draft: AppModel) => {
+        const next = draft.fixedIncomeEntries ? [...draft.fixedIncomeEntries] as FixedIncomeEntry[] : [];
+        next.push(entry);
+        return { ...draft, fixedIncomeEntries: next };
+        });
+
+        resetFormFields();
+        setIsCompanyDepositModalVisible(false);
+
+    } catch (e) {
+        Alert.alert('Error', 'Failed to add company deposit. Please try again.');
+    } finally {
+        setIsProcessing(false);
+    }
+    };
+
+    const saveFCNRDeposit = async () => {
+    if (isProcessing) return;
+
+    if (!bankOrIssuer.trim() || !principalAmount.trim()) {
+        Alert.alert('Missing Info', 'Please fill bank name and principal amount.');
+        return;
+    }
+    const principal = Number(principalAmount);
+    if (!Number.isFinite(principal) || principal <= 0) {
+        Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
+        return;
+    }
+
+    setIsProcessing(true);
+    try {
+        const now = new Date();
+        const start = startDateStr ? new Date(startDateStr) : now;
+        const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+
+        const entry: FixedIncomeEntry = {
+        id: `${Date.now()}`,
+        instrumentType: 'fcnr',
+        bankOrIssuer: bankOrIssuer.trim(),
+        bankName: bankOrIssuer.trim(),
+        instrumentName: instrumentName.trim() || `FCNR ${currency} - ${bankOrIssuer.trim()}`,
+        principalAmount: { amount: Math.round(principal), currency: currency as Currency },
+        currentValue: { amount: Math.round(principal), currency: currency as Currency },
+        interestRate: Number(interestRate) || 0,
+        compoundingFrequency,
+        interestPayout,
+        startDate: start,
+        maturityDate: maturity,
+        autoRenew,
+        isActive: true,
+        nomineeDetails: undefined,
+        jointHolders: undefined,
+        notes: notes?.trim() || undefined,
+        timestamp: now,
+        encryptedData: {
+            encryptionKey: '',
+            encryptionAlgorithm: 'AES-256',
+            lastEncrypted: now,
+            isEncrypted: false,
+        },
+        auditTrail: {
+            createdBy: 'user',
+            createdAt: now,
+            updatedBy: 'user',
+            updatedAt: now,
+            version: 1,
+            changes: [{
+            action: 'ADD_FIXED_INCOME',
+            timestamp: now,
+            principal: Math.round(principal),
+            bankOrIssuer: bankOrIssuer.trim(),
+            instrumentType: 'fcnr',
+            }],
+        },
+        linkedTransactions: [],
+        };
+
+        await save((draft: AppModel) => {
+        const next = draft.fixedIncomeEntries ? [...draft.fixedIncomeEntries] as FixedIncomeEntry[] : [];
+        next.push(entry);
+        return { ...draft, fixedIncomeEntries: next };
+        });
+
+        resetFormFields();
+        setIsFCNRModalVisible(false);
+
+    } catch (e) {
+        Alert.alert('Error', 'Failed to add FCNR deposit. Please try again.');
+    } finally {
+        setIsProcessing(false);
+    }
+    };
+
+    const saveDebtInstrument = async () => {
+    if (isProcessing) return;
+
+    if (!bankOrIssuer.trim() || !principalAmount.trim()) {
+        Alert.alert('Missing Info', 'Please fill issuer name and principal amount.');
+        return;
+    }
+    const principal = Number(principalAmount);
+    if (!Number.isFinite(principal) || principal <= 0) {
+        Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
+        return;
+    }
+
+    setIsProcessing(true);
+    try {
+        const now = new Date();
+        const start = startDateStr ? new Date(startDateStr) : now;
+        const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+
+        const entry: FixedIncomeEntry = {
+        id: `${Date.now()}`,
+        instrumentType: 'debt',
+        bankOrIssuer: bankOrIssuer.trim(),
+        bankName: bankOrIssuer.trim(),
+        instrumentName: instrumentName.trim() || `${bondType.toUpperCase()} Bond - ${bankOrIssuer.trim()}`,
+        principalAmount: { amount: Math.round(principal), currency: 'INR' },
+        currentValue: { amount: Math.round(principal), currency: 'INR' },
+        interestRate: Number(interestRate) || 0,
+        compoundingFrequency,
+        interestPayout,
+        startDate: start,
+        maturityDate: maturity,
+        autoRenew,
+        isActive: true,
+        nomineeDetails: undefined,
+        jointHolders: undefined,
+        notes: notes?.trim() || undefined,
+        timestamp: now,
+        encryptedData: {
+            encryptionKey: '',
+            encryptionAlgorithm: 'AES-256',
+            lastEncrypted: now,
+            isEncrypted: false,
+        },
+        auditTrail: {
+            createdBy: 'user',
+            createdAt: now,
+            updatedBy: 'user',
+            updatedAt: now,
+            version: 1,
+            changes: [{
+            action: 'ADD_FIXED_INCOME',
+            timestamp: now,
+            principal: Math.round(principal),
+            bankOrIssuer: bankOrIssuer.trim(),
+            instrumentType: 'debt',
+            }],
+        },
+        linkedTransactions: [],
+        };
+
+        await save((draft: AppModel) => {
+        const next = draft.fixedIncomeEntries ? [...draft.fixedIncomeEntries] as FixedIncomeEntry[] : [];
+        next.push(entry);
+        return { ...draft, fixedIncomeEntries: next };
+        });
+
+        resetFormFields();
+        setIsDebtModalVisible(false);
+
+    } catch (e) {
+        Alert.alert('Error', 'Failed to add debt instrument. Please try again.');
+    } finally {
+        setIsProcessing(false);
+    }
+    };
+
+    // ADD this helper function for form reset:
+    const resetFormFields = () => {
+    setInstrumentType('fd');
+    setBankOrIssuer('');
+    setInstrumentName('');
+    setPrincipalAmount('');
+    setInterestRate('');
+    setCompoundingFrequency('annually');
+    setStartDateStr('');
+    setMaturityDateStr('');
+    setAutoRenew(false);
+    setNotes('');
+    setInterestPayout('maturity');
+    setPayoutAccountId('');
+    setCurrency('INR');
+    setRecurringDepositDay(1);
+    setSourceAccountId('');
+    setInstallmentAmount('');
+    setCompanyName('');
+    setBondType('government');
+    setCreditRating('');
+    setIsinCode('');
+    setFaceValueStr('');
+    setCouponRate('');
+    setYieldToMaturity('');
+    setHasCallOption(false);
+    setHasPutOption(false);
+    };
+
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -300,29 +545,29 @@ const FixedIncomeScreen: React.FC = () => {
     </TouchableOpacity>
   );
   
-  const renderQuickActions = () => (
+    const renderQuickActions = () => (
     <View style={styles.quickActionsContainer}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActionGrid}>
         <TouchableOpacity style={styles.actionButton} onPress={() => setIsBankDepositModalVisible(true)}>
             <MaterialIcons name="account-balance" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>Bank Deposits</Text>
+            <Text style={styles.actionText}>Add Bank Deposits</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={() => setIsCompanyDepositModalVisible(true)}>
             <MaterialIcons name="domain" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>Company Deposit</Text>
+            <Text style={styles.actionText}>Add Company Deposit</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={() => setIsFCNRModalVisible(true)}>
             <MaterialIcons name="currency-exchange" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>FCNR Deposits</Text>
+            <Text style={styles.actionText}>Add FCNR Deposits</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={() => setIsDebtModalVisible(true)}>
             <MaterialIcons name="receipt-long" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>Debt Instruments</Text>
+            <Text style={styles.actionText}>Add Debt Instruments</Text>
         </TouchableOpacity>
         </View>
     </View>
-   );
+    );
 
 
   // REMOVE the existing renderAddModal function entirely
@@ -452,7 +697,7 @@ const renderBankDepositModal = () => (
           <TouchableOpacity style={styles.cancelButton} onPress={() => setIsBankDepositModalVisible(false)}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => {}/* TODO: save handler */}>
+          <TouchableOpacity style={styles.primaryButton} onPress={saveBankDeposit}>
             <Text style={styles.primaryButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -496,7 +741,7 @@ const renderCompanyDepositModal = () => (
           <TouchableOpacity style={styles.cancelButton} onPress={() => setIsCompanyDepositModalVisible(false)}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => {}/* TODO: save handler */}>
+          <TouchableOpacity style={styles.primaryButton} onPress={saveCompanyDeposit}>
             <Text style={styles.primaryButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -547,7 +792,7 @@ const renderFCNRModal = () => (
           <TouchableOpacity style={styles.cancelButton} onPress={() => setIsFCNRModalVisible(false)}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => {}/* TODO: save handler */}>
+          <TouchableOpacity style={styles.primaryButton} onPress={saveFCNRDeposit}>
             <Text style={styles.primaryButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
@@ -598,7 +843,7 @@ const renderDebtModal = () => (
           <TouchableOpacity style={styles.cancelButton} onPress={() => setIsDebtModalVisible(false)}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => {}/* TODO: save handler */}>
+          <TouchableOpacity style={styles.primaryButton} onPress={saveDebtInstrument}>
             <Text style={styles.primaryButtonText}>Save</Text>
           </TouchableOpacity>
         </View>

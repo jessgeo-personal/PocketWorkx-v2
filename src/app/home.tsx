@@ -683,7 +683,7 @@ const {
                 >
                   <View style={styles.modalActionInner}>
                     <Feather name="trending-up" size={20} color={Colors.white} />
-                    <Text style={styles.modalActionText}>Bank Deposits</Text>
+                    <Text style={styles.modalActionText}>Add Bank Deposits</Text>
                   </View>
                 </TouchableOpacity>
                 
@@ -697,11 +697,12 @@ const {
                 >
                   <View style={styles.modalActionInner}>
                     <Feather name="dollar-sign" size={20} color={Colors.white} />
-                    <Text style={styles.modalActionText}>FCNR Deposits</Text>
+                    <Text style={styles.modalActionText}>Add FCNR Deposits</Text>
                   </View>
                 </TouchableOpacity>
               </View>
             </View>
+
       
 
             {/* Data Import Actions */}
