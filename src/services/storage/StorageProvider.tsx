@@ -157,8 +157,10 @@ export interface FixedIncomeEntry {
   // Multi-currency financial details
   principalAmount: { amount: number; currency: string };
   currentValue: { amount: number; currency: string };
+  maturityAmount?: { amount: number; currency: string };  // ADD THIS LINE
+  accountNumber?: string;  // ADD THIS LINE
   interestRate: number;
-  
+
   // Interest structure
   compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
   interestPayout: 'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity';
@@ -172,7 +174,10 @@ export interface FixedIncomeEntry {
   recurringDepositDay?: number;
   sourceAccountId?: string;
   installmentAmount?: { amount: number; currency: string };
-  
+  rdMonthlyInstallment?: number;  // ADD THIS LINE
+  rdDayOfMonth?: number;  // ADD THIS LINE  
+  rdSourceAccountId?: string;  // ADD THIS LINE
+
   // Debt instrument-specific fields
   bondType?: 'government' | 'corporate' | 'municipal';
   creditRating?: string;
@@ -199,10 +204,13 @@ export interface FixedIncomeEntry {
   
   // Status
   isActive: boolean;
+  isClosed?: boolean;  // ADD THIS LINE
+  closureDate?: Date;  // ADD THIS LINE
+  transferAccount?: string;  // ADD THIS LINE
   nomineeDetails?: string;
   jointHolders?: string[];
   notes?: string;
-  
+
   // System fields
   timestamp: Date;
   encryptedData?: {

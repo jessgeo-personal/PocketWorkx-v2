@@ -1108,7 +1108,7 @@ const FixedIncomeScreen: React.FC = () => {
               </View>
 
               {/* Installment and Day */}
-              <View className="row" style={styles.row}>
+              <View style={styles.row}>
                 <View style={styles.half}>
                   <Text style={styles.inputLabel}>Monthly Installment (₹) *</Text>
                   <TextInput
