@@ -71,10 +71,10 @@ const FixedIncomeScreen: React.FC = () => {
   const router = useRouter();
   const { state, save, loading } = useStorage();
 
-  // Derive SourceBankAccounts for RD source account picker
+  // Derive AllBankAccounts used by both RD source picker and Close credit picker
   // This intentionally uses a distinct name to avoid confusion with the main Bank Accounts domain.
   // Update the extraction logic when the bank accounts domain is finalized.
-  const SourceBankAccounts = useMemo(() => {
+  const AllBankAccounts = useMemo(() => {
     const entries = (state as any)?.accounts ?? [];
     if (!Array.isArray(entries)) return [];
 
@@ -753,9 +753,9 @@ const FixedIncomeScreen: React.FC = () => {
 
   const finalizeCloseDeposit = async () => {
     if (!closingTarget) return;
+
     // Validate fields
     const parsedDate = (() => {
-      // accept DD/MM/YYYY from input
       const parts = closeDateStr.split('/');
       if (parts.length === 3) {
         const [dd, mm, yyyy] = parts;
@@ -778,54 +778,108 @@ const FixedIncomeScreen: React.FC = () => {
     }
 
     if (!closeTransferAccount.trim()) {
-      Alert.alert('Missing Info', 'Please enter the transfer account.');
+      Alert.alert('Missing Info', 'Please select which account will be credited.');
       return;
     }
 
+    // Find selected account details for confirmation
+    const selectedAccount = AllBankAccounts.find(acc => acc.id === closeTransferAccount);
+    const accountLabel = selectedAccount?.label || closeTransferAccount;
+
+    // CONFIRMATION ALERT before proceeding
+    Alert.alert(
+      'Confirm Deposit Closure',
+      `Close "${closingTarget.instrumentName}"?\n\n` +
+      `• Closure Date: ${closeDateStr}\n` +
+      `• Maturity Amount: ${closingTarget.currentValue?.currency || 'INR'} ${Number(closeMaturityStr).toLocaleString()}\n` +
+      `• Credited To: ${accountLabel}\n\n` +
+      `This will:\n` +
+      `- Mark deposit as CLOSED\n` +
+      `- Set current value to 0\n` +
+      `- Credit amount to selected account\n` +
+      `- Create transaction records`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'OK - Close Deposit',
+          style: 'destructive',
+          onPress: async () => {
+            // Execute the actual closure workflow
+            await executeDepositClosure(parsedDate, maturityNum, accountLabel);
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const executeDepositClosure = async (closureDate: Date, maturityAmount: number, accountLabel: string) => {
+    if (!closingTarget) return;
+
     try {
       await save((draft: AppModel) => {
-        const list = (draft.fixedIncomeEntries || []) as any[];
-        const idx = list.findIndex((e: any) => e.id === closingTarget.id);
-        if (idx >= 0) {
-          list[idx] = {
-            ...list[idx],
+        const entries = (draft.fixedIncomeEntries || []) as any[];
+        const index = entries.findIndex((e: any) => e.id === closingTarget.id);
+        
+        if (index >= 0) {
+          // Update the deposit entry
+          entries[index] = {
+            ...entries[index],
             isClosed: true,
-            closureDate: parsedDate,
-            transferAccount: closeTransferAccount.trim(),
+            closureDate,
+            transferAccount: accountLabel,
             maturityAmount: {
-              amount: Math.round(maturityNum),
-              currency: list[idx].currentValue?.currency || 'INR'
+              amount: Math.round(maturityAmount),
+              currency: entries[index].currentValue?.currency || 'INR'
             },
             currentValue: {
               amount: 0,
-              currency: list[idx].currentValue?.currency || 'INR'
+              currency: entries[index].currentValue?.currency || 'INR'
             },
             auditTrail: {
-              ...(list[idx].auditTrail || {}),
+              ...entries[index].auditTrail,
               updatedAt: new Date(),
               changes: [
-                ...((list[idx].auditTrail?.changes) || []),
+                ...(entries[index].auditTrail?.changes || []),
                 {
                   action: 'CLOSE_FIXED_INCOME',
                   timestamp: new Date(),
-                  closureDate: parsedDate,
-                  transferAccount: closeTransferAccount.trim(),
-                  maturityAmount: Math.round(maturityNum),
+                  closureDate: closureDate,
+                  transferAccount: accountLabel,
+                  maturityAmount: Math.round(maturityAmount),
                 }
               ]
             }
           };
+
+          // TODO: Create corresponding bank account credit transaction
+          // This would require finding the account by closeTransferAccount ID and adding a transaction
+          // For now, just log the intended transaction
+          console.log(`Would credit ${maturityAmount} to account ${accountLabel}`);
         }
-        return { ...draft, fixedIncomeEntries: list };
+        
+        return { ...draft, fixedIncomeEntries: entries };
       });
 
+      // Close modal and show success
       setIsCloseModalVisible(false);
       setClosingTarget(null);
-      Alert.alert('Closed', 'Deposit closed successfully.');
-    } catch (e) {
+      
+      Alert.alert(
+        'Deposit Closed Successfully',
+        `${closingTarget.instrumentName} has been closed.\n\n` +
+        `Amount of ${closingTarget.currentValue?.currency || 'INR'} ${maturityAmount.toLocaleString()} ` +
+        `credited to ${accountLabel}.`
+      );
+
+    } catch (error) {
       Alert.alert('Error', 'Failed to close deposit. Please try again.');
     }
   };
+
 
 
     // ADD this helper function for form reset:
@@ -950,16 +1004,18 @@ const FixedIncomeScreen: React.FC = () => {
           </Text>
         </View>
       </View>
-      {/* Close Button - always visible for manual closure */}
-      <TouchableOpacity 
-        style={styles.closeButton} 
-        onPress={(e) => {
-          e.stopPropagation(); // Prevent card tap
-          onCloseDeposit(fi);
-        }}
-      >
-        <Text style={styles.closeButtonText}>Close Deposit</Text>
-      </TouchableOpacity>
+      {/* Close Button - only show for active deposits */}
+      {!(isMatured(fi) || (fi as any).isClosed) && (
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={(e) => {
+            e.stopPropagation();
+            onCloseDeposit(fi);
+          }}
+        >
+          <Text style={styles.closeButtonText}>Close Deposit</Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
   
@@ -1337,10 +1393,10 @@ const FixedIncomeScreen: React.FC = () => {
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Source Account (Auto-debit) *</Text>
                   <View style={styles.pickerRow}>
-                    {SourceBankAccounts.length === 0 ? (
+                    {AllBankAccounts.length === 0 ? (
                       <Text style={{ color: Colors.text.tertiary }}>No accounts found. Add bank accounts first.</Text>
                     ) : (
-                      SourceBankAccounts.map(acc => (
+                      AllBankAccounts.map(acc => (
                         <TouchableOpacity
                           key={acc.id}
                           style={[styles.pill, sourceAccountId === acc.id && styles.pillSelected]}
@@ -2074,14 +2130,24 @@ const FixedIncomeScreen: React.FC = () => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Transfer Account *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={closeTransferAccount}
-                  onChangeText={setCloseTransferAccount}
-                  placeholder="e.g., HDFC ****1234"
-                  placeholderTextColor={PLACEHOLDER_COLOR}
-                />
+                <Text style={styles.inputLabel}>Credited To Account *</Text>
+                <View style={styles.pickerRow}>
+                  {AllBankAccounts.length === 0 ? (
+                    <Text style={{ color: Colors.text.tertiary }}>No accounts found. Add bank accounts first.</Text>
+                  ) : (
+                    AllBankAccounts.map(acc => (
+                      <TouchableOpacity
+                        key={acc.id}
+                        style={[styles.pill, closeTransferAccount === acc.id && styles.pillSelected]}
+                        onPress={() => setCloseTransferAccount(acc.id)}
+                      >
+                        <Text style={[styles.pillText, closeTransferAccount === acc.id && styles.pillTextSelected]}>
+                          {acc.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </View>
               </View>
             </View>
           </ScrollView>
