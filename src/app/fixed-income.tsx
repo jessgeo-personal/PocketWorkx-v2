@@ -150,6 +150,7 @@ const FixedIncomeScreen: React.FC = () => {
         currentValue: { amount: Math.round(currentValue), currency: 'INR' },
         interestRate: rate,
         compoundingFrequency,
+        interestPayout: 'maturity',
         startDate: start,
         maturityDate: maturity,
         autoRenew,
