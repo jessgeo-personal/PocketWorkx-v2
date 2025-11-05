@@ -293,62 +293,171 @@ const {
           <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
         </View>
 
-        {/* INR block */}
-        <Text style={[styles.metricLabel, { textAlign: 'left', marginTop: 4 }]}>INR Deposits</Text>
-        <Text style={[styles.metricAmount, { color: '#1976D2' }]}>
-          {formatCurrency(totalFixedIncome, 'INR')}
-        </Text>
+        {(() => {
+          // Calculate counts by type and currency
+          const entries = ((state?.fixedIncomeEntries ?? []) as any[]);
+          const getCountsByCurrency = (currency: string) => {
+            const filtered = entries.filter(fi => (fi?.currentValue?.currency || 'INR') === currency);
+            return {
+              fd: filtered.filter(fi => fi?.instrumentType === 'fd').length,
+              rd: filtered.filter(fi => fi?.instrumentType === 'rd').length,
+              nre: filtered.filter(fi => fi?.instrumentType === 'nre').length,
+              nro: filtered.filter(fi => fi?.instrumentType === 'nro').length,
+              fcnr: filtered.filter(fi => fi?.instrumentType === 'fcnr').length,
+              company_deposit: filtered.filter(fi => fi?.instrumentType === 'company_deposit').length,
+            };
+          };
 
-        {/* USD block (if available) */}
-        {totalFixedIncomeByCurrency['USD'] > 0 && (
-          <>
-            <Text style={[styles.metricLabel, { textAlign: 'left', marginTop: 8 }]}>USD Deposits</Text>
-            <Text style={styles.metricAmount}>
-              {`USD ${totalFixedIncomeByCurrency['USD'].toLocaleString()}`}
-            </Text>
-          </>
-        )}
+          const renderCountPills = (counts: any) => (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 4, gap: 4 }}>
+              {counts.fd > 0 && (
+                <View style={{ backgroundColor: '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 9, color: '#1976D2', fontWeight: '600' }}>{counts.fd} FD</Text>
+                </View>
+              )}
+              {counts.rd > 0 && (
+                <View style={{ backgroundColor: '#E8F5E8', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 9, color: '#2E7D32', fontWeight: '600' }}>{counts.rd} RD</Text>
+                </View>
+              )}
+              {counts.nre > 0 && (
+                <View style={{ backgroundColor: '#FFF3E0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 9, color: '#F57C00', fontWeight: '600' }}>{counts.nre} NRE</Text>
+                </View>
+              )}
+              {counts.nro > 0 && (
+                <View style={{ backgroundColor: '#FFF3E0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 9, color: '#F57C00', fontWeight: '600' }}>{counts.nro} NRO</Text>
+                </View>
+              )}
+              {counts.fcnr > 0 && (
+                <View style={{ backgroundColor: '#F3E5F5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 9, color: '#7B1FA2', fontWeight: '600' }}>{counts.fcnr} FCNR</Text>
+                </View>
+              )}
+              {counts.company_deposit > 0 && (
+                <View style={{ backgroundColor: '#FFEBEE', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                  <Text style={{ fontSize: 9, color: '#C62828', fontWeight: '600' }}>{counts.company_deposit} Company</Text>
+                </View>
+              )}
+            </View>
+          );
 
-        {/* EUR block (if available) */}
-        {totalFixedIncomeByCurrency['EUR'] > 0 && (
-          <>
-            <Text style={[styles.metricLabel, { textAlign: 'left', marginTop: 8 }]}>EUR Deposits</Text>
-            <Text style={styles.metricAmount}>
-              {`EUR ${totalFixedIncomeByCurrency['EUR'].toLocaleString()}`}
-            </Text>
-          </>
-        )}
+          return (
+            <>
+            {/* INR block with amount and pills in same row */}
+            {totalFixedIncome > 0 && (
+              <View style={{ marginTop: 8 }}>
+                <Text style={[styles.metricLabel, { textAlign: 'left', marginBottom: 4 }]}>₹ Deposits</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={[styles.metricAmount, { color: '#1976D2', flex: 1 }]}>
+                    {formatCurrency(totalFixedIncome, 'INR')}
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                    {(() => {
+                      const counts = getCountsByCurrency('INR');
+                      return (
+                        <>
+                          {counts.fd > 0 && (
+                            <View style={{ backgroundColor: '#E3F2FD', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#1976D2', fontWeight: '600' }}>{counts.fd} FD</Text>
+                            </View>
+                          )}
+                          {counts.rd > 0 && (
+                            <View style={{ backgroundColor: '#E8F5E8', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#2E7D32', fontWeight: '600' }}>{counts.rd} RD</Text>
+                            </View>
+                          )}
+                          {counts.nre > 0 && (
+                            <View style={{ backgroundColor: '#FFF3E0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#F57C00', fontWeight: '600' }}>{counts.nre} NRE</Text>
+                            </View>
+                          )}
+                          {counts.nro > 0 && (
+                            <View style={{ backgroundColor: '#FFF3E0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#F57C00', fontWeight: '600' }}>{counts.nro} NRO</Text>
+                            </View>
+                          )}
+                          {counts.company_deposit > 0 && (
+                            <View style={{ backgroundColor: '#FFEBEE', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#C62828', fontWeight: '600' }}>{counts.company_deposit} Company</Text>
+                            </View>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </View>
+                </View>
+              </View>
+            )}
 
-        <Text style={styles.metricFormula}>
-          FDs + RDs + NRE/FCNR + Company Deposits
-        </Text>
+            {/* USD block with amount and pills in same row */}
+            {totalFixedIncomeByCurrency['USD'] > 0 && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={[styles.metricLabel, { textAlign: 'left', marginBottom: 4 }]}>$ Deposits</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={[styles.metricAmount, { flex: 1 }]}>
+                    {`$${totalFixedIncomeByCurrency['USD'].toLocaleString()}`}
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                    {(() => {
+                      const counts = getCountsByCurrency('USD');
+                      return (
+                        <>
+                          {counts.fcnr > 0 && (
+                            <View style={{ backgroundColor: '#F3E5F5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#7B1FA2', fontWeight: '600' }}>{counts.fcnr} FCNR</Text>
+                            </View>
+                          )}
+                          {counts.company_deposit > 0 && (
+                            <View style={{ backgroundColor: '#FFEBEE', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#C62828', fontWeight: '600' }}>{counts.company_deposit} Company</Text>
+                            </View>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </View>
+                </View>
+              </View>
+            )}
 
-        {/* Per-instrument tiny breakdown */}
-        <Text style={{ 
-          fontSize: 10, 
-          color: Colors.text.secondary, 
-          fontStyle: 'italic', 
-          marginTop: 6,
-          textAlign: 'right' 
-        }}>
-          {(() => {
-            const list = ((state?.fixedIncomeEntries ?? []) as any[])
-              .map((fi: any) => {
-                const instrumentName = fi?.instrumentName || `${fi?.bankOrIssuer || fi?.bankName || 'Bank'} ${fi?.instrumentType?.toUpperCase() || 'FD'}`;
-                const acctRaw = String(fi?.accountNumber || fi?.accountNumberMasked || '');
-                const last4 = acctRaw.replace(/\D/g, '').slice(-4) || 'XXXX';
-                const curr = fi?.currentValue?.currency || 'INR';
-                const amount = fi?.currentValue?.amount ?? 0;
-                const amountStr = curr === 'INR' 
-                  ? formatCurrency(amount, 'INR') 
-                  : `${curr} ${amount.toLocaleString()}`;
-                return `${instrumentName} • ****${last4} • ${amountStr}`;
-              })
-              .join(' \n ');
-            return list || 'No deposits yet';
-          })()}
-        </Text>
+            {/* EUR block with amount and pills in same row */}
+            {totalFixedIncomeByCurrency['EUR'] > 0 && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={[styles.metricLabel, { textAlign: 'left', marginBottom: 4 }]}>€ Deposits</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={[styles.metricAmount, { flex: 1 }]}>
+                    {`€${totalFixedIncomeByCurrency['EUR'].toLocaleString()}`}
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                    {(() => {
+                      const counts = getCountsByCurrency('EUR');
+                      return (
+                        <>
+                          {counts.fcnr > 0 && (
+                            <View style={{ backgroundColor: '#F3E5F5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 9, color: '#7B1FA2', fontWeight: '600' }}>{counts.fcnr} FCNR</Text>
+                            </View>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </View>
+                </View>
+              </View>
+            )}
+
+
+              <Text style={[styles.metricFormula, { marginTop: 8 }]}>
+                FDs + RDs + NRE/FCNR + Company Deposits
+              </Text>
+            </>
+          );
+        })()}
       </TouchableOpacity>
+
+
 
 
       {/* Market Investments */}
