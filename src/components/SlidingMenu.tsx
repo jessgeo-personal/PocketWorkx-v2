@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
   ScrollView,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -101,7 +102,7 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
   const renderMenuItem = (item: MenuItem) => (
     <TouchableOpacity key={item.id} style={styles.menuItem} onPress={() => handleMenuItemPress(item.route)} activeOpacity={0.7}>
       <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-        <MaterialIcons name={item.icon} size={24} color={colors.background} />
+        <MaterialIcons name={item.icon} size={36} color={colors.background} />
       </View>
       <Text style={styles.menuItemText}>{item.title}</Text>
     </TouchableOpacity>
@@ -119,8 +120,11 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
       <Animated.View style={[styles.menuContainer, { transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.header}>
-          <Text style={styles.appName}>Pocket</Text>
-          <Text style={styles.appNameAccent}>Workx</Text>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <MaterialIcons name="close" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
@@ -158,21 +162,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: colors.surface,
   },
-  appName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  appNameAccent: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.secondary,
-    marginLeft: 4,
+  logo: {
+    width: 160,
+    height: 60,
     flex: 1,
   },
   closeButton: {
@@ -204,12 +202,12 @@ const styles = StyleSheet.create({
   menuItem: {
     width: '30%',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 2,
     paddingHorizontal: 4,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
+    width: 100,
+    height: 100,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
@@ -221,7 +219,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   menuItemText: {
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: '500',
     color: colors.textPrimary,
     textAlign: 'center',
@@ -238,6 +236,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 2,
   },
+  
 });
 
 export default SlidingMenu;

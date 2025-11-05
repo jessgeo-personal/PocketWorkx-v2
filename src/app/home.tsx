@@ -20,7 +20,6 @@ import { useStorage } from '../services/storage/StorageProvider';
 import AppFooter from '../components/AppFooter';
 import ComingSoonModal from '../components/modals/ComingSoonModal';
 
-
 // Import the logo image
 const LogoImage = require('../assets/logo.png');
 
