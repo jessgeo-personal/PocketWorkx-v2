@@ -666,6 +666,44 @@ const {
               </View>
             </View>
 
+            {/* Fixed Income Actions */}
+            <View style={styles.actionGroup}>
+              <View style={styles.sectionDivider}>
+                <Text style={styles.sectionDividerText}>🏦 Fixed Income </Text>
+                <View style={styles.sectionDividerLine} />
+              </View>
+              <View style={styles.actionGroupGrid}>
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push('/fixed-income');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="trending-up" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Bank Deposits</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push('/fixed-income');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="dollar-sign" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>FCNR Deposits</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+      
+
             {/* Data Import Actions */}
             <View style={styles.actionGroup}>
               <View style={styles.sectionDivider}>
