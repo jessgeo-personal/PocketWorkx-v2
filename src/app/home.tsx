@@ -704,7 +704,7 @@ const {
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonCash]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/cash', params: { openModal: 'add' } });
@@ -716,9 +716,9 @@ const {
                     <Text style={styles.modalActionText}>Add Cash</Text>
                   </View>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonCash]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/cash', params: { openModal: 'expense' } });
@@ -742,7 +742,7 @@ const {
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonAccounts]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     router.push('/accounts');
@@ -754,9 +754,9 @@ const {
                     <Text style={styles.modalActionText}>Add Account</Text>
                   </View>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonAccounts]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     router.push({ pathname: '/accounts', params: { openModal: 'debit' } });
@@ -831,7 +831,7 @@ const {
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonFixed]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     router.push('/fixed-income');
@@ -845,7 +845,7 @@ const {
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonFixed]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     router.push('/fixed-income');
@@ -860,7 +860,43 @@ const {
               </View>
             </View>
 
-      
+            {/* Loans Actions */}
+            <View style={styles.actionGroup}>
+              <View style={styles.sectionDivider}>
+                <Text style={styles.sectionDividerText}>🏠 Loans </Text>
+                <View style={styles.sectionDividerLine} />
+              </View>
+              <View style={styles.actionGroupGrid}>
+                <TouchableOpacity 
+                  style={[styles.modalActionButton, styles.modalActionButtonLoans]}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    router.push('/loans');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="plus-circle" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Add Loan</Text>
+                  </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.modalActionButton, styles.modalActionButtonLoans]}
+                  onPress={() => {
+                    setIsQuickActionsModalVisible(false);
+                    showComingSoon('Record EMI Payment', 'Quickly record your monthly EMI payments and track loan balances.');
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modalActionInner}>
+                    <Feather name="calendar" size={20} color={Colors.white} />
+                    <Text style={styles.modalActionText}>Record EMI</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
 
             {/* Data Import Actions */}
             <View style={styles.actionGroup}>
@@ -871,7 +907,7 @@ const {
               </View>
               <View style={styles.actionGroupGrid}>
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonImport]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     showComingSoon('Receipt Scanner', 'Use your camera to automatically extract transaction data from receipts and bills.');
@@ -885,7 +921,7 @@ const {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonImport]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     showComingSoon('Statement Upload', 'Upload PDF or image bank statements for automatic transaction import.');
@@ -899,7 +935,7 @@ const {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonImport]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     showComingSoon('SMS Scanner', 'Automatically detect and import transactions from bank SMS notifications.');
@@ -913,7 +949,7 @@ const {
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={styles.modalActionButton}
+                  style={[styles.modalActionButton, styles.modalActionButtonImport]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
                     showComingSoon('Email Scanner', 'Import transactions from bank email statements and e-receipts.');
@@ -1441,6 +1477,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     //textTransform: 'uppercase',
   },
+  // Add right below modalActionButton (do NOT remove modalActionButton)
+  modalActionButtonCash: {
+    backgroundColor: '#2ECC71', // matches Total Liquid Cash tone
+  },
+  modalActionButtonAccounts: {
+    backgroundColor: '#1976D2', // matches Total Bank Accounts tone (Blue)
+  },
+  modalActionButtonLoans: {
+    backgroundColor: '#D32F2F', // Red color to match loan/liability theme
+  },
+  modalActionButtonFixed: {
+    backgroundColor: '#1565C0', // Red color to match fixed income theme
+  },
+  modalActionButtonImport: {
+    backgroundColor: '#9C27B0', // Red color to match fixed income theme
+  }
 
 });
 
