@@ -41,26 +41,36 @@ const LiabilitiesScreen: React.FC = () => {
     const entries = ((state?.loanEntries ?? []) as any[]);
     const group: Record<string, { total: number; count: number; items: any[] }> = {};
 
-    entries.forEach((loan: any) => {
-      const type = loan?.type || 'personal';
-      const amount = loan?.currentBalance?.amount ?? 0;
-      
-      if (!group[type]) {
-        group[type] = { total: 0, count: 0, items: [] };
+    const toDisplayLabel = (t: string) => {
+      switch ((t || '').toLowerCase()) {
+        case 'home': return 'Home Loan';
+        case 'car': return 'Car Loan';
+        case 'education': return 'Education Loan';
+        case 'personal': return 'Personal Loan';
+        case 'other': return 'Other Loans';
+        default: return 'Other Loans';
       }
-      group[type].total += amount;
-      group[type].count += 1;
-      group[type].items.push(loan);
+    };
+
+    entries.forEach((loan: any) => {
+      const typeKey = (loan?.type || 'other').toLowerCase();
+      const amount = loan?.currentBalance?.amount ?? 0;
+      if (!group[typeKey]) {
+        group[typeKey] = { total: 0, count: 0, items: [] };
+      }
+      group[typeKey].total += amount;
+      group[typeKey].count += 1;
+      group[typeKey].items.push(loan);
     });
 
     return Object.entries(group)
-      .sort(([, a], [, b]) => b.total - a.total) // Sort by total amount desc
-      .map(([type, data]) => ({
-        type,
-        label: getLoanTypeLabel(type),
+      .sort(([, a], [, b]) => (b.total - a.total))
+      .map(([typeKey, data]) => ({
+        type: typeKey,
+        label: toDisplayLabel(typeKey),
         total: data.total,
         count: data.count,
-        items: data.items.sort((a, b) => (b?.currentBalance?.amount ?? 0) - (a?.currentBalance?.amount ?? 0)),
+        items: data.items.sort((a, b) => ((b?.currentBalance?.amount ?? 0) - (a?.currentBalance?.amount ?? 0))),
       }));
   }, [state?.loanEntries]);
 
@@ -68,15 +78,19 @@ const LiabilitiesScreen: React.FC = () => {
   const creditCardBreakdown = useMemo(() => {
     const entries = ((state?.creditCardEntries ?? []) as any[]);
     return entries
-      .map((cc: any) => ({
-        id: cc?.id,
-        bank: cc?.bankName || cc?.issuer || 'Credit Card',
-        last4: String(cc?.cardNumber || cc?.maskedNumber || '').replace(/\D/g, '').slice(-4) || 'XXXX',
-        amount: cc?.currentBalance?.amount ?? 0,
-      }))
-      .filter(cc => cc.amount > 0)
+      .map((cc: any) => {
+        const bank = cc?.bank || 'Credit Card';
+        const masked = String(cc?.cardNumber || '****XXXX');
+        // extract last4 even if already masked; fall back to last digits in string
+        const digits = masked.replace(/[^\d]/g, '');
+        const last4 = digits.slice(-4) || 'XXXX';
+        const amount = cc?.currentBalance?.amount ?? 0;
+        return { id: cc?.id, bank, last4, amount };
+      })
+      .filter(cc => (cc.amount || 0) > 0)
       .sort((a, b) => b.amount - a.amount);
   }, [state?.creditCardEntries]);
+
 
   // Calculate monthly payments from real data
   const monthlyPayments = useMemo(() => {
@@ -115,13 +129,13 @@ const LiabilitiesScreen: React.FC = () => {
         if (emiAmount <= 0) return;
 
         // Generate EMI dates for next 3 months
-        let currentDate = new Date(loan?.nextEmiDate || today);
+        let currentDate = new Date(loan?.nextPaymentDate || today);
         let monthCount = 0;
         
         while (currentDate <= threeMonthsLater && monthCount < 3) {
           if (currentDate >= today) {
             const lenderName = loan?.bank || 'Lender';
-            const last4 = String(loan?.accountNumber || '').slice(-4) || '';
+            const last4 = String(loan?.loanNumber || '').slice(-4) || '';   
             
             payments.push({
               id: `loan-${loan.id}-${currentDate.getTime()}`,
@@ -239,16 +253,15 @@ const LiabilitiesScreen: React.FC = () => {
     };
   }).filter(group => group.count > 0);
 
-
   const getLoanIcon = (loanType: string) => {
-    const type = loanType?.toLowerCase() || '';
+    const type = (loanType || '').toLowerCase();
     if (type === 'home') return 'home';
-    if (type === 'car') return 'directions-car';
-    if (type === 'education') return 'school';
+    if (type === 'car') return 'truck';
+    if (type === 'education') return 'book-open';
     if (type === 'personal') return 'user';
-    if (type === 'other') return 'more-horizontal';
     return 'trending-down';
   };
+
 
   const getLoanTypeLabel = (type: string) => {
     switch (type?.toLowerCase()) {
@@ -311,7 +324,7 @@ const LiabilitiesScreen: React.FC = () => {
             {group.items.length > 0 && (
               <View style={styles.smallBreakdown}>
                 {group.items.map((loan: any, idx: number) => {
-                  const lenderName = loan?.lenderName || loan?.bankName || 'Lender';
+                  const lenderName = loan?.bank || 'Lender';
                   const last4 = String(loan?.loanNumber || '').slice(-4) || 'XXXX';
                   const balance = loan?.currentBalance?.amount ?? 0;
                   return (
