@@ -222,8 +222,7 @@ const FixedIncomeScreen: React.FC = () => {
 
         // Step 2: Maturity amount
         const defaultMaturity = (fi as any).maturityAmount?.amount?.toString() || fi.currentValue?.amount?.toString() || '';
-        
-        Alert.prompt(
+          Alert.prompt(
           'Close Deposit - Step 2/3',
           `Enter maturity amount received (${fi.currentValue?.currency || 'INR'}):`,
           (maturityInput) => {
@@ -290,12 +289,10 @@ const FixedIncomeScreen: React.FC = () => {
                 } catch (error) {
                   Alert.alert('Error', 'Failed to close deposit. Please try again.');
                 }
-              },
-              'plain-text',
-              ''
+              }
             );
           },
-          'numeric',
+          undefined,  // ← REMOVE 'numeric', use undefined instead
           defaultMaturity
         );
       },
