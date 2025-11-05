@@ -145,16 +145,61 @@ const FixedIncomeScreen: React.FC = () => {
     const saveBankDeposit = async () => {
     if (isProcessing) return;
 
-    // Validation
+    // Enhanced Validation
     if (!bankOrIssuer.trim() || !principalAmount.trim()) {
-        Alert.alert('Missing Info', 'Please fill bank name and principal amount.');
-        return;
+      Alert.alert('Missing Info', 'Please fill bank name and principal amount.');
+      return;
     }
+    
     const principal = Number(principalAmount);
     if (!Number.isFinite(principal) || principal <= 0) {
-        Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
-        return;
+      Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
+      return;
     }
+
+    // RD-specific validation
+    if (instrumentType === 'rd') {
+      if (!installmentAmount.trim()) {
+        Alert.alert('Missing Info', 'Please enter monthly installment amount for RD.');
+        return;
+      }
+      const installment = Number(installmentAmount);
+      if (!Number.isFinite(installment) || installment <= 0) {
+        Alert.alert('Invalid Installment', 'Please enter a valid installment amount.');
+        return;
+      }
+      if (recurringDepositDay < 1 || recurringDepositDay > 31) {
+        Alert.alert('Invalid Date', 'Please enter a valid deposit day (1-31).');
+        return;
+      }
+    }
+
+    // Date validation with ordering
+    let start = new Date();
+    let maturity = new Date(start.getTime() + 365 * 24 * 3600 * 1000);
+
+    if (startDateStr.trim()) {
+      const parsedStart = new Date(startDateStr);
+      if (isNaN(parsedStart.getTime())) {
+        Alert.alert('Invalid Date', 'Please enter a valid start date.');
+        return;
+      }
+      start = parsedStart;
+    }
+
+    if (maturityDateStr.trim()) {
+      const parsedMaturity = new Date(maturityDateStr);
+      if (isNaN(parsedMaturity.getTime())) {
+        Alert.alert('Invalid Date', 'Please enter a valid maturity date.');
+        return;
+      }
+      if (parsedMaturity <= start) {
+        Alert.alert('Invalid Date', 'Maturity date must be after start date.');
+        return;
+      }
+      maturity = parsedMaturity;
+    }
+
 
     setIsProcessing(true);
     try {
@@ -545,312 +590,784 @@ const FixedIncomeScreen: React.FC = () => {
     </TouchableOpacity>
   );
   
-    const renderQuickActions = () => (
-    <View style={styles.quickActionsContainer}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickActionGrid}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setIsBankDepositModalVisible(true)}>
-            <MaterialIcons name="account-balance" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>Add Bank Deposits</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setIsCompanyDepositModalVisible(true)}>
-            <MaterialIcons name="domain" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>Add Company Deposit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setIsFCNRModalVisible(true)}>
-            <MaterialIcons name="currency-exchange" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>Add FCNR Deposits</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setIsDebtModalVisible(true)}>
-            <MaterialIcons name="receipt-long" size={24} color="#1976D2" />
-            <Text style={styles.actionText}>Add Debt Instruments</Text>
-        </TouchableOpacity>
-        </View>
-    </View>
-    );
+  const renderQuickActions = () => (
+  <View style={styles.quickActionsContainer}>
+      <Text style={styles.sectionTitle}>Quick Actions</Text>
+       <View style={styles.quickActionGrid}>
+      <TouchableOpacity style={styles.actionButton} onPress={() => setIsBankDepositModalVisible(true)}>
+           <MaterialIcons name="account-balance" size={24} color="#1976D2" />
+           <Text style={styles.actionText}>Add Bank Deposits</Text>
+       </TouchableOpacity>
+       <TouchableOpacity style={styles.actionButton} onPress={() => setIsCompanyDepositModalVisible(true)}>
+           <MaterialIcons name="domain" size={24} color="#1976D2" />
+           <Text style={styles.actionText}>Add Company Deposit</Text>
+       </TouchableOpacity>
+       <TouchableOpacity style={styles.actionButton} onPress={() => setIsFCNRModalVisible(true)}>
+          <MaterialIcons name="currency-exchange" size={24} color="#1976D2" />
+          <Text style={styles.actionText}>Add FCNR Deposits</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.actionButton} onPress={() => setIsDebtModalVisible(true)}>
+          <MaterialIcons name="receipt-long" size={24} color="#1976D2" />
+           <Text style={styles.actionText}>Add Debt Instruments</Text>
+      </TouchableOpacity>
+      </View>
+   </View>   
+   );
 
 
-  // REMOVE the existing renderAddModal function entirely
 
-// ADD: Bank Deposit Modal (FD/RD/NRE/NRO)
-const renderBankDepositModal = () => (
-  <Modal
-    visible={isBankDepositModalVisible}
-    transparent
-    animationType="slide"
-    onRequestClose={() => setIsBankDepositModalVisible(false)}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Bank Deposits</Text>
-          <TouchableOpacity onPress={() => setIsBankDepositModalVisible(false)}>
-            <MaterialIcons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.modalBody}>
-            {/* Instrument Type */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Deposit Type *</Text>
-              <View style={styles.pickerRow}>
-                {[
-                  { key: 'fd', label: 'Fixed Deposit' },
-                  { key: 'rd', label: 'Recurring Deposit' },
-                  { key: 'nre', label: 'NRE Deposit' },
-                  { key: 'nro', label: 'NRO Deposit' },
-                ].map(t => (
-                  <TouchableOpacity
-                    key={t.key}
-                    style={[styles.pill, instrumentType === t.key && styles.pillSelected]}
-                    onPress={() => setInstrumentType(t.key as any)}
-                  >
-                    <Text style={[styles.pillText, instrumentType === t.key && styles.pillTextSelected]}>
-                      {t.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
-            {/* Bank Name */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Bank Name *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={bankOrIssuer}
-                onChangeText={setBankOrIssuer}
-                placeholder="e.g., HDFC Bank, SBI"
-              />
-            </View>
+// ADD: Bank Deposit Modal (FD/RD/NRE/NRO) - ENHANCED VERSION
+  const renderBankDepositModal = () => (
+    <Modal
+      visible={isBankDepositModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsBankDepositModalVisible(false)}
+    >
+       <View style={styles.modalOverlay}>
+         <View style={styles.modalContent}>
+           <View style={styles.modalHeader}>
+             <Text style={styles.modalTitle}>Bank Deposits</Text>
+             <TouchableOpacity onPress={() => setIsBankDepositModalVisible(false)}>
+               <MaterialIcons name="close" size={24} color="#666" />
+             </TouchableOpacity>
+           </View>
+           <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+             <View style={styles.modalBody}>
+               {/* Instrument Type */}
+               <View style={styles.inputContainer}>
+                 <Text style={styles.inputLabel}>Deposit Type *</Text>
+                 <View style={styles.pickerRow}>
+                   {[
+                     { key: 'fd', label: 'Fixed Deposit' },
+                     { key: 'rd', label: 'Recurring Deposit' },
+                     { key: 'nre', label: 'NRE Deposit' },
+                     { key: 'nro', label: 'NRO Deposit' },
+                    ].map(t => (
+                     <TouchableOpacity
+                       key={t.key}
+                       style={[styles.pill, instrumentType === t.key && styles.pillSelected]}
+                       onPress={() => setInstrumentType(t.key as any)}
+                      >
+                        <Text style={[styles.pillText, instrumentType === t.key && styles.pillTextSelected]}>
+                          {t.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
-            {/* Basic Fields - Principal, Interest Rate, Dates */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Principal Amount (₹) *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={principalAmount}
-                onChangeText={setPrincipalAmount}
-                placeholder="0"
-                keyboardType="numeric"
-              />
-            </View>
-
-            {/* Interest Payout */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Interest Payout</Text>
-              <View style={styles.pickerRow}>
-                {(['monthly','quarterly','annually','cumulative','maturity'] as const).map(payout => (
-                  <TouchableOpacity
-                    key={payout}
-                    style={[styles.pill, interestPayout === payout && styles.pillSelected]}
-                    onPress={() => setInterestPayout(payout)}
-                  >
-                    <Text style={[styles.pillText, interestPayout === payout && styles.pillTextSelected]}>
-                      {payout.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* RD-specific fields */}
-            {instrumentType === 'rd' && (
-              <>
+                {/* Bank Name */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Monthly Deposit Day (1-31)</Text>
+                  <Text style={styles.inputLabel}>Bank Name *</Text>
                   <TextInput
                     style={styles.textInput}
-                    value={recurringDepositDay.toString()}
-                    onChangeText={(val) => setRecurringDepositDay(parseInt(val) || 1)}
-                    placeholder="15"
+                    value={bankOrIssuer}
+                    onChangeText={setBankOrIssuer}
+                    placeholder="e.g., HDFC Bank, SBI, ICICI Bank"
+                  />
+                </View>
+
+                {/* Instrument Name */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Deposit Name (Optional)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={instrumentName}
+                    onChangeText={setInstrumentName}
+                    placeholder={`${instrumentType.toUpperCase()} - ${bankOrIssuer || 'Bank Name'}`}
+                  />
+                </View>
+
+                {/* Principal Amount */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Principal Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={principalAmount}
+                    onChangeText={setPrincipalAmount}
+                    placeholder="100000"
                     keyboardType="numeric"
                   />
                 </View>
+
+                {/* Interest Rate */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Monthly Installment (₹)</Text>
+                  <Text style={styles.inputLabel}>Interest Rate (% p.a.)</Text>
                   <TextInput
                     style={styles.textInput}
-                    value={installmentAmount}
-                    onChangeText={setInstallmentAmount}
-                    placeholder="5000"
+                    value={interestRate}
+                    onChangeText={setInterestRate}
+                    placeholder="7.5"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                {/* Interest Payout */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Interest Payout</Text>
+                  <View style={styles.pickerRow}>
+                    {(['monthly','quarterly','annually','cumulative','maturity'] as const).map(payout => (
+                      <TouchableOpacity
+                        key={payout}
+                        style={[styles.pill, interestPayout === payout && styles.pillSelected]}
+                        onPress={() => setInterestPayout(payout)}
+                      >
+                        <Text style={[styles.pillText, interestPayout === payout && styles.pillTextSelected]}>
+                          {payout.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Dates Row */}
+                <View style={styles.row}>
+                  <View style={styles.half}>
+                    <Text style={styles.inputLabel}>Start Date</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={startDateStr}
+                      onChangeText={setStartDateStr}
+                      placeholder="DD/MM/YYYY"
+                    />
+                  </View>
+                  <View style={styles.half}>
+                    <Text style={styles.inputLabel}>Maturity Date</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      value={maturityDateStr}
+                      onChangeText={setMaturityDateStr}
+                      placeholder="DD/MM/YYYY"
+                    />
+                  </View>
+                </View>
+
+                {/* RD-specific fields */}
+                {instrumentType === 'rd' && (
+                  <>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Monthly Deposit Day (1-31)</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        value={recurringDepositDay.toString()}
+                        onChangeText={(val) => setRecurringDepositDay(parseInt(val) || 1)}
+                        placeholder="15"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Monthly Installment (₹)</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        value={installmentAmount}
+                        onChangeText={setInstallmentAmount}
+                        placeholder="5000"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Source Account (for installments)</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        value={sourceAccountId}
+                        onChangeText={setSourceAccountId}
+                        placeholder="Select account for auto-debit"
+                      />
+                    </View>
+                  </>
+                )}
+
+                {/* Auto-Renewal */}
+                <View style={styles.inputContainer}>
+                  <TouchableOpacity 
+                    style={styles.checkboxRow} 
+                    onPress={() => setAutoRenew(!autoRenew)}
+                  >
+                    <MaterialIcons 
+                      name={autoRenew ? "check-box" : "check-box-outline-blank"} 
+                      size={24} 
+                      color="#8B5CF6" 
+                    />
+                    <Text style={styles.checkboxText}>Auto-renew on maturity</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Notes */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                  <TextInput
+                    style={[styles.textInput, { minHeight: 80 }]}
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder="Additional details, nominee information, etc."
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsBankDepositModalVisible(false)}>
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.primaryButton, isProcessing && styles.disabledButton]} 
+                onPress={saveBankDeposit}
+                disabled={isProcessing}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {isProcessing ? 'Saving...' : 'Save Deposit'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+     );
+
+
+  // ADD: FCNR Modal - ENHANCED VERSION
+  const renderFCNRModal = () => (
+    <Modal
+      visible={isFCNRModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsFCNRModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>FCNR Deposit</Text>
+            <TouchableOpacity onPress={() => setIsFCNRModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              {/* Currency Selection */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Currency *</Text>
+                <View style={styles.pickerRow}>
+                  {['USD','EUR','GBP','JPY','AUD','CAD','SGD','CHF'].map(curr => (
+                    <TouchableOpacity
+                      key={curr}
+                      style={[styles.pill, currency === curr && styles.pillSelected]}
+                      onPress={() => setCurrency(curr)}
+                    >
+                      <Text style={[styles.pillText, currency === curr && styles.pillTextSelected]}>
+                        {curr}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Bank Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bank Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={bankOrIssuer}
+                  onChangeText={setBankOrIssuer}
+                  placeholder="e.g., SBI, HDFC Bank, ICICI Bank"
+                />
+              </View>
+
+              {/* Deposit Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Deposit Name (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={instrumentName}
+                  onChangeText={setInstrumentName}
+                  placeholder={`FCNR ${currency} - ${bankOrIssuer || 'Bank Name'}`}
+                />
+              </View>
+
+              {/* Principal Amount with Currency Symbol */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Principal Amount ({currency}) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={principalAmount}
+                  onChangeText={setPrincipalAmount}
+                  placeholder={currency === 'USD' ? '10000' : currency === 'EUR' ? '8500' : '5000'}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Interest Rate */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Interest Rate (% p.a.)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={interestRate}
+                  onChangeText={setInterestRate}
+                  placeholder="2.5"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+
+              {/* Interest Payout */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Interest Payout</Text>
+                <View style={styles.pickerRow}>
+                  {(['quarterly','annually','maturity'] as const).map(payout => (
+                    <TouchableOpacity
+                      key={payout}
+                      style={[styles.pill, interestPayout === payout && styles.pillSelected]}
+                      onPress={() => setInterestPayout(payout)}
+                    >
+                      <Text style={[styles.pillText, interestPayout === payout && styles.pillTextSelected]}>
+                        {payout.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Dates Row */}
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Start Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={startDateStr}
+                    onChangeText={setStartDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Maturity Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={maturityDateStr}
+                    onChangeText={setMaturityDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+              </View>
+
+              {/* Auto-Renewal */}
+              <View style={styles.inputContainer}>
+                <TouchableOpacity 
+                  style={styles.checkboxRow} 
+                  onPress={() => setAutoRenew(!autoRenew)}
+                >
+                  <MaterialIcons 
+                    name={autoRenew ? "check-box" : "check-box-outline-blank"} 
+                    size={24} 
+                    color="#8B5CF6" 
+                  />
+                  <Text style={styles.checkboxText}>Auto-renew on maturity</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Notes */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.textInput, { minHeight: 80 }]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Exchange rate at opening, repatriation details, etc."
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          </ScrollView>
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsFCNRModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.primaryButton, isProcessing && styles.disabledButton]} 
+              onPress={saveFCNRDeposit}
+              disabled={isProcessing}
+            >
+              <Text style={styles.primaryButtonText}>
+                {isProcessing ? 'Saving...' : 'Save FCNR'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+
+  // ADD: Company Deposit Modal - ENHANCED VERSION
+  const renderCompanyDepositModal = () => (
+    <Modal
+      visible={isCompanyDepositModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsCompanyDepositModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Company Deposit</Text>
+            <TouchableOpacity onPress={() => setIsCompanyDepositModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              {/* Company Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Company Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={companyName}
+                  onChangeText={setCompanyName}
+                  placeholder="e.g., Mahindra Finance, Bajaj Finserv, Shriram Finance"
+                />
+              </View>
+
+              {/* Deposit Scheme Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Deposit Scheme Name (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={instrumentName}
+                  onChangeText={setInstrumentName}
+                  placeholder={`Company Deposit - ${companyName || 'Company Name'}`}
+                />
+              </View>
+
+              {/* Principal Amount */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Principal Amount (₹) *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={principalAmount}
+                  onChangeText={setPrincipalAmount}
+                  placeholder="500000"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* Interest Rate */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Interest Rate (% p.a.)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={interestRate}
+                  onChangeText={setInterestRate}
+                  placeholder="9.5"
+                  keyboardType="decimal-pad"
+                />
+              </View>
+
+              {/* Interest Payout */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Interest Payout</Text>
+                <View style={styles.pickerRow}>
+                  {(['monthly','quarterly','annually','cumulative','maturity'] as const).map(payout => (
+                    <TouchableOpacity
+                      key={payout}
+                      style={[styles.pill, interestPayout === payout && styles.pillSelected]}
+                      onPress={() => setInterestPayout(payout)}
+                    >
+                      <Text style={[styles.pillText, interestPayout === payout && styles.pillTextSelected]}>
+                        {payout.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Dates Row */}
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Start Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={startDateStr}
+                    onChangeText={setStartDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Maturity Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={maturityDateStr}
+                    onChangeText={setMaturityDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+              </View>
+
+              {/* Auto-Renewal */}
+              <View style={styles.inputContainer}>
+                <TouchableOpacity 
+                  style={styles.checkboxRow} 
+                  onPress={() => setAutoRenew(!autoRenew)}
+                >
+                  <MaterialIcons 
+                    name={autoRenew ? "check-box" : "check-box-outline-blank"} 
+                    size={24} 
+                    color="#8B5CF6" 
+                  />
+                  <Text style={styles.checkboxText}>Auto-renew on maturity</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Notes */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.textInput, { minHeight: 80 }]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Credit rating, deposit insurance, special terms, etc."
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          </ScrollView>
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsCompanyDepositModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.primaryButton, isProcessing && styles.disabledButton]} 
+              onPress={saveCompanyDeposit}
+              disabled={isProcessing}
+            >
+              <Text style={styles.primaryButtonText}>
+                {isProcessing ? 'Saving...' : 'Save Deposit'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+
+  // ADD: Debt Instruments Modal - ENHANCED VERSION
+  const renderDebtModal = () => (
+    <Modal
+      visible={isDebtModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIsDebtModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Debt Instruments</Text>
+            <TouchableOpacity onPress={() => setIsDebtModalVisible(false)}>
+              <MaterialIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+            <View style={styles.modalBody}>
+              {/* Bond Type */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bond Type *</Text>
+                <View style={styles.pickerRow}>
+                  {(['government','corporate','municipal'] as const).map(type => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.pill, bondType === type && styles.pillSelected]}
+                      onPress={() => setBondType(type)}
+                    >
+                      <Text style={[styles.pillText, bondType === type && styles.pillTextSelected]}>
+                        {type.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Issuer Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Issuer Name *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={bankOrIssuer}
+                  onChangeText={setBankOrIssuer}
+                  placeholder={
+                    bondType === 'government' ? 'Government of India' :
+                    bondType === 'corporate' ? 'e.g., Reliance Industries, Tata Motors' :
+                    'Municipal Corporation Name'
+                  }
+                />
+              </View>
+
+              {/* Bond Name */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Bond Name (Optional)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={instrumentName}
+                  onChangeText={setInstrumentName}
+                  placeholder={`${bondType.toUpperCase()} Bond - ${bankOrIssuer || 'Issuer'}`}
+                />
+              </View>
+
+              {/* ISIN Code */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>ISIN / Bond ID</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={isinCode}
+                  onChangeText={setIsinCode}
+                  placeholder="INE000A01036"
+                />
+              </View>
+
+              {/* Face Value and Investment Amount */}
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Face Value (₹)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={faceValueStr}
+                    onChangeText={setFaceValueStr}
+                    placeholder="1000"
                     keyboardType="numeric"
                   />
                 </View>
-              </>
-            )}
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Investment Amount (₹) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={principalAmount}
+                    onChangeText={setPrincipalAmount}
+                    placeholder="100000"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
 
-            {/* Placeholder for other common fields */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Notes (Optional)</Text>
-              <TextInput
-                style={[styles.textInput, { minHeight: 60 }]}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Additional details"
-                multiline
-              />
-            </View>
-          </View>
-        </ScrollView>
-        <View style={styles.modalFooter}>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setIsBankDepositModalVisible(false)}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={saveBankDeposit}>
-            <Text style={styles.primaryButtonText}>Save</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  </Modal>
-);
+              {/* Coupon Rate and Yield */}
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Coupon Rate (% p.a.)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={couponRate}
+                    onChangeText={setCouponRate}
+                    placeholder="7.75"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Yield to Maturity (%)</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={yieldToMaturity}
+                    onChangeText={setYieldToMaturity}
+                    placeholder="8.25"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
 
-// ADD: Company Deposit Modal
-const renderCompanyDepositModal = () => (
-  <Modal
-    visible={isCompanyDepositModalVisible}
-    transparent
-    animationType="slide"
-    onRequestClose={() => setIsCompanyDepositModalVisible(false)}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Company Deposit</Text>
-          <TouchableOpacity onPress={() => setIsCompanyDepositModalVisible(false)}>
-            <MaterialIcons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.modalBody}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Company Name *</Text>
-              <TextInput
-                style={styles.textInput}
-                value={companyName}
-                onChangeText={setCompanyName}
-                placeholder="e.g., Mahindra Finance, Bajaj Finserv"
-              />
-            </View>
-            {/* TODO: Add other fields */}
-            <Text style={styles.inputLabel}>More fields coming soon...</Text>
-          </View>
-        </ScrollView>
-        <View style={styles.modalFooter}>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setIsCompanyDepositModalVisible(false)}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={saveCompanyDeposit}>
-            <Text style={styles.primaryButtonText}>Save</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  </Modal>
-);
+              {/* Credit Rating */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Credit Rating</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={creditRating}
+                  onChangeText={setCreditRating}
+                  placeholder="AAA, AA, A, BBB, etc."
+                />
+              </View>
 
-// ADD: FCNR Modal
-const renderFCNRModal = () => (
-  <Modal
-    visible={isFCNRModalVisible}
-    transparent
-    animationType="slide"
-    onRequestClose={() => setIsFCNRModalVisible(false)}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>FCNR Deposit</Text>
-          <TouchableOpacity onPress={() => setIsFCNRModalVisible(false)}>
-            <MaterialIcons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.modalBody}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Currency *</Text>
-              <View style={styles.pickerRow}>
-                {['USD','EUR','GBP','JPY','AUD','CAD','SGD','CHF'].map(curr => (
-                  <TouchableOpacity
-                    key={curr}
-                    style={[styles.pill, currency === curr && styles.pillSelected]}
-                    onPress={() => setCurrency(curr)}
+              {/* Dates Row */}
+              <View style={styles.row}>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Issue Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={startDateStr}
+                    onChangeText={setStartDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Text style={styles.inputLabel}>Maturity Date</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    value={maturityDateStr}
+                    onChangeText={setMaturityDateStr}
+                    placeholder="DD/MM/YYYY"
+                  />
+                </View>
+              </View>
+
+              {/* Options */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Special Features</Text>
+                <View style={styles.checkboxColumn}>
+                  <TouchableOpacity 
+                    style={styles.checkboxRow} 
+                    onPress={() => setHasCallOption(!hasCallOption)}
                   >
-                    <Text style={[styles.pillText, currency === curr && styles.pillTextSelected]}>
-                      {curr}
-                    </Text>
+                    <MaterialIcons 
+                      name={hasCallOption ? "check-box" : "check-box-outline-blank"} 
+                      size={24} 
+                      color="#8B5CF6" 
+                    />
+                    <Text style={styles.checkboxText}>Has Call Option (early redemption by issuer)</Text>
                   </TouchableOpacity>
-                ))}
+                  <TouchableOpacity 
+                    style={styles.checkboxRow} 
+                    onPress={() => setHasPutOption(!hasPutOption)}
+                  >
+                    <MaterialIcons 
+                      name={hasPutOption ? "check-box" : "check-box-outline-blank"} 
+                      size={24} 
+                      color="#8B5CF6" 
+                    />
+                    <Text style={styles.checkboxText}>Has Put Option (early sale by investor)</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Notes */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.textInput, { minHeight: 80 }]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Trading details, broker information, tax implications, etc."
+                  multiline
+                  numberOfLines={3}
+                />
               </View>
             </View>
-            {/* TODO: Add other fields */}
-            <Text style={styles.inputLabel}>More fields coming soon...</Text>
+          </ScrollView>
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setIsDebtModalVisible(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.primaryButton, isProcessing && styles.disabledButton]} 
+              onPress={saveDebtInstrument}
+              disabled={isProcessing}
+            >
+              <Text style={styles.primaryButtonText}>
+                {isProcessing ? 'Saving...' : 'Save Bond'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-        <View style={styles.modalFooter}>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setIsFCNRModalVisible(false)}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={saveFCNRDeposit}>
-            <Text style={styles.primaryButtonText}>Save</Text>
-          </TouchableOpacity>
         </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
 
-// ADD: Debt Instruments Modal
-const renderDebtModal = () => (
-  <Modal
-    visible={isDebtModalVisible}
-    transparent
-    animationType="slide"
-    onRequestClose={() => setIsDebtModalVisible(false)}
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Debt Instruments</Text>
-          <TouchableOpacity onPress={() => setIsDebtModalVisible(false)}>
-            <MaterialIcons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.modalBody}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Bond Type *</Text>
-              <View style={styles.pickerRow}>
-                {(['government','corporate','municipal'] as const).map(type => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[styles.pill, bondType === type && styles.pillSelected]}
-                    onPress={() => setBondType(type)}
-                  >
-                    <Text style={[styles.pillText, bondType === type && styles.pillTextSelected]}>
-                      {type.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-            {/* TODO: Add other fields */}
-            <Text style={styles.inputLabel}>More fields coming soon...</Text>
-          </View>
-        </ScrollView>
-        <View style={styles.modalFooter}>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => setIsDebtModalVisible(false)}>
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={saveDebtInstrument}>
-            <Text style={styles.primaryButtonText}>Save</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  </Modal>
-);
 
 
   if (loading) {
@@ -998,5 +1515,21 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: '600', color: Colors.text.secondary, marginTop: 16, marginBottom: 4 },
   emptySubtitle: { fontSize: 14, color: Colors.text.tertiary, textAlign: 'center' },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+
+  checkboxRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 8 
+  },
+  checkboxColumn: { 
+    gap: 8 
+  },
+  checkboxText: { 
+    fontSize: 14, 
+    color: Colors.text.primary, 
+    marginLeft: 8, 
+    flex: 1 
+  },
+
 });
 export { FixedIncomeScreen as default };
