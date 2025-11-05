@@ -144,25 +144,42 @@ export interface LoanEntry {
 // ===== Fixed Income domain types =====
 export interface FixedIncomeEntry {
   id: string;
-  instrumentType: 'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
+  instrumentType: 'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt';
   
-  // Issuer information
-  bankOrIssuer: string;
+  // Issuer information (varies by instrument type)
+  bankName?: string;         // For FD/RD/NRE/NRO/FCNR
+  companyName?: string;      // For company deposits
+  issuerName?: string;       // For debt instruments
   instrumentName: string;
   
-  // Financial details
-  principalAmount: { amount: number; currency: string }; // Support multi-currency
+  // Multi-currency financial details
+  principalAmount: { amount: number; currency: string };
   currentValue: { amount: number; currency: string };
   interestRate: number;
   
-  // Interest & Payout options
+  // Interest structure
   compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
   interestPayout: 'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity';
-  payoutAccount?: string; // Account ID where interest is paid
+  payoutAccountId?: string; // Bank account ID for interest credits
   
   // Dates
   startDate: Date;
   maturityDate: Date;
+  
+  // RD-specific fields
+  recurringDepositDay?: number;           // Day of month (1-31)
+  sourceAccountId?: string;               // Account for RD installments
+  installmentAmount?: { amount: number; currency: string };
+  
+  // Debt instrument-specific fields
+  bondType?: 'government' | 'corporate' | 'municipal';
+  creditRating?: string;                  // e.g., "AAA", "AA+"
+  isinCode?: string;                      // ISIN identifier
+  faceValue?: { amount: number; currency: string };
+  couponRate?: number;                    // Different from interestRate for bonds
+  yieldToMaturity?: number;
+  hasCallOption?: boolean;
+  hasPutOption?: boolean;
   
   // Renewal options
   autoRenew: boolean;
@@ -170,12 +187,13 @@ export interface FixedIncomeEntry {
     enabled: boolean;
     daysBeforeMaturity: number;
     lastNotifiedAt?: Date;
+    pendingRateConfirmation?: {
+      oldRate: number;
+      newRate: number;
+      notificationDate: Date;
+      userResponse?: 'pending' | 'confirmed' | 'rejected';
+    };
   };
-  
-  // RD-specific fields
-  recurringDepositDay?: number; // Day of month (1-31)
-  sourceAccountId?: string; // Account from which RD installments are debited
-  installmentAmount?: { amount: number; currency: string }; // Monthly RD amount
   
   // Status
   isActive: boolean;
@@ -203,6 +221,7 @@ export interface FixedIncomeEntry {
   };
   linkedTransactions?: any[];
 }
+
 
 
 export interface FixedIncomeTransaction {

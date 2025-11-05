@@ -10,6 +10,7 @@ export type Totals = {
   totalLoans: number;
   totalCreditCards: number;
   totalFixedIncome: number;      // NEW: Fixed Income subtotal
+  totalFixedIncomeByCurrency: Record<string, number>; 
   totalInvestments: number;      // Will be sum of all investment subtypes
   totalPhysicalAssets: number;
   totalCrypto: number;
@@ -77,11 +78,17 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
     totalBankAccounts,
     totalLoans,
     totalCreditCards,
-    totalFixedIncome,        // NEW: expose Fixed Income subtotal
-    totalInvestments,        // Sum of all investment types
+    totalFixedIncome,
+    totalFixedIncomeByCurrency: fixedIncomeEntries.reduce((acc, fi) => {
+      const currency = fi?.currentValue?.currency ?? 'INR';
+      acc[currency] = (acc[currency] ?? 0) + (fi?.currentValue?.amount ?? 0);
+      return acc;
+    }, {} as Record<string, number>),
+    totalInvestments,
     totalPhysicalAssets,
     totalCrypto,
     netWorth,
     totalLiquidity,
   };
+
 };
