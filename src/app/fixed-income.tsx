@@ -250,9 +250,9 @@ const FixedIncomeScreen: React.FC = () => {
 
     // RD-specific validation
     if (instrumentType === 'rd') {
-      if (!installmentAmount.trim()) {
-        Alert.alert('Missing Info', 'Please enter monthly installment amount for RD.');
-        return;
+     if (!installmentAmount.trim()) {
+       Alert.alert('Missing Info', 'Please enter monthly installment amount for RD.');
+      return;
       }
       const installment = Number(installmentAmount);
       if (!Number.isFinite(installment) || installment <= 0) {
@@ -265,12 +265,15 @@ const FixedIncomeScreen: React.FC = () => {
       }
     }
 
-    // Date validation with ordering
+    // Date validation with DD/MM/YYYY parsing and ordering for SaveBankDeposit
     let start = new Date();
     let maturity = new Date(start.getTime() + 365 * 24 * 3600 * 1000);
 
     if (startDateStr.trim()) {
-      const parsedStart = new Date(startDateStr);
+      const parts = startDateStr.split('/');
+      const parsedStart = parts.length === 3 
+        ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])) // DD/MM/YYYY → YYYY, MM-1, DD
+        : new Date(startDateStr);
       if (isNaN(parsedStart.getTime())) {
         Alert.alert('Invalid Date', 'Please enter a valid start date.');
         return;
@@ -279,7 +282,10 @@ const FixedIncomeScreen: React.FC = () => {
     }
 
     if (maturityDateStr.trim()) {
-      const parsedMaturity = new Date(maturityDateStr);
+      const parts = maturityDateStr.split('/');
+      const parsedMaturity = parts.length === 3 
+        ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])) // DD/MM/YYYY → YYYY, MM-1, DD
+        : new Date(maturityDateStr);
       if (isNaN(parsedMaturity.getTime())) {
         Alert.alert('Invalid Date', 'Please enter a valid maturity date.');
         return;
@@ -290,6 +296,8 @@ const FixedIncomeScreen: React.FC = () => {
       }
       maturity = parsedMaturity;
     }
+
+
 
 
     setIsProcessing(true);
@@ -386,12 +394,15 @@ const FixedIncomeScreen: React.FC = () => {
       return;
     }
 
-    // Date validation (past allowed; maturity must be after start)
+    // Date validation with DD/MM/YYYY parsing (past allowed; maturity must be after start)
     let start = new Date();
     let maturity = new Date(start.getTime() + 365 * 24 * 3600 * 1000);
 
     if (startDateStr.trim()) {
-      const parsedStart = new Date(startDateStr);
+      const parts = startDateStr.split('/');
+      const parsedStart = parts.length === 3 
+        ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])) // DD/MM/YYYY → YYYY, MM-1, DD
+        : new Date(startDateStr);
       if (isNaN(parsedStart.getTime())) {
         Alert.alert('Invalid Date', 'Please enter a valid start date.');
         return;
@@ -400,7 +411,10 @@ const FixedIncomeScreen: React.FC = () => {
     }
 
     if (maturityDateStr.trim()) {
-      const parsedMaturity = new Date(maturityDateStr);
+      const parts = maturityDateStr.split('/');
+      const parsedMaturity = parts.length === 3 
+        ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])) // DD/MM/YYYY → YYYY, MM-1, DD
+        : new Date(maturityDateStr);
       if (isNaN(parsedMaturity.getTime())) {
         Alert.alert('Invalid Date', 'Please enter a valid maturity date.');
         return;
@@ -411,6 +425,7 @@ const FixedIncomeScreen: React.FC = () => {
       }
       maturity = parsedMaturity;
     }
+
 
     setIsProcessing(true);
     try {
@@ -508,8 +523,19 @@ const FixedIncomeScreen: React.FC = () => {
     setIsProcessing(true);
     try {
         const now = new Date();
-        const start = startDateStr ? new Date(startDateStr) : now;
-        const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+        const start = startDateStr ? (() => {
+          const parts = startDateStr.split('/');
+          return parts.length === 3 
+            ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+            : new Date(startDateStr);
+        })() : now;
+
+        const maturity = maturityDateStr ? (() => {
+          const parts = maturityDateStr.split('/');
+          return parts.length === 3 
+            ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+            : new Date(maturityDateStr);
+        })() : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
 
         const entry: FixedIncomeEntry = {
         id: `${Date.now()}`,
@@ -598,8 +624,20 @@ const FixedIncomeScreen: React.FC = () => {
     setIsProcessing(true);
     try {
         const now = new Date();
-        const start = startDateStr ? new Date(startDateStr) : now;
-        const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+          const start = startDateStr ? (() => {
+            const parts = startDateStr.split('/');
+            return parts.length === 3 
+              ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+              : new Date(startDateStr);
+          })() : now;
+
+          const maturity = maturityDateStr ? (() => {
+            const parts = maturityDateStr.split('/');
+            return parts.length === 3 
+              ? new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]))
+              : new Date(maturityDateStr);
+          })() : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
+
 
         const entry: FixedIncomeEntry = {
         id: `${Date.now()}`,
