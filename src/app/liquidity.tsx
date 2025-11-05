@@ -33,31 +33,51 @@ const LiquidityScreen: React.FC = () => {
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  // Cash breakdown by category
-  const cashBreakdown = useMemo(() => {
+  // Cash grouped by cashCategory (Wallet, Home Safe, Loose change (car), etc.)
+  const cashGrouped = useMemo(() => {
     const entries = ((state?.cashEntries ?? []) as any[]);
-    return entries.map((cash: any) => {
-      const category = cash?.category || 'Cash';
-      const amount = cash?.amount?.amount ?? 0;
-      return { category, amount };
+    const group: Record<string, number> = {};
+    entries.forEach((c: any) => {
+      const key = c?.cashCategory || 'Uncategorized';
+      const amt = c?.amount?.amount ?? 0;
+      group[key] = (group[key] ?? 0) + amt;
     });
+    // Sort by category name alphabetically
+    return Object.entries(group)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .filter(([, amt]) => amt !== 0); // Only show categories with balance
   }, [state?.cashEntries]);
 
-  // Bank accounts breakdown by account type and institution
-  const bankBreakdown = useMemo(() => {
-    const entries = ((state?.accounts ?? []) as any[]);
-    const grouped: Record<string, { accounts: any[], total: number }> = {};
+  // Bank accounts grouped by type, with each type listing right-justified accounts
+  const bankGrouped = useMemo(() => {
+    const accounts = ((state?.accounts ?? []) as any[]);
+    const group: Record<string, { label: string; items: Array<{ bank: string; last4: string; amount: number }> }> = {};
 
-    entries.forEach((acc: any) => {
+    const toLast4 = (s: string) => (s || '').replace(/\D/g, '').slice(-4) || 'XXXX';
+
+    accounts.forEach((acc: any) => {
       const type = acc?.type || acc?.accountType || 'Savings';
-      if (!grouped[type]) {
-        grouped[type] = { accounts: [], total: 0 };
+      const bank = acc?.bank || acc?.bankName || acc?.institution || 'Bank';
+      const raw = String(acc?.accountNumber || acc?.number || acc?.iban || acc?.maskedNumber || '');
+      const last4 = toLast4(raw);
+      const amount = acc?.balance?.amount ?? 0;
+
+      if (!group[type]) {
+        group[type] = { label: type, items: [] };
       }
-      grouped[type].accounts.push(acc);
-      grouped[type].total += acc?.balance?.amount ?? 0;
+      group[type].items.push({ bank, last4, amount });
     });
 
-    return grouped;
+    // Sort groups alphabetically; inside group sort amounts desc
+    return Object.entries(group)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([type, data]) => ({
+        type,
+        label: data.label,
+        total: data.items.reduce((s, x) => s + (x.amount || 0), 0),
+        items: data.items.sort((a, b) => (b.amount || 0) - (a.amount || 0)),
+      }))
+      .filter(grp => grp.total !== 0); // Only show types with balance
   }, [state?.accounts]);
 
   const renderLiquidityOverview = () => (
@@ -100,12 +120,13 @@ const LiquidityScreen: React.FC = () => {
         </View>
         
         {/* Cash category breakdown */}
-        {cashBreakdown.length > 0 && (
+        {cashGrouped.length > 0 && (
           <View style={styles.smallBreakdown}>
-            {cashBreakdown.map((item, idx) => (
-              <Text key={idx} style={styles.smallBreakdownText}>
-                {item.category}: {formatCurrency(item.amount, 'INR')}
-              </Text>
+            {cashGrouped.map(([categoryName, amount]) => (
+              <View key={categoryName} style={styles.rowJustify}>
+                <Text style={styles.smallLeft}>{categoryName}</Text>
+                <Text style={styles.smallRight}>{formatCurrency(amount, 'INR')}</Text>
+              </View>
             ))}
           </View>
         )}
@@ -133,44 +154,46 @@ const LiquidityScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Bank accounts breakdown by type */}
-        <View style={styles.smallBreakdown}>
-          {Object.entries(bankBreakdown).map(([accountType, group]) => (
-            <View key={accountType} style={{ marginBottom: 4 }}>
-              <Text style={[styles.smallBreakdownText, { fontWeight: '600', color: Colors.text.secondary }]}>
-                {accountType} ({group.total > 0 ? formatCurrency(group.total, 'INR') : '₹0'})
-              </Text>
-              {group.accounts.map((acc: any, idx: number) => {
-                const bank = acc?.bank || acc?.bankName || acc?.institution || 'Bank';
-                const acctRaw = String(acc?.accountNumber || acc?.number || '');
-                const last4 = acctRaw.replace(/\D/g, '').slice(-4) || 'XXXX';
-                const balance = acc?.balance?.amount ?? 0;
-                return (
-                  <Text key={idx} style={[styles.smallBreakdownText, { marginLeft: 8 }]}>
-                    {bank} ****{last4}: {formatCurrency(balance, 'INR')}
-                  </Text>
-                );
-              })}
-            </View>
-          ))}
-        </View>
+        {/* Bank grouped by type, with right-justified accounts */}
+        {bankGrouped.length > 0 && (
+          <View style={styles.smallBreakdown}>
+            {bankGrouped.map((grp) => (
+              <View key={grp.type} style={{ marginBottom: 6 }}>
+                <View style={styles.rowJustify}>
+                  <Text style={[styles.smallLeft, styles.groupHeading]}>{grp.label}</Text>
+                  <Text style={[styles.smallRight, styles.groupHeading]}>{formatCurrency(grp.total, 'INR')}</Text>
+                </View>
+                {grp.items.map((acc, idx) => (
+                  <View key={`${grp.type}-${idx}`} style={styles.rowJustify}>
+                    <Text style={styles.smallLeft}>
+                      {acc.bank} • ****{acc.last4}
+                    </Text>
+                    <Text style={styles.smallRight}>{formatCurrency(acc.amount, 'INR')}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
 
   const renderLiquidityMetrics = () => {
-    // Calculate liquidity metrics from real data
+    // Data-driven liquidity metrics
     const liquidityRatio = useMemo(() => {
-      // Simple ratio: how much liquid assets vs minimum recommended (₹1L)
-      const minRecommended = 100000;
-      return totalLiquidity > 0 ? (totalLiquidity / minRecommended).toFixed(1) : '0.0';
+      const baseline = 100000; // ₹1 lakh reference
+      return totalLiquidity > 0 ? (totalLiquidity / baseline).toFixed(1) : '0.0';
     }, [totalLiquidity]);
 
     const emergencyFundCoverage = useMemo(() => {
-      // Approximate months of coverage assuming ₹50K monthly expenses
-      const assumedMonthlyExpenses = 50000;
-      return Math.max(0, Math.round(totalLiquidity / assumedMonthlyExpenses));
+      // Assume ₹50K monthly expenses for indicative coverage
+      const monthlyExpenseEstimate = 50000;
+      return Math.max(0, Math.round(totalLiquidity / monthlyExpenseEstimate));
     }, [totalLiquidity]);
+
+    const liquidityStatus = totalLiquidity >= 300000 ? 'Healthy' : totalLiquidity >= 150000 ? 'Fair' : 'Build buffer';
+    const statusColor = totalLiquidity >= 300000 ? Colors.success.main : totalLiquidity >= 150000 ? Colors.warning.main : Colors.error.main;
 
     return (
       <View style={styles.section}>
@@ -180,8 +203,8 @@ const LiquidityScreen: React.FC = () => {
           <View style={styles.metricCard}>
             <Text style={styles.metricValue}>{liquidityRatio}x</Text>
             <Text style={styles.metricLabel}>Liquidity Ratio</Text>
-            <Text style={[styles.metricStatus, { color: totalLiquidity > 100000 ? Colors.success.main : Colors.warning.main }]}>
-              {totalLiquidity > 100000 ? 'Good' : 'Build up'}
+            <Text style={[styles.metricStatus, { color: statusColor }]}>
+              {liquidityStatus}
             </Text>
           </View>
           
@@ -199,11 +222,11 @@ const LiquidityScreen: React.FC = () => {
           <View style={styles.recommendationText}>
             <Text style={styles.recommendationTitle}>Liquidity Recommendation</Text>
             <Text style={styles.recommendationDescription}>
-              {totalLiquidity < 300000 
-                ? 'Build emergency fund to 6 months of expenses. Keep liquid assets readily available.'
-                : totalLiquidity > 1000000
-                ? 'Strong liquidity position. Consider investing excess in market investments.'
-                : 'Good liquidity balance. Monitor monthly expenses and adjust as needed.'
+              {totalLiquidity < 200000 
+                ? 'Build emergency fund to 6 months of expenses in liquid assets (cash + bank).'
+                : totalLiquidity > 800000
+                ? 'Strong liquidity position. Consider time-bound deposits for excess funds.'
+                : 'Good liquidity balance. Monitor monthly cash flow and adjust as needed.'
               }
             </Text>
           </View>
@@ -321,10 +344,27 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border.light,
   },
-  smallBreakdownText: {
+  smallLeft: {
     fontSize: 11,
     color: Colors.text.tertiary,
     fontStyle: 'italic',
+    flex: 1,
+  },
+  smallRight: {
+    fontSize: 11,
+    color: Colors.text.tertiary,
+    fontStyle: 'italic',
+    textAlign: 'right',
+  },
+  groupHeading: {
+    fontStyle: 'normal',
+    color: Colors.text.secondary,
+    fontWeight: '600',
+  },
+  rowJustify: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 2,
   },
   metricsGrid: {
