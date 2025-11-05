@@ -1,5 +1,5 @@
 // src/app/liabilities.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,17 +14,8 @@ import ScreenLayout from '../components/ScreenLayout';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/theme';
 import { formatCurrency } from '../utils/currency';
 import AppFooter from '../components/AppFooter';
-
-
-interface LiabilitiesData {
-  totalLiabilities: number;
-  homeLoans: number;
-  personalLoans: number;
-  creditCards: number;
-  otherDebts: number;
-  debtToIncomeRatio: number;
-  monthlyPayments: number;
-}
+import { useStorage } from '../services/storage/StorageProvider';
+import { computeTotals } from '../selectors/totals';
 
 interface UpcomingPayment {
   id: string;
@@ -36,39 +27,153 @@ interface UpcomingPayment {
 
 const LiabilitiesScreen: React.FC = () => {
   const router = useRouter();
-  const [liabilitiesData, setLiabilitiesData] = useState<LiabilitiesData>({
-    totalLiabilities: 12332550,
-    homeLoans: 8500000,
-    personalLoans: 3225000,
-    creditCards: 252550,
-    otherDebts: 355000,
-    debtToIncomeRatio: 0.28,
-    monthlyPayments: 166500,
-  });
-  const [upcomingPayments, setUpcomingPayments] = useState<UpcomingPayment[]>([
-    {
-      id: '1',
-      name: 'ICICI Home Loan 3235',
-      date: new Date('2025-10-10'),
-      amount: 122000,
-      type: 'loan',
-    },
-    {
-      id: '2',
-      name: 'Federal Credit Card 3266',
-      date: new Date('2025-10-23'),
-      amount: 29556,
-      type: 'credit_card',
-    },
-  ]);
-  const [refreshing, setRefreshing] = useState(false);
+  const { state } = useStorage();
 
+  const {
+    totalLoans,
+    totalCreditCards,
+  } = computeTotals(state ?? undefined);
+
+  const totalLiabilities = totalLoans + totalCreditCards;
+
+  // Loan breakdown by type with individual loan details
+  const loanBreakdown = useMemo(() => {
+    const entries = ((state?.loanEntries ?? []) as any[]);
+    const group: Record<string, { total: number; count: number; items: any[] }> = {};
+
+    entries.forEach((loan: any) => {
+      const type = loan?.loanType || 'Personal Loan';
+      const amount = loan?.currentBalance?.amount ?? 0;
+      
+      if (!group[type]) {
+        group[type] = { total: 0, count: 0, items: [] };
+      }
+      group[type].total += amount;
+      group[type].count += 1;
+      group[type].items.push(loan);
+    });
+
+    return Object.entries(group)
+      .sort(([, a], [, b]) => b.total - a.total) // Sort by total amount desc
+      .map(([type, data]) => ({
+        type,
+        label: type,
+        total: data.total,
+        count: data.count,
+        items: data.items.sort((a, b) => (b?.currentBalance?.amount ?? 0) - (a?.currentBalance?.amount ?? 0)),
+      }));
+  }, [state?.loanEntries]);
+
+  // Credit card breakdown
+  const creditCardBreakdown = useMemo(() => {
+    const entries = ((state?.creditCardEntries ?? []) as any[]);
+    return entries
+      .map((cc: any) => ({
+        id: cc?.id,
+        bank: cc?.bankName || cc?.issuer || 'Credit Card',
+        last4: String(cc?.cardNumber || cc?.maskedNumber || '').replace(/\D/g, '').slice(-4) || 'XXXX',
+        amount: cc?.currentBalance?.amount ?? 0,
+      }))
+      .filter(cc => cc.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+  }, [state?.creditCardEntries]);
+
+  // Calculate monthly payments from real data
+  const monthlyPayments = useMemo(() => {
+    const loanEMIs = loanBreakdown.reduce((sum, group) => {
+      return sum + group.items.reduce((subSum, loan) => {
+        return subSum + (loan?.emiAmount?.amount ?? 0);
+      }, 0);
+    }, 0);
+
+    const creditCardMin = creditCardBreakdown.reduce((sum, cc) => {
+      // Assume 5% minimum payment on outstanding balance
+      return sum + Math.round(cc.amount * 0.05);
+    }, 0);
+
+    return loanEMIs + creditCardMin;
+  }, [loanBreakdown, creditCardBreakdown]);
+
+  // Debt-to-income placeholder (requires income data)
+  const debtToIncomeRatio = useMemo(() => {
+    // Placeholder: assume ₹2.5L monthly income for calculation
+    const assumedMonthlyIncome = 250000;
+    return monthlyPayments > 0 ? monthlyPayments / assumedMonthlyIncome : 0;
+  }, [monthlyPayments]);
+
+  // Enhanced upcoming payments for next 3 months
+  const upcomingPayments = useMemo(() => {
+    const payments: UpcomingPayment[] = [];
+    const today = new Date();
+    const threeMonthsLater = new Date();
+    threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+    
+    // Add loan EMIs for next 3 months
+    loanBreakdown.forEach(group => {
+      group.items.forEach((loan: any) => {
+        const emiAmount = loan?.emiAmount?.amount ?? 0;
+        if (emiAmount <= 0) return;
+
+        // Generate EMI dates for next 3 months
+        let currentDate = new Date(loan?.nextEmiDate || today);
+        let monthCount = 0;
+        
+        while (currentDate <= threeMonthsLater && monthCount < 3) {
+          if (currentDate >= today) {
+            const lenderName = loan?.lenderName || loan?.bankName || 'Lender';
+            const last4 = String(loan?.accountNumber || '').slice(-4) || '';
+            
+            payments.push({
+              id: `loan-${loan.id}-${currentDate.getTime()}`,
+              name: `${lenderName} ${loan.loanType || 'Loan'} ${last4 ? '****' + last4 : ''}`.trim(),
+              date: new Date(currentDate),
+              amount: emiAmount,
+              type: 'loan',
+            });
+          }
+          
+          // Move to next month
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          monthCount++;
+        }
+      });
+    });
+
+    // Add credit card minimum payments for next 3 months
+    creditCardBreakdown.forEach((cc) => {
+      if (cc.amount <= 0) return;
+
+      for (let i = 0; i < 3; i++) {
+        const paymentDate = new Date();
+        paymentDate.setMonth(paymentDate.getMonth() + i + 1);
+        paymentDate.setDate(15); // Assume 15th of each month for CC payments
+        
+        payments.push({
+          id: `cc-${cc.id}-${paymentDate.getTime()}`,
+          name: `${cc.bank} Card ****${cc.last4}`,
+          date: paymentDate,
+          amount: Math.round(cc.amount * 0.05), // 5% minimum payment
+          type: 'credit_card',
+        });
+      }
+    });
+
+    return payments.sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [loanBreakdown, creditCardBreakdown]);
+
+  const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    // Simulate data refresh
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const getLoanIcon = (loanType: string) => {
+    const type = loanType?.toLowerCase() || '';
+    if (type.includes('home') || type.includes('mortgage')) return 'home';
+    if (type.includes('car') || type.includes('auto') || type.includes('vehicle')) return 'directions-car';
+    if (type.includes('education') || type.includes('student')) return 'school';
+    if (type.includes('business')) return 'business';
+    return 'trending-down';
   };
 
   const renderLiabilitiesOverview = () => (
@@ -78,10 +183,10 @@ const LiabilitiesScreen: React.FC = () => {
         <Text style={styles.overviewTitle}>Total Liabilities</Text>
       </View>
       <Text style={[styles.overviewAmount, { color: Colors.error.main }]}>
-        {formatCurrency(liabilitiesData.totalLiabilities, 'INR')}
+        {formatCurrency(totalLiabilities, 'INR')}
       </Text>
       <Text style={styles.overviewSubtext}>
-        Monthly payments: {formatCurrency(liabilitiesData.monthlyPayments, 'INR')}
+        Monthly payments: {formatCurrency(monthlyPayments, 'INR')}
       </Text>
     </View>
   );
@@ -91,48 +196,58 @@ const LiabilitiesScreen: React.FC = () => {
       <Text style={styles.sectionTitle}>Liabilities Breakdown</Text>
       
       <View style={styles.breakdownCard}>
-        <TouchableOpacity 
-          style={styles.breakdownItem}
-          onPress={() => router.push('/loans')}
-        >
-          <View style={styles.breakdownLeft}>
-            <Feather name="home" size={20} color={Colors.info.main} />
-            <View style={styles.breakdownDetails}>
-              <Text style={styles.breakdownLabel}>Home Loans</Text>
-              <Text style={styles.breakdownSubtext}>Mortgage & property loans</Text>
-            </View>
-          </View>
-          <View style={styles.breakdownRight}>
-            <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
-              {formatCurrency(liabilitiesData.homeLoans, 'INR')}
-            </Text>
-            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
-          </View>
-        </TouchableOpacity>
+        {/* Individual loan types as separate rows */}
+        {loanBreakdown.map((group, index) => (
+          <React.Fragment key={group.type}>
+            <TouchableOpacity 
+              style={styles.breakdownItem}
+              onPress={() => router.push('/loans')}
+            >
+              <View style={styles.breakdownLeft}>
+                <Feather name={getLoanIcon(group.type) as any} size={20} color={Colors.warning.main} />
+                <View style={styles.breakdownDetails}>
+                  <Text style={styles.breakdownLabel}>{group.label}</Text>
+                  <Text style={styles.breakdownSubtext}>
+                    {group.count} {group.count === 1 ? 'account' : 'accounts'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.breakdownRight}>
+                <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
+                  {formatCurrency(group.total, 'INR')}
+                </Text>
+                <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
+              </View>
+            </TouchableOpacity>
 
-        <View style={styles.separator} />
+            {/* Individual loan details under each type */}
+            {group.items.length > 0 && (
+              <View style={styles.smallBreakdown}>
+                {group.items.map((loan: any, idx: number) => {
+                  const lenderName = loan?.lenderName || loan?.bankName || 'Lender';
+                  const last4 = String(loan?.accountNumber || '').slice(-4) || 'XXXX';
+                  const balance = loan?.currentBalance?.amount ?? 0;
+                  return (
+                    <View key={idx} style={styles.rowJustify}>
+                      <Text style={styles.smallLeft}>
+                        {lenderName} ****{last4}
+                      </Text>
+                      <Text style={styles.smallRight}>{formatCurrency(balance, 'INR')}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
 
-        <TouchableOpacity 
-          style={styles.breakdownItem}
-          onPress={() => router.push('/loans')}
-        >
-          <View style={styles.breakdownLeft}>
-            <Feather name="trending-down" size={20} color={Colors.warning.main} />
-            <View style={styles.breakdownDetails}>
-              <Text style={styles.breakdownLabel}>Personal Loans</Text>
-              <Text style={styles.breakdownSubtext}>Car, personal & business loans</Text>
-            </View>
-          </View>
-          <View style={styles.breakdownRight}>
-            <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
-              {formatCurrency(liabilitiesData.personalLoans, 'INR')}
-            </Text>
-            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
-          </View>
-        </TouchableOpacity>
+            {/* Add separator between loan types (but not after last) */}
+            {index < loanBreakdown.length - 1 && <View style={styles.separator} />}
+          </React.Fragment>
+        ))}
 
-        <View style={styles.separator} />
+        {/* Add separator before credit cards if loans exist */}
+        {loanBreakdown.length > 0 && <View style={styles.separator} />}
 
+        {/* Credit Cards */}
         <TouchableOpacity 
           style={styles.breakdownItem}
           onPress={() => router.push('/credit-cards')}
@@ -146,56 +261,23 @@ const LiabilitiesScreen: React.FC = () => {
           </View>
           <View style={styles.breakdownRight}>
             <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
-              {formatCurrency(liabilitiesData.creditCards, 'INR')}
+              {formatCurrency(totalCreditCards, 'INR')}
             </Text>
             <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
           </View>
         </TouchableOpacity>
 
-        <View style={styles.separator} />
-
-        <TouchableOpacity style={styles.breakdownItem}>
-          <View style={styles.breakdownLeft}>
-            <Feather name="more-horizontal" size={20} color={Colors.text.secondary} />
-            <View style={styles.breakdownDetails}>
-              <Text style={styles.breakdownLabel}>Other Debts</Text>
-              <Text style={styles.breakdownSubtext}>Miscellaneous liabilities</Text>
-            </View>
+        {/* Credit card breakdown */}
+        {creditCardBreakdown.length > 0 && (
+          <View style={styles.smallBreakdown}>
+            {creditCardBreakdown.map((cc, idx) => (
+              <View key={idx} style={styles.rowJustify}>
+                <Text style={styles.smallLeft}>{cc.bank} ****{cc.last4}</Text>
+                <Text style={styles.smallRight}>{formatCurrency(cc.amount, 'INR')}</Text>
+              </View>
+            ))}
           </View>
-          <View style={styles.breakdownRight}>
-            <Text style={[styles.breakdownAmount, { color: Colors.error.main }]}>
-              {formatCurrency(liabilitiesData.otherDebts, 'INR')}
-            </Text>
-            <Feather name="chevron-right" size={16} color={Colors.text.secondary} />
-          </View>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const renderUpcomingPayments = () => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Upcoming Payments</Text>
-      
-      <View style={styles.paymentsCard}>
-        {upcomingPayments.map((payment) => (
-          <View key={payment.id} style={styles.paymentItem}>
-            <View style={styles.paymentLeft}>
-              <Text style={styles.paymentName}>{payment.name}</Text>
-              <Text style={styles.paymentDate}>
-                {payment.date.toLocaleDateString('en-IN', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </Text>
-            </View>
-            <Text style={[styles.paymentAmount, { color: Colors.error.main }]}>
-              {formatCurrency(payment.amount, 'INR')}
-            </Text>
-          </View>
-        ))}
+        )}
       </View>
     </View>
   );
@@ -207,31 +289,91 @@ const LiabilitiesScreen: React.FC = () => {
       <View style={styles.metricsGrid}>
         <View style={styles.metricCard}>
           <Text style={[styles.metricValue, { color: Colors.error.main }]}>
-            {(liabilitiesData.debtToIncomeRatio * 100).toFixed(1)}%
+            {(debtToIncomeRatio * 100).toFixed(1)}%
           </Text>
           <Text style={styles.metricLabel}>Debt-to-Income</Text>
-          <Text style={[styles.metricStatus, { color: Colors.success.main }]}>Healthy</Text>
+          <Text style={[styles.metricStatus, { 
+            color: debtToIncomeRatio < 0.3 ? Colors.success.main : debtToIncomeRatio < 0.5 ? Colors.warning.main : Colors.error.main 
+          }]}>
+            {debtToIncomeRatio < 0.3 ? 'Healthy' : debtToIncomeRatio < 0.5 ? 'Moderate' : 'High'}
+          </Text>
         </View>
         
         <View style={styles.metricCard}>
           <Text style={[styles.metricValue, { color: Colors.error.main }]}>
-            {formatCurrency(liabilitiesData.monthlyPayments, 'INR')}
+            {formatCurrency(monthlyPayments, 'INR')}
           </Text>
           <Text style={styles.metricLabel}>Monthly Payments</Text>
           <Text style={styles.metricStatus}>
-            {((liabilitiesData.monthlyPayments / 245000) * 100).toFixed(0)}% of income
+            EMIs + Min CC payments
           </Text>
         </View>
       </View>
 
       <View style={styles.recommendationCard}>
-        <Feather name="trending-up" size={20} color={Colors.success.main} />
+        <Feather name="trending-up" size={20} color={
+          debtToIncomeRatio < 0.3 ? Colors.success.main : Colors.warning.main
+        } />
         <View style={styles.recommendationText}>
-          <Text style={styles.recommendationTitle}>Good Debt Management</Text>
+          <Text style={styles.recommendationTitle}>
+            {debtToIncomeRatio < 0.3 ? 'Good Debt Management' : 'Monitor Debt Levels'}
+          </Text>
           <Text style={styles.recommendationDescription}>
-            Your debt-to-income ratio is healthy. Consider paying extra on high-interest debts to save on interest.
+            {debtToIncomeRatio < 0.3
+              ? 'Your debt-to-income ratio is healthy. Consider paying extra on high-interest debts.'
+              : 'Focus on reducing high-interest debt first. Consider debt consolidation if beneficial.'
+            }
           </Text>
         </View>
+      </View>
+    </View>
+  );
+
+  const renderUpcomingPayments = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Upcoming Payments (Next 3 Months)</Text>
+      
+      <View style={styles.paymentsCard}>
+        {upcomingPayments.length > 0 ? (
+          upcomingPayments.map((payment, idx) => (
+            <View key={payment.id} style={[
+              styles.paymentItem,
+              idx === upcomingPayments.length - 1 && { borderBottomWidth: 0 }
+            ]}>
+              <View style={styles.paymentLeft}>
+                <View style={styles.paymentHeader}>
+                  <Text style={styles.paymentName}>{payment.name}</Text>
+                  <View style={[
+                    styles.paymentTypeBadge, 
+                    { backgroundColor: payment.type === 'loan' ? Colors.warning.light : Colors.accent + '20' }
+                  ]}>
+                    <Text style={[
+                      styles.paymentTypeText,
+                      { color: payment.type === 'loan' ? Colors.warning.dark : Colors.accent }
+                    ]}>
+                      {payment.type === 'loan' ? 'EMI' : 'CC'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.paymentDate}>
+                  {payment.date.toLocaleDateString('en-IN', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </Text>
+              </View>
+              <Text style={[styles.paymentAmount, { color: Colors.error.main }]}>
+                {formatCurrency(payment.amount, 'INR')}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <Text style={[styles.overviewSubtext, { textAlign: 'center', padding: 20 }]}>
+            No upcoming payments scheduled
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -247,8 +389,8 @@ const LiabilitiesScreen: React.FC = () => {
       >
         {renderLiabilitiesOverview()}
         {renderLiabilitiesBreakdown()}
-        {renderUpcomingPayments()}
         {renderDebtMetrics()}
+        {renderUpcomingPayments()}
         <AppFooter />
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -343,6 +485,30 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border.light,
     marginVertical: Spacing.sm,
   },
+  smallBreakdown: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border.light,
+  },
+  smallLeft: {
+    fontSize: 11,
+    color: Colors.text.tertiary,
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  smallRight: {
+    fontSize: 11,
+    color: Colors.text.tertiary,
+    fontStyle: 'italic',
+    textAlign: 'right',
+  },
+  rowJustify: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   paymentsCard: {
     backgroundColor: Colors.background.card,
     borderRadius: BorderRadius.xl,
@@ -360,11 +526,26 @@ const styles = StyleSheet.create({
   paymentLeft: {
     flex: 1,
   },
+  paymentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
   paymentName: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
+    flex: 1,
+  },
+  paymentTypeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  paymentTypeText: {
+    fontSize: 9,
+    fontWeight: '600',
   },
   paymentDate: {
     fontSize: Typography.fontSize.xs,
@@ -429,7 +610,7 @@ const styles = StyleSheet.create({
     lineHeight: Typography.lineHeight.xs,
   },
   bottomSpacing: {
-    height: 100, // Space for bottom menu
+    height: 100,
   },
 });
 
