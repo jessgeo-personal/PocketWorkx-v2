@@ -145,16 +145,27 @@ type PocketWorkxState = {
   // NEW: Fixed Income persisted as raw JSON; normalized to Date in StorageProvider
     fixedIncomeEntries?: Array<{
       id: string;
-      instrumentType: 'fd' | 'rd' | 'nre' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
+      instrumentType: 'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
       bankOrIssuer: string;
       instrumentName: string;
-      principalAmount: { amount: number; currency: 'INR' };
-      currentValue: { amount: number; currency: 'INR' };
+      principalAmount: { amount: number; currency: string };
+      currentValue: { amount: number; currency: string };
       interestRate: number;
       compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
+      interestPayout: 'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity';
+      payoutAccount?: string;
       startDate?: string | Date;
       maturityDate?: string | Date;
       autoRenew: boolean;
+      renewalNotification?: {
+        enabled: boolean;
+        daysBeforeMaturity: number;
+        lastNotifiedAt?: string | Date;
+      };
+      // RD-specific
+      recurringDepositDay?: number;
+      sourceAccountId?: string;
+      installmentAmount?: { amount: number; currency: string };
       isActive: boolean;
       nomineeDetails?: string;
       jointHolders?: string[];
@@ -176,6 +187,7 @@ type PocketWorkxState = {
       };
       linkedTransactions?: any[];
     }>;
+
 
     fixedIncomeTransactions?: Array<{
       id: string;

@@ -144,21 +144,48 @@ export interface LoanEntry {
 // ===== Fixed Income domain types =====
 export interface FixedIncomeEntry {
   id: string;
-  instrumentType: 'fd' | 'rd' | 'nre' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
+  instrumentType: 'fd' | 'rd' | 'nre' | 'nro' | 'fcnr' | 'company_deposit' | 'debt' | 'other';
+  
+  // Issuer information
   bankOrIssuer: string;
-  instrumentName: string; // e.g., "HDFC 5-Year FD", "SBI RD"
-  principalAmount: { amount: number; currency: 'INR' };
-  currentValue: { amount: number; currency: 'INR' }; // principal + accrued interest
-  interestRate: number; // annual percentage
+  instrumentName: string;
+  
+  // Financial details
+  principalAmount: { amount: number; currency: string }; // Support multi-currency
+  currentValue: { amount: number; currency: string };
+  interestRate: number;
+  
+  // Interest & Payout options
   compoundingFrequency: 'annually' | 'monthly' | 'quarterly' | 'daily';
+  interestPayout: 'monthly' | 'quarterly' | 'annually' | 'cumulative' | 'maturity';
+  payoutAccount?: string; // Account ID where interest is paid
+  
+  // Dates
   startDate: Date;
   maturityDate: Date;
+  
+  // Renewal options
   autoRenew: boolean;
+  renewalNotification?: {
+    enabled: boolean;
+    daysBeforeMaturity: number;
+    lastNotifiedAt?: Date;
+  };
+  
+  // RD-specific fields
+  recurringDepositDay?: number; // Day of month (1-31)
+  sourceAccountId?: string; // Account from which RD installments are debited
+  installmentAmount?: { amount: number; currency: string }; // Monthly RD amount
+  
+  // Status
   isActive: boolean;
-  // Optional fields
+  
+  // Optional metadata
   nomineeDetails?: string;
   jointHolders?: string[];
   notes?: string;
+  
+  // System fields
   timestamp: Date;
   encryptedData?: {
     encryptionKey: string;
@@ -176,6 +203,7 @@ export interface FixedIncomeEntry {
   };
   linkedTransactions?: any[];
 }
+
 
 export interface FixedIncomeTransaction {
   id: string;
