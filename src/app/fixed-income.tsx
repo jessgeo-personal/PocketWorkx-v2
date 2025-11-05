@@ -60,6 +60,23 @@ const FixedIncomeScreen: React.FC = () => {
   const router = useRouter();
   const { state, save, loading } = useStorage();
 
+  // Derive SourceBankAccounts for RD source account picker
+  // This intentionally uses a distinct name to avoid confusion with the main Bank Accounts domain.
+  // Update the extraction logic when the bank accounts domain is finalized.
+  const SourceBankAccounts = useMemo(() => {
+    // Preferred: state.bankAccounts (when implemented)
+    // For now: try to leverage accounts.tsx shape if present in AppModel
+    const entries = (state as any)?.accounts ?? [];
+    if (!Array.isArray(entries)) return [];
+    // Normalize into id + label
+    return entries.map((a: any) => {
+      const id = a?.id ?? `${a?.bank ?? 'Bank'}-${a?.accountNumber ?? 'XXXX'}`;
+      const label = [a?.bank, a?.accountNumber].filter(Boolean).join(' • ') || 'Account';
+      return { id, label };
+    });
+  }, [state]);
+
+
   const entries: FixedIncomeEntry[] = (state?.fixedIncomeEntries as FixedIncomeEntry[] | undefined) ?? [];
 
   const totalFixedIncome = useMemo(
@@ -301,6 +318,11 @@ const FixedIncomeScreen: React.FC = () => {
     }
     if (recurringDepositDay < 1 || recurringDepositDay > 31) {
       Alert.alert('Invalid Date', 'Please enter a valid deposit day (1-31).');
+      return;
+    }
+    // Mandatory Source Account (RD)
+    if (!sourceAccountId.trim()) {
+      Alert.alert('Missing Info', 'Please select a source account for the RD auto-debit.');
       return;
     }
 
@@ -696,6 +718,7 @@ const FixedIncomeScreen: React.FC = () => {
       setYieldToMaturity('');
       setHasCallOption(false);
       setMaturityAmountStr('');
+      setSourceAccountId('');
     };
 
 
@@ -836,20 +859,19 @@ const FixedIncomeScreen: React.FC = () => {
            </View>
            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
              <View style={styles.modalBody}>
-               {/* Instrument Type */}
-               <View style={styles.inputContainer}>
-                 <Text style={styles.inputLabel}>Deposit Type *</Text>
-                 <View style={styles.pickerRow}>
-                   {[
-                     { key: 'fd', label: 'Fixed Deposit' },
-                     { key: 'rd', label: 'Recurring Deposit' },
-                     { key: 'nre', label: 'NRE Deposit' },
-                     { key: 'nro', label: 'NRO Deposit' },
+                {/* Deposit Type */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Deposit Type *</Text>
+                  <View style={styles.pickerRow}>
+                    {[
+                      { key: 'fd', label: 'Fixed Deposit' },
+                      { key: 'nre', label: 'NRE Deposit' },
+                      { key: 'nro', label: 'NRO Deposit' },
                     ].map(t => (
-                     <TouchableOpacity
-                       key={t.key}
-                       style={[styles.pill, instrumentType === t.key && styles.pillSelected]}
-                       onPress={() => setInstrumentType(t.key as any)}
+                      <TouchableOpacity
+                        key={t.key}
+                        style={[styles.pill, instrumentType === t.key && styles.pillSelected]}
+                        onPress={() => setInstrumentType(t.key as any)}
                       >
                         <Text style={[styles.pillText, instrumentType === t.key && styles.pillTextSelected]}>
                           {t.label}
@@ -1131,15 +1153,28 @@ const FixedIncomeScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Source Account */}
+              {/* Source Account (mandatory picker) */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Source Account (Auto-debit)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={sourceAccountId}
-                  onChangeText={setSourceAccountId}
-                  placeholder="Enter account name/number"
-                />
+                <Text style={styles.inputLabel}>Source Account (Auto-debit) *</Text>
+                <View style={[styles.textInput, { paddingVertical: 6 }]}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {SourceBankAccounts.length === 0 ? (
+                      <Text style={{ color: Colors.text.tertiary }}>No accounts found. Add bank accounts first.</Text>
+                    ) : (
+                      SourceBankAccounts.map(acc => (
+                        <TouchableOpacity
+                          key={acc.id}
+                          style={[styles.pill, sourceAccountId === acc.id && styles.pillSelected]}
+                          onPress={() => setSourceAccountId(acc.id)}
+                        >
+                          <Text style={[styles.pillText, sourceAccountId === acc.id && styles.pillTextSelected]}>
+                            {acc.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </ScrollView>
+                </View>
               </View>
 
               {/* Dates */}
@@ -1379,7 +1414,7 @@ const FixedIncomeScreen: React.FC = () => {
               style={styles.cancelButton}
               onPress={() => {
                 resetFormFields();
-                setIsBankDepositModalVisible(false);
+                setIsFCNRModalVisible(false);
               }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -1529,7 +1564,7 @@ const FixedIncomeScreen: React.FC = () => {
               style={styles.cancelButton}
               onPress={() => {
                 resetFormFields();
-                setIsBankDepositModalVisible(false);
+                setIsCompanyDepositModalVisible(false);
               }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
