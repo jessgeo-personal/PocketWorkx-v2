@@ -56,14 +56,16 @@ const {
   totalBankAccounts,
   totalLoans,
   totalCreditCards,
-  totalFixedIncome,          // NEW: Fixed Income subtotal
-  totalFixedIncomeByCurrency,   // NEW: Fixed Income by currency subtotal
+  totalFixedIncome,
+  totalFixedIncomeByCurrency,
+  totalMarketInvestments,    // NEW: Market Investments subtotal
   totalInvestments,
   totalPhysicalAssets,
   totalCrypto,
   netWorth,
   totalLiquidity,
 } = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
+
 
 
   // Use centralized cash calculation (liquidCash kept for backward compatibility)
@@ -280,18 +282,6 @@ const {
           {totalLiabilitiesFormulaText}
         </Text>
       </TouchableOpacity>
-            <TouchableOpacity 
-        style={styles.metricCard}
-        onPress={() => router.push('/investments')}
-      >
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.metricLabel}>Your Investments & receivables</Text>
-          <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
-        </View>
-        <Text style={styles.metricAmount}>
-          {formatCurrency(dashboardData.investmentsReceivables, 'INR')}
-        </Text>
-      </TouchableOpacity>
 
       {/* ADD this Fixed Income card immediately after the above */}
       <TouchableOpacity 
@@ -302,20 +292,79 @@ const {
           <Text style={styles.metricLabel}>Fixed Income Deposits</Text>
           <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
         </View>
+
+        {/* INR block */}
+        <Text style={[styles.metricLabel, { textAlign: 'left', marginTop: 4 }]}>INR Deposits</Text>
         <Text style={[styles.metricAmount, { color: '#1976D2' }]}>
           {formatCurrency(totalFixedIncome, 'INR')}
         </Text>
-        {/* Show other currencies if they exist */}
-        {Object.entries(totalFixedIncomeByCurrency).filter(([curr]) => curr !== 'INR').length > 0 && (
-          <Text style={styles.metricFormula}>
-            {Object.entries(totalFixedIncomeByCurrency)
-              .filter(([curr]) => curr !== 'INR')
-              .map(([curr, amount]) => `${curr} ${amount.toLocaleString()}`)
-              .join(' • ')}
-          </Text>
+
+        {/* USD block (if available) */}
+        {totalFixedIncomeByCurrency['USD'] > 0 && (
+          <>
+            <Text style={[styles.metricLabel, { textAlign: 'left', marginTop: 8 }]}>USD Deposits</Text>
+            <Text style={styles.metricAmount}>
+              {`USD ${totalFixedIncomeByCurrency['USD'].toLocaleString()}`}
+            </Text>
+          </>
         )}
+
+        {/* EUR block (if available) */}
+        {totalFixedIncomeByCurrency['EUR'] > 0 && (
+          <>
+            <Text style={[styles.metricLabel, { textAlign: 'left', marginTop: 8 }]}>EUR Deposits</Text>
+            <Text style={styles.metricAmount}>
+              {`EUR ${totalFixedIncomeByCurrency['EUR'].toLocaleString()}`}
+            </Text>
+          </>
+        )}
+
         <Text style={styles.metricFormula}>
           FDs + RDs + NRE/FCNR + Company Deposits
+        </Text>
+
+        {/* Per-instrument tiny breakdown */}
+        <Text style={{ 
+          fontSize: 10, 
+          color: Colors.text.secondary, 
+          fontStyle: 'italic', 
+          marginTop: 6,
+          textAlign: 'right' 
+        }}>
+          {(() => {
+            const list = ((state?.fixedIncomeEntries ?? []) as any[])
+              .map((fi: any) => {
+                const instrumentName = fi?.instrumentName || `${fi?.bankOrIssuer || fi?.bankName || 'Bank'} ${fi?.instrumentType?.toUpperCase() || 'FD'}`;
+                const acctRaw = String(fi?.accountNumber || fi?.accountNumberMasked || '');
+                const last4 = acctRaw.replace(/\D/g, '').slice(-4) || 'XXXX';
+                const curr = fi?.currentValue?.currency || 'INR';
+                const amount = fi?.currentValue?.amount ?? 0;
+                const amountStr = curr === 'INR' 
+                  ? formatCurrency(amount, 'INR') 
+                  : `${curr} ${amount.toLocaleString()}`;
+                return `${instrumentName} • ****${last4} • ${amountStr}`;
+              })
+              .join(' \n ');
+            return list || 'No deposits yet';
+          })()}
+        </Text>
+      </TouchableOpacity>
+
+
+      {/* Market Investments */}
+      <TouchableOpacity 
+        style={styles.metricCard}
+        onPress={() => router.push('/investments')}
+      >
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.metricLabel}>Market Investments</Text>
+          <Feather name="chevron-right" size={18} color={Colors.text.secondary} />
+        </View>
+        <Text style={styles.metricAmount}>
+          {formatCurrency(totalMarketInvestments, 'INR')}
+        </Text>
+        <Text style={styles.metricFormula}>
+          Stocks + Mutual Funds + Bonds + Commodities
         </Text>
       </TouchableOpacity>
     </View>
