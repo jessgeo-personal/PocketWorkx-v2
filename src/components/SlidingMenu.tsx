@@ -130,8 +130,27 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* NEW: Horizontal Home button above 'Accounts' */}
+          <TouchableOpacity
+            style={styles.homeButton}
+            activeOpacity={0.8}
+            onPress={() => {
+              onClose();
+              setTimeout(() => router.push('/home' as any), 100);
+            }}
+          >
+            <View style={styles.homeButtonLeft}>
+              <View style={styles.homeIconContainer}>
+                <MaterialIcons name="home" size={22} color={colors.background} />
+              </View>
+              <Text style={styles.homeButtonText}>Home</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+
           {menuGroups.map(renderMenuGroup)}
         </ScrollView>
+
         <View style={styles.handleContainer}>
           <View style={styles.handle} />
         </View>
@@ -236,7 +255,44 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 2,
   },
-  
+  homeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: colors.surface, // subtle card look
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.surface,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+  },
+  homeButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  homeIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.secondary, // purple accent
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  homeButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+
 });
 
 export default SlidingMenu;
