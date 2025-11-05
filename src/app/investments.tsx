@@ -6,6 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -510,7 +513,7 @@ const InvestmentsScreen: React.FC = () => {
                 <TextInput
                   style={styles.textInput}
                   value={diMaturityStr}
-                  onChangeText={(t) => setDiMaturityStr(t)}
+                  onChangeText={(t: string) => setDiMaturityStr(t)}
                   placeholder="15/08/2033"
                   placeholderTextColor="#9CA3AF"
                 />
@@ -838,6 +841,44 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     textAlign: 'center',
   },
+  // Add pill-based picker styles to match other screens
+  pickerRow: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    // If 'gap' unsupported, rely on pill margins
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    backgroundColor: Colors.background.secondary,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  pillSelected: { 
+    backgroundColor: '#8B5CF6', 
+    borderColor: '#8B5CF6' 
+  },
+  pillText: { 
+    fontSize: 13, 
+    color: Colors.text.primary 
+  },
+  pillTextSelected: { 
+    color: Colors.white, 
+    fontWeight: '600' 
+  },
+  textInput: {
+    borderWidth: 1, 
+    borderColor: '#E0E0E0', 
+    borderRadius: 8, 
+    padding: 12, 
+    fontSize: 16, 
+    color: Colors.text.primary,
+    backgroundColor: Colors.background.secondary,
+  },
+
 });
 
 export { InvestmentsScreen as default };

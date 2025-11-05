@@ -121,7 +121,6 @@ const FixedIncomeScreen: React.FC = () => {
   const [isBankDepositModalVisible, setIsBankDepositModalVisible] = useState(false);
   const [isCompanyDepositModalVisible, setIsCompanyDepositModalVisible] = useState(false);
   const [isFCNRModalVisible, setIsFCNRModalVisible] = useState(false);
-  const [isDebtModalVisible, setIsDebtModalVisible] = useState(false);
   const [isRecurringModalVisible, setIsRecurringModalVisible] = useState(false);
 
   // Add form state
@@ -662,95 +661,6 @@ const FixedIncomeScreen: React.FC = () => {
     }
   };
 
-  const saveDebtInstrument = async () => {
-    if (isProcessing) return;
-
-    if (!bankOrIssuer.trim() || !principalAmount.trim()) {
-        Alert.alert('Missing Info', 'Please fill issuer name and principal amount.');
-        return;
-    }
-    const principal = Number(principalAmount);
-    if (!Number.isFinite(principal) || principal <= 0) {
-        Alert.alert('Invalid Principal', 'Please enter a valid principal amount.');
-        return;
-    }
-    // Maturity Amount validation
-    if (!maturityAmountStr.trim()) {
-      Alert.alert('Missing Info', 'Please enter maturity amount.');
-      return;
-    }
-    const maturityAmountNum = Number(maturityAmountStr);
-    if (!Number.isFinite(maturityAmountNum) || maturityAmountNum <= 0) {
-      Alert.alert('Invalid Maturity Amount', 'Please enter a valid maturity amount.');
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-        const now = new Date();
-        const start = startDateStr ? new Date(startDateStr) : now;
-        const maturity = maturityDateStr ? new Date(maturityDateStr) : new Date(now.getTime() + 365 * 24 * 3600 * 1000);
-
-        const entry: FixedIncomeEntry = {
-        id: `${Date.now()}`,
-        instrumentType: 'debt',
-        bankOrIssuer: bankOrIssuer.trim(),
-        bankName: bankOrIssuer.trim(),
-        instrumentName: instrumentName.trim() || `${bondType.toUpperCase()} Bond - ${bankOrIssuer.trim()}`,
-        principalAmount: { amount: Math.round(principal), currency: 'INR' },
-        currentValue: { amount: Math.round(principal), currency: 'INR' },
-        maturityAmount: { amount: Math.round(maturityAmountNum), currency: 'INR' },
-        accountNumber: accountNumber.trim() as any,
-        interestRate: Number(interestRate) || 0,
-        compoundingFrequency,
-        interestPayout,
-        startDate: start,
-        maturityDate: maturity,
-        autoRenew,
-        isActive: true,
-        nomineeDetails: undefined,
-        jointHolders: undefined,
-        notes: notes?.trim() || undefined,
-        timestamp: now,
-        encryptedData: {
-            encryptionKey: '',
-            encryptionAlgorithm: 'AES-256',
-            lastEncrypted: now,
-            isEncrypted: false,
-        },
-        auditTrail: {
-            createdBy: 'user',
-            createdAt: now,
-            updatedBy: 'user',
-            updatedAt: now,
-            version: 1,
-            changes: [{
-            action: 'ADD_FIXED_INCOME',
-            timestamp: now,
-            principal: Math.round(principal),
-            bankOrIssuer: bankOrIssuer.trim(),
-            instrumentType: 'debt',
-            }],
-        },
-        linkedTransactions: [],
-        };
-
-        await save((draft: AppModel) => {
-        const next = draft.fixedIncomeEntries ? [...draft.fixedIncomeEntries] as FixedIncomeEntry[] : [];
-        next.push(entry);
-        return { ...draft, fixedIncomeEntries: next };
-        });
-
-        resetFormFields();
-        setIsDebtModalVisible(false);
-
-    } catch (e) {
-        Alert.alert('Error', 'Failed to add debt instrument. Please try again.');
-    } finally {
-        setIsProcessing(false);
-    }
-  };
-
   const finalizeCloseDeposit = async () => {
     if (!closingTarget) return;
 
@@ -902,13 +812,6 @@ const FixedIncomeScreen: React.FC = () => {
     setSourceAccountId('');
     setInstallmentAmount('');
     setCompanyName('');
-    setBondType('government');
-    setCreditRating('');
-    setIsinCode('');
-    setFaceValueStr('');
-    setCouponRate('');
-    setYieldToMaturity('');
-    setHasCallOption(false);
     setMaturityAmountStr('');
     setSourceAccountId('');
   };
@@ -1041,16 +944,6 @@ const FixedIncomeScreen: React.FC = () => {
         <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setIsCompanyDepositModalVisible(true); }}>
           <MaterialIcons name="domain" size={24} color="#1976D2" />
           <Text style={styles.actionText}>Add Company Deposit</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton} onPress={() => { resetFormFields(); setIsDebtModalVisible(true); }}>
-          <MaterialIcons name="receipt-long" size={24} color="#1976D2" />
-          <Text style={styles.actionText}>Add Debt Instruments</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton} onPress={() => Alert.alert('Coming Soon', 'More deposit types and features will be added soon.')}>
-          <MaterialIcons name="rocket-launch" size={24} color="#1976D2" />
-          <Text style={styles.actionText}>Coming Soon</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -1847,243 +1740,6 @@ const FixedIncomeScreen: React.FC = () => {
     </Modal>
   );
 
-
-  // ADD: Debt Instruments Modal - ENHANCED VERSION
-  const renderDebtModal = () => (
-    <Modal
-      visible={isDebtModalVisible}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setIsDebtModalVisible(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Debt Instruments</Text>
-            <TouchableOpacity onPress={() => setIsDebtModalVisible(false)}>
-              <MaterialIcons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-            <View style={styles.modalBody}>
-              {/* Bond Type */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Bond Type *</Text>
-                <View style={styles.pickerRow}>
-                  {(['government','corporate','municipal'] as const).map(type => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.pill, bondType === type && styles.pillSelected]}
-                      onPress={() => setBondType(type)}
-                    >
-                      <Text style={[styles.pillText, bondType === type && styles.pillTextSelected]}>
-                        {type.toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Issuer Name */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Issuer Name *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={bankOrIssuer}
-                  onChangeText={setBankOrIssuer}
-                  placeholder={
-                    bondType === 'government' ? 'Government of India' :
-                    bondType === 'corporate' ? 'e.g., Reliance Industries, Tata Motors' :
-                    'Municipal Corporation Name'
-                  }
-                  placeholderTextColor={PLACEHOLDER_COLOR}
-                />
-              </View>
-
-              {/* Bond Name */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Bond Name (Optional)</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={instrumentName}
-                  onChangeText={setInstrumentName}
-                  placeholder={`${bondType.toUpperCase()} Bond - ${bankOrIssuer || 'Issuer'}`}
-                  placeholderTextColor={PLACEHOLDER_COLOR}
-                />
-              </View>
-
-              {/* ISIN Code */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>ISIN / Bond ID</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={isinCode}
-                  onChangeText={setIsinCode}
-                  placeholder="INE000A01036"
-                  placeholderTextColor={PLACEHOLDER_COLOR}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              {/* Face Value and Investment Amount */}
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <Text style={styles.inputLabel}>Face Value (₹)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={faceValueStr}
-                    onChangeText={setFaceValueStr}
-                    placeholder="1000"
-                    placeholderTextColor={PLACEHOLDER_COLOR}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={styles.half}>
-                  <Text style={styles.inputLabel}>Investment Amount (₹) *</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={principalAmount}
-                    onChangeText={setPrincipalAmount}
-                    placeholder="100000"
-                    placeholderTextColor={PLACEHOLDER_COLOR}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-
-              {/* Coupon Rate and Yield */}
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <Text style={styles.inputLabel}>Coupon Rate (% p.a.)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={couponRate}
-                    onChangeText={setCouponRate}
-                    placeholder="7.75"
-                    placeholderTextColor={PLACEHOLDER_COLOR}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View style={styles.half}>
-                  <Text style={styles.inputLabel}>Yield to Maturity (%)</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={yieldToMaturity}
-                    onChangeText={setYieldToMaturity}
-                    placeholder="8.25"
-                    placeholderTextColor={PLACEHOLDER_COLOR}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
-
-              {/* Credit Rating */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Credit Rating</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={creditRating}
-                  onChangeText={setCreditRating}
-                  placeholder="AAA, AA, A, BBB, etc."
-                  placeholderTextColor={PLACEHOLDER_COLOR}
-                />
-              </View>
-
-              {/* Dates Row */}
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <Text style={styles.inputLabel}>Issue Date</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={startDateStr}
-                    onChangeText={(t) => setStartDateStr(formatDateInput(t))}
-                    placeholder="DD/MM/YYYY"
-                    placeholderTextColor={PLACEHOLDER_COLOR}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={styles.half}>
-                  <Text style={styles.inputLabel}>Maturity Date</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={maturityDateStr}
-                    onChangeText={(t) => setMaturityDateStr(formatDateInput(t))}
-                    placeholder="DD/MM/YYYY"
-                    placeholderTextColor={PLACEHOLDER_COLOR}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-
-              {/* Options */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Special Features</Text>
-                <View style={styles.checkboxColumn}>
-                  <TouchableOpacity 
-                    style={styles.checkboxRow} 
-                    onPress={() => setHasCallOption(!hasCallOption)}
-                  >
-                    <MaterialIcons 
-                      name={hasCallOption ? "check-box" : "check-box-outline-blank"} 
-                      size={24} 
-                      color="#8B5CF6" 
-                    />
-                    <Text style={styles.checkboxText}>Has Call Option (early redemption by issuer)</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.checkboxRow} 
-                    onPress={() => setHasPutOption(!hasPutOption)}
-                  >
-                    <MaterialIcons 
-                      name={hasPutOption ? "check-box" : "check-box-outline-blank"} 
-                      size={24} 
-                      color="#8B5CF6" 
-                    />
-                    <Text style={styles.checkboxText}>Has Put Option (early sale by investor)</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Notes */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Notes (Optional)</Text>
-                <TextInput
-                  style={[styles.textInput, { minHeight: 80 }]}
-                  value={notes}
-                  onChangeText={setNotes}
-                  placeholder="Trading details, broker information, tax implications, etc."
-                  placeholderTextColor={PLACEHOLDER_COLOR}
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-            </View>
-          </ScrollView>
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => {
-                resetFormFields();
-                setIsBankDepositModalVisible(false);
-              }}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.primaryButton, isProcessing && styles.disabledButton]} 
-              onPress={saveDebtInstrument}
-              disabled={isProcessing}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isProcessing ? 'Saving...' : 'Save Bond'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-
   const renderCloseDepositModal = () => (
     <Modal
       visible={isCloseModalVisible}
@@ -2217,7 +1873,6 @@ const FixedIncomeScreen: React.FC = () => {
       {renderRecurringDepositModal()}
       {renderCompanyDepositModal()}
       {renderFCNRModal()}
-      {renderDebtModal()}
       {renderCloseDepositModal()}
 
       {txFilter && (
