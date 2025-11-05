@@ -11,13 +11,13 @@ export type Totals = {
   totalCreditCards: number;
   totalFixedIncome: number;                           // INR only
   totalFixedIncomeByCurrency: Record<string, number>; // Separate currencies
-  totalInvestments: number;                           // INR only for net worth
+  totalMarketInvestments: number;                     // Stocks, bonds, MF, commodities
+  totalInvestments: number;                           // Fixed Income + Market Investments
   totalPhysicalAssets: number;
   totalCrypto: number;
   netWorth: number;                                   // INR only
   totalLiquidity: number;
 };
-
 
 type Options = {
   includeCryptoInLiquidity?: boolean; // user-configurable, default false
@@ -60,8 +60,15 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
   // Total Fixed Income in INR only (primary currency)
   const totalFixedIncome = totalFixedIncomeByCurrency['INR'] ?? 0;
 
-  // Investments: will be sum of Fixed Income + Stocks/Commodities/Forex when implemented
-  const totalInvestments = totalFixedIncome; // For now, only Fixed Income
+  // Market Investments: stocks, bonds, mutual funds, commodities (from local state for now)
+  // Note: This will be updated when investments move to persistent storage
+  const marketInvestmentEntries = (state as any)?.marketInvestments ?? [];
+  const totalMarketInvestments = sum(
+    marketInvestmentEntries.map((inv: any) => inv?.currentValue?.amount ?? 0)
+  );
+
+  // Total Investments: Fixed Income (guaranteed) + Market Investments (market-linked)
+  const totalInvestments = totalFixedIncome + totalMarketInvestments;
 
   // Physical Assets: placeholder 0 until implemented (safe property access)
   const totalPhysicalAssets = sum(
@@ -88,12 +95,14 @@ export const computeTotals = (state: AppModel | null | undefined, opts: Options 
     totalCreditCards,
     totalFixedIncome,
     totalFixedIncomeByCurrency,
+    totalMarketInvestments,
     totalInvestments,
     totalPhysicalAssets,
     totalCrypto,
     netWorth,
     totalLiquidity,
   };
+
 
 
 };
