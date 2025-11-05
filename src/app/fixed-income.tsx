@@ -175,6 +175,15 @@ const FixedIncomeScreen: React.FC = () => {
     }
   };
 
+  const isMatured = (fi: FixedIncomeEntry) => {
+    try {
+      return fi.maturityDate ? new Date(fi.maturityDate) <= new Date() : false;
+    } catch {
+      return false;
+    }
+  };
+
+
   const onOpenAllTransactions = () => {
     setTxFilter({
       assetType: 'investment', // future: a dedicated type if needed; we will still use the modal framework
@@ -193,6 +202,108 @@ const FixedIncomeScreen: React.FC = () => {
     });
     setTxModalVisible(true);
   };
+
+  const onCloseDeposit = (fi: FixedIncomeEntry) => {
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+
+    // Three-step prompt chain for closure details
+    Alert.prompt(
+      'Close Deposit - Step 1/3',
+      'Enter closure date (YYYY-MM-DD):',
+      (closureDateInput) => {
+        const closureDate = (closureDateInput || '').trim() || today;
+        
+        // Validate date
+        const parsed = new Date(closureDate);
+        if (isNaN(parsed.getTime())) {
+          Alert.alert('Invalid Date', 'Please enter a valid date.');
+          return;
+        }
+
+        // Step 2: Maturity amount
+        const defaultMaturity = (fi as any).maturityAmount?.amount?.toString() || fi.currentValue?.amount?.toString() || '';
+        
+        Alert.prompt(
+          'Close Deposit - Step 2/3',
+          `Enter maturity amount received (${fi.currentValue?.currency || 'INR'}):`,
+          (maturityInput) => {
+            const maturityAmount = Number((maturityInput || '').trim());
+            
+            if (!Number.isFinite(maturityAmount) || maturityAmount <= 0) {
+              Alert.alert('Invalid Amount', 'Please enter a valid maturity amount.');
+              return;
+            }
+
+            // Step 3: Transfer account
+            Alert.prompt(
+              'Close Deposit - Step 3/3',
+              'Enter bank account where amount was credited:',
+              async (transferAccount) => {
+                const account = (transferAccount || '').trim();
+                
+                if (!account) {
+                  Alert.alert('Missing Info', 'Please enter the transfer account.');
+                  return;
+                }
+
+                // Execute closure
+                try {
+                  await save((draft: AppModel) => {
+                    const entries = (draft.fixedIncomeEntries || []) as any[];
+                    const index = entries.findIndex((e: any) => e.id === fi.id);
+                    
+                    if (index >= 0) {
+                      entries[index] = {
+                        ...entries[index],
+                        isClosed: true,
+                        closureDate: parsed,
+                        transferAccount: account,
+                        maturityAmount: {
+                          amount: Math.round(maturityAmount),
+                          currency: fi.currentValue?.currency || 'INR'
+                        },
+                        currentValue: {
+                          amount: 0,
+                          currency: fi.currentValue?.currency || 'INR'
+                        },
+                        auditTrail: {
+                          ...entries[index].auditTrail,
+                          updatedAt: new Date(),
+                          changes: [
+                            ...(entries[index].auditTrail?.changes || []),
+                            {
+                              action: 'CLOSE_FIXED_INCOME',
+                              timestamp: new Date(),
+                              closureDate,
+                              transferAccount: account,
+                              maturityAmount: Math.round(maturityAmount),
+                            }
+                          ]
+                        }
+                      };
+                    }
+                    
+                    return { ...draft, fixedIncomeEntries: entries };
+                  });
+
+                  Alert.alert('Success', `${fi.instrumentName} closed successfully. Amount credited to ${account}.`);
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to close deposit. Please try again.');
+                }
+              },
+              'plain-text',
+              ''
+            );
+          },
+          'numeric',
+          defaultMaturity
+        );
+      },
+      'plain-text',
+      today
+    );
+  };
+
 
   // REPLACE the handleAddFixedIncome function with these 4 handlers:
 
@@ -786,7 +897,10 @@ const FixedIncomeScreen: React.FC = () => {
   const renderInstrumentCard = (fi: FixedIncomeEntry) => (
     <TouchableOpacity
       key={fi.id}
-      style={styles.card}
+      style={[
+        styles.card,
+        (isMatured(fi) || (fi as any).isClosed) && styles.maturedCard
+      ]}
       activeOpacity={0.9}
       onPress={() => onOpenInstrumentTransactions(fi)}
     >
@@ -801,6 +915,13 @@ const FixedIncomeScreen: React.FC = () => {
             <Text style={styles.cardSubtle}>
               {`Start: ${formatDateLabel(fi.startDate)} • Maturity: ${formatDateLabel(fi.maturityDate)}`}
             </Text>
+            {(isMatured(fi) || (fi as any).isClosed) && (
+              <View style={styles.maturedBadge}>
+                <Text style={styles.maturedBadgeText}>
+                  {(fi as any).isClosed ? 'CLOSED' : 'MATURED'}
+                </Text>
+              </View>
+              )}
           </View>
         </View>
         <MaterialIcons name="chevron-right" size={22} color={Colors.text.secondary} />
@@ -825,16 +946,27 @@ const FixedIncomeScreen: React.FC = () => {
               : '—'}
           </Text>
         </View>
-
         <View>
           <Text style={styles.balanceLabel}>Current Value</Text>
           <Text style={styles.balanceAmountPrimary}>
-            {fi.currentValue?.currency === 'INR' 
-              ? formatFullINR(fi.currentValue.amount) 
-              : `${fi.currentValue.currency} ${fi.currentValue.amount.toLocaleString()}`}
+            {(isMatured(fi) || (fi as any).isClosed)
+              ? (fi.currentValue?.currency === 'INR' ? formatFullINR(0) : `${fi.currentValue?.currency || 'INR'} 0`)
+              : (fi.currentValue?.currency === 'INR' 
+                  ? formatFullINR(fi.currentValue.amount) 
+                  : `${fi.currentValue.currency} ${fi.currentValue.amount.toLocaleString()}`)}
           </Text>
         </View>
       </View>
+      {/* Close Button - always visible for manual closure */}
+      <TouchableOpacity 
+        style={styles.closeButton} 
+        onPress={(e) => {
+          e.stopPropagation(); // Prevent card tap
+          onCloseDeposit(fi);
+        }}
+      >
+        <Text style={styles.closeButtonText}>Close Deposit</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
   
@@ -2059,19 +2191,52 @@ balanceLabel: { fontSize: 12, color: Colors.text.secondary, marginBottom: 2 },
   emptySubtitle: { fontSize: 14, color: Colors.text.tertiary, textAlign: 'center' },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
 
-  checkboxRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 8 
+    checkboxRow: { 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      marginBottom: 8 
+    },
+    checkboxColumn: { 
+      gap: 8 
+    },
+    checkboxText: { 
+      fontSize: 14, 
+      color: Colors.text.primary, 
+      marginLeft: 8, 
+      flex: 1 
+    },
+  // ADD these styles to StyleSheet.create:
+  maturedCard: {
+    borderWidth: 2,
+    borderColor: '#EAB308',
+    backgroundColor: '#FFFBEB',
   },
-  checkboxColumn: { 
-    gap: 8 
+  maturedBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EAB308',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+    marginBottom: 8,
   },
-  checkboxText: { 
-    fontSize: 14, 
-    color: Colors.text.primary, 
-    marginLeft: 8, 
-    flex: 1 
+  maturedBadgeText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  closeButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 13,
   },
 
 });
