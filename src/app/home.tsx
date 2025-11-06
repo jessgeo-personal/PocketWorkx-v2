@@ -545,7 +545,7 @@ const HomeScreen: React.FC = () => {
         style={styles.quickActionsButton}
         onPress={() => {
           setIsQuickActionsModalVisible(true);
-          onQuickActionsOpened(); // Advance onboarding if on quickactions_tutorial step
+          onQuickActionsOpened(); // notify onboarding: QA opened
         }}
         activeOpacity={0.9}
       >
@@ -715,7 +715,7 @@ const HomeScreen: React.FC = () => {
                   style={[styles.modalActionButton, styles.modalActionButtonCash]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
-                    onAddCashChosen(); // Advance onboarding if on addcash_tutorial step
+                        onAddCashChosen(); // notify onboarding: Add Cash chosen
                     router.push({ pathname: '/cash', params: { openModal: 'add' } });
                   }}
                   activeOpacity={0.9}

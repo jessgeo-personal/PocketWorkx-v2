@@ -93,7 +93,7 @@ const CashScreen: React.FC = () => {
   const { currentStep, onAddCashModalOpened, nextStep } = useOnboarding();
 
   // Local UI state for the "Add Cash" modal inputs
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isAddCashModalVisible, setIsAddCashModalVisible] = useState(false);
   const [newCashDescription, setNewCashDescription] = useState('');
   const [newCashAmount, setNewCashAmount] = useState('');
   const [newCashcashCategory, setNewCashcashCategory] = useState<string>(CashCategoryType.WALLET);
@@ -133,7 +133,7 @@ const CashScreen: React.FC = () => {
     if (searchParams?.openModal === 'expense') {
       setIsExpenseModalVisible(true);
       } else if (searchParams?.openModal === 'add') {
-        setIsAddModalVisible(true);
+        setIsAddCashModalVisible(true);
       }
   }, [searchParams?.openModal]);
 
@@ -308,7 +308,7 @@ const CashScreen: React.FC = () => {
       setNewCashDescription('');
       setNewCashAmount('');
       setNewCashcashCategory(CashCategoryType.WALLET);
-      setIsAddModalVisible(false);
+      setIsAddCashModalVisible(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to add cash entry. Please try again.');
     } finally {
@@ -639,7 +639,7 @@ const CashScreen: React.FC = () => {
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.headerTitle}>Cash</Text>
-      <TouchableOpacity style={styles.addButton} onPress={() => setIsAddModalVisible(true)}>
+      <TouchableOpacity style={styles.addButton} onPress={() => setIsAddCashModalVisible(true)}>
         <MaterialIcons name="add" size={24} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
@@ -776,7 +776,7 @@ const CashScreen: React.FC = () => {
     <View style={styles.quickActionsContainer}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.quickActionGrid}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddModalVisible(true)}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddCashModalVisible(true)}>
           <MaterialIcons name="add-circle" size={24} color="#27AE60" />
           <Text style={styles.actionText}>Add Cash</Text>
         </TouchableOpacity>
@@ -807,16 +807,16 @@ const CashScreen: React.FC = () => {
 
   const renderAddCashModal = () => (
     <Modal
-      visible={isAddModalVisible}
+      visible={isAddCashModalVisible}
       animationType="slide"
       transparent
-      onRequestClose={() => setIsAddModalVisible(false)}
+      onRequestClose={() => setIsAddCashModalVisible(false)}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContentScrollable}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Add Cash Entry</Text>
-            <TouchableOpacity onPress={() => setIsAddModalVisible(false)}>
+            <TouchableOpacity onPress={() => setIsAddCashModalVisible(false)}>
               <MaterialIcons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </View>
@@ -866,7 +866,7 @@ const CashScreen: React.FC = () => {
           <View style={styles.modalFooter}>
             <TouchableOpacity
               style={styles.cancelButton}
-              onPress={() => setIsAddModalVisible(false)}
+              onPress={() => setIsAddCashModalVisible(false)}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
