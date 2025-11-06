@@ -19,6 +19,8 @@ import { computeTotals } from '../selectors/totals';
 import { useStorage } from '../services/storage/StorageProvider';
 import AppFooter from '../components/AppFooter';
 import ComingSoonModal from '../components/modals/ComingSoonModal';
+import { useOnboarding } from '../components/onboarding/OnboardingManager';
+
 
 // Import the logo image
 const LogoImage = require('../assets/logo.png');
@@ -48,22 +50,24 @@ const HomeScreen: React.FC = () => {
   const router = useRouter();
   // Hook into global storage
   const { state } = useStorage();
+  const { currentStep, onQuickActionsOpened, onAddCashChosen } = useOnboarding();
 
-// Use centralized totals computation
-const {
-  totalCash,
-  totalBankAccounts,
-  totalLoans,
-  totalCreditCards,
-  totalFixedIncome,
-  totalFixedIncomeByCurrency,
-  totalMarketInvestments,    // NEW: Market Investments subtotal
-  totalInvestments,
-  totalPhysicalAssets,
-  totalCrypto,
-  netWorth,
-  totalLiquidity,
-} = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
+
+  // Use centralized totals computation
+  const {
+    totalCash,
+    totalBankAccounts,
+    totalLoans,
+    totalCreditCards,
+    totalFixedIncome,
+    totalFixedIncomeByCurrency,
+    totalMarketInvestments,    // NEW: Market Investments subtotal
+    totalInvestments,
+    totalPhysicalAssets,
+    totalCrypto,
+    netWorth,
+    totalLiquidity,
+  } = computeTotals(state ?? undefined, { includeCryptoInLiquidity: false });
 
 
 
@@ -539,9 +543,13 @@ const {
     <View style={styles.quickActionsSection}>
       <TouchableOpacity 
         style={styles.quickActionsButton}
-        onPress={() => setIsQuickActionsModalVisible(true)}
+        onPress={() => {
+          setIsQuickActionsModalVisible(true);
+          onQuickActionsOpened(); // Advance onboarding if on quickactions_tutorial step
+        }}
         activeOpacity={0.9}
       >
+
         <View style={styles.quickActionsButtonContent}>
           <Feather name="zap" size={24} color="#FFFFFF" />
           <Text style={styles.quickActionsButtonText}>Quick Actions</Text>
@@ -707,6 +715,7 @@ const {
                   style={[styles.modalActionButton, styles.modalActionButtonCash]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
+                    onAddCashChosen(); // Advance onboarding if on addcash_tutorial step
                     router.push({ pathname: '/cash', params: { openModal: 'add' } });
                   }}
                   activeOpacity={0.9}

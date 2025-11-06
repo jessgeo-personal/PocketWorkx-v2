@@ -27,6 +27,8 @@ import {
 } from '../types/categories';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import AppFooter from '../components/AppFooter';
+import { useOnboarding } from '../components/onboarding/OnboardingManager';
+
 
 
 
@@ -88,6 +90,7 @@ type CashTransaction = CashEntry & {
 const CashScreen: React.FC = () => {
   // Hook into global storage
   const { state, loading, save } = useStorage();
+  const { currentStep, onAddCashModalOpened, nextStep } = useOnboarding();
 
   // Local UI state for the "Add Cash" modal inputs
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);

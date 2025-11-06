@@ -18,6 +18,9 @@ interface OnboardingContextType {
   nextStep: () => void;
   skipTutorial: () => void;
   isOnboardingActive: boolean;
+  onQuickActionsOpened: () => void;
+  onAddCashChosen: () => void;
+  onAddCashModalOpened: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType>({
@@ -25,7 +28,11 @@ const OnboardingContext = createContext<OnboardingContextType>({
   nextStep: () => {},
   skipTutorial: () => {},
   isOnboardingActive: false,
+  onQuickActionsOpened: () => {},
+  onAddCashChosen: () => {},
+  onAddCashModalOpened: () => {},
 });
+
 
 export const useOnboarding = () => useContext(OnboardingContext);
 
@@ -84,14 +91,41 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  // Event-driven progressors (primary flow)
+    const onQuickActionsOpened = () => {
+    // Only advance if we are currently instructing Quick Actions
+    if (currentStep === 'quickactions_tutorial') {
+        setCurrentStep('addcash_tutorial');
+    }
+    };
+
+    const onAddCashChosen = () => {
+    // User tapped Add Cash option inside QA
+    if (currentStep === 'addcash_tutorial') {
+        setCurrentStep('cashmodal_tutorial');
+    }
+    };
+
+    const onAddCashModalOpened = () => {
+    // The Add Cash modal is actually visible on cash screen
+    if (currentStep === 'cashmodal_tutorial') {
+        // Do NOT complete yet – user should press Add Cash after filling
+        // Completion happens when add is confirmed (you already call nextStep() in handler)
+        // Leave as is to keep the cloud visible until user presses Add Cash
+    }
+    };
+
   return (
     <OnboardingContext.Provider 
-      value={{ 
+    value={{ 
         currentStep, 
         nextStep, 
         skipTutorial, 
-        isOnboardingActive 
-      }}
+        isOnboardingActive,
+        onQuickActionsOpened,
+        onAddCashChosen,
+        onAddCashModalOpened,
+    }}
     >
       {children}
       <OnboardingOverlay />
