@@ -2,18 +2,39 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Typography, Spacing } from '../utils/theme';
+import { useOnboarding } from './onboarding/OnboardingManager'; // adjust relative path if needed
 
 // Centralized version and copyright info
 const APP_VERSION = '1.0.1';
 const COPYRIGHT_TEXT = 'All rights reserved. PocketWorkx';
 
-const AppFooter: React.FC = () => {
+export const AppFooter: React.FC = () => {
+  const [menuVisible, setMenuVisible] = React.useState(false);
+  const { onMenuButtonPressed } = useOnboarding(); // NEW
+
+  const handleMenuPress = () => {
+    // Notify onboarding for menu_tutorial → slidingmenu_tutorial
+    onMenuButtonPressed(); // NEW
+    setMenuVisible(true);
+  };
+
   return (
-    <View style={styles.footerContainer}>
-      <Text style={styles.footerText}>
-        {COPYRIGHT_TEXT} v{APP_VERSION}
-      </Text>
-    </View>
+    <>
+      {/* ...other footer UI... */}
+      <TouchableOpacity
+        accessibilityLabel="Open Menu"
+        onPress={handleMenuPress} // UPDATED
+        activeOpacity={0.9}
+        style={styles.menuButton}
+      >
+        {/* round grey menu icon as before */}
+      </TouchableOpacity>
+
+      <SlidingMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+    </>
   );
 };
 
