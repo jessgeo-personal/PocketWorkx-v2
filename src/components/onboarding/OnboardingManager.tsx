@@ -72,17 +72,24 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [state]);
 
   const completeOnboarding = async () => {
+      console.log('[Onboarding] completeOnboarding called'); // ← ADD THIS LINE
     try {
       await save((draft: any) => ({
         ...draft,
         onboardingCompleted: true,
       }));
-    } catch (_) {}
+      console.log('[Onboarding] Successfully saved onboardingCompleted'); // ← ADD THIS LINE
+      } catch (error) {
+      console.log('[Onboarding] Error saving onboardingCompleted:', error); // ← ADD THIS LINE
+    }
     setCurrentStep('completed');
     setIsOnboardingActive(false);
+    console.log('[Onboarding] Set currentStep to completed'); // ← ADD THIS LINE
   };
 
   const nextStep = () => {
+    console.log('[Onboarding] nextStep called, currentStep:', currentStep); // ← ADD THIS LINE
+  
     switch (currentStep) {
       case 'welcome':
         setCurrentStep('menu_tutorial');
@@ -316,26 +323,37 @@ const ConversationCloud: React.FC = () => {
           top: pos.y,
         }
       ]} 
-      pointerEvents="none" // wrapper never blocks touches
+      pointerEvents="box-none" // ← CHANGED: allows touches to pass through to children
     >
       <View style={styles.cloudBubble} pointerEvents="auto">
         <Text style={styles.cloudMessage}>{getMessage()}</Text>
         
         <View style={styles.cloudFooter}>
-          <TouchableOpacity style={styles.cloudCancelButton} onPress={skipTutorial}>
+          <TouchableOpacity 
+            style={styles.cloudCancelButton} 
+            onPress={() => {
+              console.log('[Onboarding] Cancel button pressed'); // ← ADD DEBUG
+              skipTutorial();
+            }}
+            activeOpacity={0.7}
+          >
             <Text style={styles.cloudCancelText}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.cloudContinueButton, isGated && { opacity: 0.4 }]} 
-            onPress={!isGated ? nextStep : undefined}
+            onPress={!isGated ? () => {
+              console.log('[Onboarding] Continue button pressed, currentStep:', currentStep, 'isGated:', isGated); // ← ADD DEBUG
+              nextStep();
+            } : undefined}
             disabled={isGated}
+            activeOpacity={isGated ? 1 : 0.7}
           >
             <Text style={styles.cloudContinueText}>Continue</Text>
           </TouchableOpacity>
         </View>
       </View>
       
-      {/* UPDATED: Conditional pointer triangle - upward for quickactions_tutorial */}
+      {/* Conditional triangle pointer */}
       {currentStep === 'quickactions_tutorial' ? (
         <View style={styles.cloudPointerUp} pointerEvents="none" />
       ) : (
