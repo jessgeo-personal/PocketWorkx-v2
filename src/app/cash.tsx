@@ -1523,7 +1523,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.modal,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 3000, // ADD explicit z-index lower than onboarding clouds
+    elevation: 12, // ADD explicit elevation for Android
   },
+
   modalContent: {
     backgroundColor: Colors.background.secondary,
     borderRadius: 16,

@@ -190,21 +190,22 @@ const ConversationCloud: React.FC = () => {
         setPos({ x: width / 2 - 150, y: height - 180 });
         break;
       case 'quickactions_tutorial':
-        // Position ABOVE Quick Actions button to avoid covering it
-        // Quick Actions is typically in middle third of screen
-        setPos({ x: width / 2 - 150, y: height * 0.45 }); // 45% from top
+        // Position HIGHER ABOVE Quick Actions button to avoid covering it
+        // Move from 45% to 35% from top to ensure full visibility
+        setPos({ x: width / 2 - 150, y: height * 0.35 }); // Changed from 0.45 to 0.35
         break;
       case 'addcash_tutorial':
         // Position for Add Cash button in Quick Actions modal
-        // Modal is bottom-sheet style, position in upper area
-        setPos({ x: width / 2 - 150, y: height * 0.25 }); // Top 25%
+        // Modal is bottom-sheet style, position in upper area  
+        setPos({ x: width / 2 - 150, y: height * 0.20 }); // Changed from 0.25 to 0.20 (higher)
         break;
       case 'cashmodal_tutorial':
         // Position for Cash modal (center screen)
-        setPos({ x: width / 2 - 150, y: height * 0.15 }); // Top 15%
+        setPos({ x: width / 2 - 150, y: height * 0.10 }); // Changed from 0.15 to 0.10 (higher)
         break;
       }
   };
+
 
   
 
@@ -237,13 +238,11 @@ const ConversationCloud: React.FC = () => {
           opacity: fade,
           left: pos.x,
           top: pos.y,
-          zIndex: 99999,
-          elevation: 40, // Android highest elevation
         }
       ]} 
-      pointerEvents="box-none" // Allow taps to pass through container
+      pointerEvents="none" // wrapper never blocks touches
     >
-      <View style={styles.cloudBubble} pointerEvents="auto"> {/* Enable interaction with cloud */}
+      <View style={styles.cloudBubble} pointerEvents="auto">
         <Text style={styles.cloudMessage}>{getMessage()}</Text>
         
         <View style={styles.cloudFooter}>
@@ -261,10 +260,9 @@ const ConversationCloud: React.FC = () => {
       </View>
       
       {/* Pointer triangle */}
-      <View style={styles.cloudPointer} />
+      <View style={styles.cloudPointer} pointerEvents="none" />
     </Animated.View>
   );
-
 };
 
 const styles = StyleSheet.create({
@@ -281,23 +279,25 @@ const styles = StyleSheet.create({
   continueButton: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderRadius: BorderRadius.md, backgroundColor: '#8B5CF6' },
   continueButtonText: { fontSize: Typography.fontSize.base, color: Colors.white, fontWeight: Typography.fontWeight.semibold },
 
- cloudWrap: { 
-  position: 'absolute', 
-  zIndex: 99999, // Highest possible z-index
-  maxWidth: 300,
-  elevation: 30, // Android elevation higher than modals
+  cloudWrap: { 
+    position: 'absolute', 
+    zIndex: 999999, // INCREASED from 99999 to 999999
+    maxWidth: 300,
+    elevation: 50, // INCREASED from 30 to 50 (Android highest elevation)
   },
 
   cloudBubble: { 
-  backgroundColor: Colors.background.card, 
-  padding: Spacing.lg, 
-  borderRadius: BorderRadius.xl, 
-  borderWidth: 2, 
-  borderColor: '#8B5CF6', 
-  ...Shadows.md,
-  zIndex: 99999, // Force to front
-  elevation: 35, // Higher elevation for Android
+    backgroundColor: Colors.background.card, 
+    padding: Spacing.lg, 
+    borderRadius: BorderRadius.xl, 
+    borderWidth: 2, 
+    borderColor: '#8B5CF6', 
+    ...Shadows.md,
+    zIndex: 999999, // INCREASED from 99999 to 999999
+    elevation: 55, // INCREASED from 35 to 55 (Higher elevation for Android)
   },
+
+
 
   cloudMessage: { fontSize: Typography.fontSize.base, color: Colors.text.primary, lineHeight: 22, marginBottom: Spacing.md },
   cloudFooter: { flexDirection: 'row', justifyContent: 'space-between' },
