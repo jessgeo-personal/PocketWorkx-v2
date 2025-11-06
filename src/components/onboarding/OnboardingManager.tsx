@@ -20,6 +20,7 @@ interface OnboardingContextType {
   onQuickActionsOpened: () => void;
   onAddCashChosen: () => void;
   onAddCashModalOpened: () => void;
+  startOnboarding: () => void; // NEW: for on-demand restart
 }
 
 const OnboardingContext = createContext<OnboardingContextType>({
@@ -99,6 +100,11 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // Keep cloud visible; completion occurs when user adds cash (cash screen calls nextStep)
   };
 
+  const startOnboarding = () => {
+  setCurrentStep('welcome');
+  setIsOnboardingActive(true);
+  };
+
   return (
     <OnboardingContext.Provider 
       value={{ 
@@ -109,6 +115,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         onQuickActionsOpened,
         onAddCashChosen,
         onAddCashModalOpened,
+        startOnboarding, // NEW
       }}
     >
       {children}

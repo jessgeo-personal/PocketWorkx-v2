@@ -50,8 +50,7 @@ const HomeScreen: React.FC = () => {
   const router = useRouter();
   // Hook into global storage
   const { state } = useStorage();
-  const { currentStep, onQuickActionsOpened, onAddCashChosen } = useOnboarding();
-
+  const { currentStep, onQuickActionsOpened, onAddCashChosen, startOnboarding } = useOnboarding();
 
   // Use centralized totals computation
   const {
@@ -187,7 +186,11 @@ const HomeScreen: React.FC = () => {
       {/* Need Help card - clickable */}
       <TouchableOpacity 
         style={styles.helpCardCompact}
-        onPress={() => setIsHelpModalVisible(true)}
+        onPress={() => {
+          setIsHelpModalVisible(false); // Close help modal if open
+          startOnboarding(); // Start onboarding tutorial
+        }}
+
       >
         <Text style={styles.helpTextCompact}>Need Help?</Text>
         <Text style={styles.helpSubtextCompact}>Quick start guide</Text>

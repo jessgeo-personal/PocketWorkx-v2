@@ -88,9 +88,7 @@ type CashTransaction = CashEntry & {
 
 
 const CashScreen: React.FC = () => {
-  // Hook into global storage
-  const { state, loading, save } = useStorage();
-  const { currentStep, onAddCashModalOpened, nextStep } = useOnboarding();
+  
 
   // Local UI state for the "Add Cash" modal inputs
   const [isAddCashModalVisible, setIsAddCashModalVisible] = useState(false);
@@ -124,6 +122,17 @@ const CashScreen: React.FC = () => {
   const [txModalVisible, setTxModalVisible] = useState(false);
   const [txFilter, setTxFilter] = useState<FilterCriteria | null>(null);
 
+  // Hook into global storage
+  const { state, loading, save } = useStorage();
+  const { currentStep, onAddCashModalOpened, nextStep } = useOnboarding();
+
+  // Notify onboarding when Add Cash modal opens
+  useEffect(() => {
+    if (isAddCashModalVisible) {
+      onAddCashModalOpened();
+    }
+  }, [isAddCashModalVisible, onAddCashModalOpened]);
+
   // Auto-open expense modal when navigated with query param: /cash?openModal=expense
   // Get navigation parameters for auto-opening modals
   const searchParams = useLocalSearchParams<{ openModal?: string }>();
@@ -134,6 +143,7 @@ const CashScreen: React.FC = () => {
       setIsExpenseModalVisible(true);
       } else if (searchParams?.openModal === 'add') {
         setIsAddCashModalVisible(true);
+        onAddCashModalOpened();
       }
   }, [searchParams?.openModal]);
 
@@ -309,6 +319,10 @@ const CashScreen: React.FC = () => {
       setNewCashAmount('');
       setNewCashcashCategory(CashCategoryType.WALLET);
       setIsAddCashModalVisible(false);
+      // Complete onboarding if user just added their first cash
+      if (currentStep === 'cashmodal_tutorial') {
+        nextStep();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to add cash entry. Please try again.');
     } finally {
