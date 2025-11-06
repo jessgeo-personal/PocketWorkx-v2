@@ -31,6 +31,7 @@ const OnboardingContext = createContext<OnboardingContextType>({
   onQuickActionsOpened: () => {},
   onAddCashChosen: () => {},
   onAddCashModalOpened: () => {},
+  startOnboarding: () => {},
 });
 
 export const useOnboarding = () => useContext(OnboardingContext);
@@ -185,19 +186,27 @@ const ConversationCloud: React.FC = () => {
     const { width, height } = Dimensions.get('window');
     switch (currentStep) {
       case 'menu_tutorial':
-        setPos({ x: width / 2 - 150, y: height - 200 });
+        // Position above bottom center menu button (80px from bottom)
+        setPos({ x: width / 2 - 150, y: height - 180 });
         break;
       case 'quickactions_tutorial':
-        setPos({ x: width / 2 - 150, y: height / 2 - 100 });
+        // Position ABOVE Quick Actions button to avoid covering it
+        // Quick Actions is typically in middle third of screen
+        setPos({ x: width / 2 - 150, y: height * 0.45 }); // 45% from top
         break;
       case 'addcash_tutorial':
-        setPos({ x: 20, y: height / 2 - 50 });
+        // Position for Add Cash button in Quick Actions modal
+        // Modal is bottom-sheet style, position in upper area
+        setPos({ x: width / 2 - 150, y: height * 0.25 }); // Top 25%
         break;
       case 'cashmodal_tutorial':
-        setPos({ x: width / 2 - 150, y: height / 2 + 50 });
+        // Position for Cash modal (center screen)
+        setPos({ x: width / 2 - 150, y: height * 0.15 }); // Top 15%
         break;
-    }
+      }
   };
+
+  
 
   const getMessage = () => {
     switch (currentStep) {
@@ -221,9 +230,22 @@ const ConversationCloud: React.FC = () => {
   if (!currentStep || currentStep === 'welcome' || currentStep === 'completed') return null;
 
   return (
-    <Animated.View style={[styles.cloudWrap, { opacity: fade, left: pos.x, top: pos.y }]} pointerEvents="box-none">
-      <View style={styles.cloudBubble}>
+    <Animated.View 
+      style={[
+        styles.cloudWrap,
+        { 
+          opacity: fade,
+          left: pos.x,
+          top: pos.y,
+          zIndex: 99999,
+          elevation: 40, // Android highest elevation
+        }
+      ]} 
+      pointerEvents="box-none" // Allow taps to pass through container
+    >
+      <View style={styles.cloudBubble} pointerEvents="auto"> {/* Enable interaction with cloud */}
         <Text style={styles.cloudMessage}>{getMessage()}</Text>
+        
         <View style={styles.cloudFooter}>
           <TouchableOpacity style={styles.cloudCancelButton} onPress={skipTutorial}>
             <Text style={styles.cloudCancelText}>Cancel</Text>
@@ -237,9 +259,12 @@ const ConversationCloud: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
+      
+      {/* Pointer triangle */}
       <View style={styles.cloudPointer} />
     </Animated.View>
   );
+
 };
 
 const styles = StyleSheet.create({
@@ -256,8 +281,24 @@ const styles = StyleSheet.create({
   continueButton: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderRadius: BorderRadius.md, backgroundColor: '#8B5CF6' },
   continueButtonText: { fontSize: Typography.fontSize.base, color: Colors.white, fontWeight: Typography.fontWeight.semibold },
 
-  cloudWrap: { position: 'absolute', zIndex: 9999, maxWidth: 300 },
-  cloudBubble: { backgroundColor: Colors.background.card, padding: Spacing.lg, borderRadius: BorderRadius.xl, borderWidth: 2, borderColor: '#8B5CF6', ...Shadows.md },
+ cloudWrap: { 
+  position: 'absolute', 
+  zIndex: 99999, // Highest possible z-index
+  maxWidth: 300,
+  elevation: 30, // Android elevation higher than modals
+  },
+
+  cloudBubble: { 
+  backgroundColor: Colors.background.card, 
+  padding: Spacing.lg, 
+  borderRadius: BorderRadius.xl, 
+  borderWidth: 2, 
+  borderColor: '#8B5CF6', 
+  ...Shadows.md,
+  zIndex: 99999, // Force to front
+  elevation: 35, // Higher elevation for Android
+  },
+
   cloudMessage: { fontSize: Typography.fontSize.base, color: Colors.text.primary, lineHeight: 22, marginBottom: Spacing.md },
   cloudFooter: { flexDirection: 'row', justifyContent: 'space-between' },
   cloudCancelButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.sm },

@@ -1388,17 +1388,20 @@ const styles = StyleSheet.create({
   },
   quickActionsModalOverlay: {
     flex: 1,
-    backgroundColor: Colors.background.modal, // theme overlay
+    backgroundColor: Colors.background.modal,
     justifyContent: 'flex-end',
+    zIndex: 1000, // Lower than onboarding clouds
   },
   quickActionsModalContent: {
-    backgroundColor: Colors.background.primary, // pocketworkx golden
+    backgroundColor: Colors.background.primary,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '90%',
     minHeight: '80%',
     paddingBottom: Spacing.xl,
     overflow: 'hidden',
+    zIndex: 1000, // Lower than onboarding clouds
+    elevation: 10, // Lower Android elevation
   },
   quickActionsModalHeader: {
     backgroundColor: Colors.background.primary, // purple header matching button
