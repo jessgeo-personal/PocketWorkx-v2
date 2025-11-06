@@ -62,13 +62,21 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [currentStep]);
   
   useEffect(() => {
-    // Start once storage is loaded
-    if (!state) return; // ← ADD THIS GUARD
+    // CRITICAL: Guard against null state in APK builds
+    if (state === null || state === undefined) {
+      console.log('[Onboarding] State is null, waiting for storage...');
+      return;
+    }
     
-    const isCompleted = (state as any)?.onboardingCompleted;
+    const isCompleted = Boolean(state?.onboardingCompleted);
+    console.log('[Onboarding] Checking completion status:', isCompleted);
+    
     if (!isCompleted) {
       setCurrentStep('welcome');
       setIsOnboardingActive(true);
+    } else {
+      setCurrentStep('completed');
+      setIsOnboardingActive(false);
     }
   }, [state]);
 
@@ -378,11 +386,12 @@ const styles = StyleSheet.create({
   continueButton: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderRadius: BorderRadius.md, backgroundColor: '#8B5CF6' },
   continueButtonText: { fontSize: Typography.fontSize.base, color: Colors.white, fontWeight: Typography.fontWeight.semibold },
 
+  // src/components/onboarding/OnboardingManager.tsx
   cloudWrap: { 
     position: 'absolute', 
-    zIndex: 9999999999999, // INCREASED from 99999 to 999999
+    zIndex: 9999, // REDUCED from 9999999999999 to 9999
     maxWidth: 300,
-    elevation: 100, // INCREASED from 30 to 50 (Android highest elevation)
+    elevation: 50, // REDUCED from 100 to 50 (Android safe elevation)
   },
 
   cloudBubble: { 
@@ -392,9 +401,10 @@ const styles = StyleSheet.create({
     borderWidth: 2, 
     borderColor: '#8B5CF6', 
     ...Shadows.md,
-    zIndex: 9999999999, // INCREASED from 99999 to 999999
-    elevation: 105, // INCREASED from 35 to 55 (Higher elevation for Android)
+    zIndex: 9999, // REDUCED from 9999999999 to 9999
+    elevation: 55, // REDUCED from 105 to 55
   },
+
 
   cloudMessage: { fontSize: Typography.fontSize.base, color: Colors.text.primary, lineHeight: 22, marginBottom: Spacing.md },
   cloudFooter: { flexDirection: 'row', justifyContent: 'space-between' },

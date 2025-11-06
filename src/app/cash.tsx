@@ -162,9 +162,19 @@ const CashScreen: React.FC = () => {
   ///};
 
     // Read cash entries from the shared store (backed by local JSON file)
-  const cashEntries: CashEntry[] = (state?.cashEntries as CashEntry[] | undefined) ?? [];
+  const cashEntries: CashEntry[] = React.useMemo(() => {
+    if (!state || !Array.isArray(state.cashEntries)) {
+      return [];
+    }
+    return state.cashEntries as CashEntry[];
+  }, [state]);
 
-  const availableBankAccounts = (state?.accounts as any[] | undefined) ?? [];
+  const availableBankAccounts = React.useMemo(() => {
+    if (!state || !Array.isArray(state.accounts)) {
+      return [];
+    }
+    return state.accounts;
+  }, [state]);
   const hasBankAccounts = availableBankAccounts.length > 0;
 
   const formatWithTZ = (d: Date) => {

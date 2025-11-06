@@ -281,39 +281,72 @@ async function ensureDataFile(): Promise<void> {
   }
 }
 
-export async function getState(): Promise<PocketWorkxState> {
-  await ensureDataFile();
-  
-  try {
-    // Read file content using the new API
-    const content = await DATA_FILE.text();
-    return JSON.parse(content) as PocketWorkxState;
-  } catch (parseError) {
-    // If corrupt, re-initialize to a safe default
-    const fallback: PocketWorkxState = {
+  export async function getState(): Promise<PocketWorkxState> {
+    try {
+      await ensureDataFile();
+    } catch (initError) {
+      console.error('[LocalFileStore] Failed to ensure data file:', initError);
+      // Return safe fallback instead of crashing
+      return {
         cashEntries: [],
         accounts: [],
         loans: [],
         creditCards: [],
         investments: [],
         receivables: [],
-        cashCategories: [],       // include
-        cashTransactions: [],     // include
-        // NEW: credit cards
+        cashCategories: [],
+        cashTransactions: [],
         creditCardEntries: [],
         creditCardTransactions: [],
-          // NEW: loans
         loanEntries: [],
         fixedIncomeEntries: [],
         fixedIncomeTransactions: [],
         _version: 1,
         _updatedAt: new Date().toISOString(),
-    };
-    await DATA_FILE.write(JSON.stringify(fallback)); // add await
-    return fallback;
-
+      };
+    }
+    
+    try {
+      // Read file content using the new API
+      const content = await DATA_FILE.text();
+      const parsed = JSON.parse(content) as PocketWorkxState;
+      
+      // CRITICAL: Validate parsed data structure
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid data structure');
+      }
+      
+      return parsed;
+    } catch (parseError) {
+      console.error('[LocalFileStore] Parse error:', parseError);
+      // If corrupt, re-initialize to a safe default
+      const fallback: PocketWorkxState = {
+        cashEntries: [],
+        accounts: [],
+        loans: [],
+        creditCards: [],
+        investments: [],
+        receivables: [],
+        cashCategories: [],
+        cashTransactions: [],
+        creditCardEntries: [],
+        creditCardTransactions: [],
+        loanEntries: [],
+        fixedIncomeEntries: [],
+        fixedIncomeTransactions: [],
+        _version: 1,
+        _updatedAt: new Date().toISOString(),
+      };
+      
+      try {
+        await DATA_FILE.write(JSON.stringify(fallback));
+      } catch (writeError) {
+        console.error('[LocalFileStore] Failed to write fallback:', writeError);
+      }
+      
+      return fallback;
+    }
   }
-}
 
 export async function setState(next: PocketWorkxState): Promise<void> {
   const stamped = { ...next, _updatedAt: new Date().toISOString() };

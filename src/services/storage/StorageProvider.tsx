@@ -310,26 +310,60 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [state, setLocal] = useState<AppModel | null>(null);
   const [loading, setLoading] = useState(true);
 
+
   const load = async () => {
     setLoading(true);
     try {
       const s = await getState();
+      
+      // CRITICAL: Add null check before processing
+      if (!s) {
+        console.warn('[Storage] getState returned null, using defaults');
+        const defaultState: AppModel = {
+          cashEntries: [],
+          accounts: [],
+          loans: [],
+          creditCards: [],
+          investments: [],
+          receivables: [],
+          cashCategories: [],
+          cashTransactions: [],
+          creditCardEntries: [],
+          creditCardTransactions: [],
+          loanEntries: [],
+          fixedIncomeEntries: [],
+          fixedIncomeTransactions: [],
+          onboardingCompleted: false, // ADD this
+        };
+        setLocal(defaultState);
+        setLoading(false);
+        return;
+      }
 
       // Backward-compatible initialization for newly added fields
       const withDefaults: AppModel = {
         ...s,
-        cashCategories: s.cashCategories ?? [],
-        cashTransactions: (s.cashTransactions as any[] | undefined)?.map((t) => ({
+        // ADD null safety for all arrays
+        cashCategories: Array.isArray(s.cashCategories) ? s.cashCategories : [],
+        cashTransactions: Array.isArray(s.cashTransactions) ? s.cashTransactions.map((t: any) => ({
           ...t,
           timestamp: t.timestamp instanceof Date 
             ? t.timestamp 
             : t.timestamp 
               ? new Date(t.timestamp) 
               : new Date(),
-        })) ?? [],
+        })) : [],
+        
+        // ADD null safety for all other arrays
+        cashEntries: Array.isArray(s.cashEntries) ? s.cashEntries : [],
+        accounts: Array.isArray(s.accounts) ? s.accounts : [],
+        loans: Array.isArray(s.loans) ? s.loans : [],
+        creditCards: Array.isArray(s.creditCards) ? s.creditCards : [],
+        investments: Array.isArray(s.investments) ? s.investments : [],
+        receivables: Array.isArray(s.receivables) ? s.receivables : [],
 
-        // NEW: initialize credit card arrays with date normalization
-        creditCardEntries: (s.creditCardEntries as any[] | undefined)?.map((c) => ({
+        // Credit card arrays with safe date normalization
+        creditCardEntries: Array.isArray(s.creditCardEntries) ? s.creditCardEntries.map((c: any) => ({
           ...c,
           paymentDueDate: c.paymentDueDate ? new Date(c.paymentDueDate) : new Date(),
           statementDate: c.statementDate ? new Date(c.statementDate) : new Date(),
@@ -341,9 +375,9 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 updatedAt: c.auditTrail.updatedAt ? new Date(c.auditTrail.updatedAt) : new Date(),
               }
             : undefined,
-        })) ?? [],
+        })) : [],
 
-        creditCardTransactions: (s.creditCardTransactions as any[] | undefined)?.map((t) => ({
+        creditCardTransactions: Array.isArray(s.creditCardTransactions) ? s.creditCardTransactions.map((t: any) => ({
           ...t,
           timestamp: t.timestamp ? new Date(t.timestamp) : new Date(),
           auditTrail: t.auditTrail
@@ -353,23 +387,22 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 updatedAt: t.auditTrail.updatedAt ? new Date(t.auditTrail.updatedAt) : new Date(),
               }
             : undefined,
-        })) ?? [],
+        })) : [],
 
-        // NEW: initialize loan entries with date normalization
-        loanEntries: (s.loanEntries as any[] | undefined)?.map((l) => ({
+        // Loan entries with safe date normalization
+        loanEntries: Array.isArray(s.loanEntries) ? s.loanEntries.map((l: any) => ({
           ...l,
           nextPaymentDate: l.nextPaymentDate ? new Date(l.nextPaymentDate) : new Date(),
           startDate: l.startDate ? new Date(l.startDate) : new Date(),
           endDate: l.endDate ? new Date(l.endDate) : new Date(),
           timestamp: l.timestamp ? new Date(l.timestamp) : new Date(),
-          // normalize persisted schedule (if present)
           schedule: Array.isArray(l.schedule)
             ? l.schedule.map((it: any) => ({
                 ...it,
                 dueDate: it.dueDate ? new Date(it.dueDate) : new Date(),
                 paidOn: it.paidOn ? new Date(it.paidOn) : undefined,
               }))
-            : undefined,
+            : [],
           auditTrail: l.auditTrail
             ? {
                 ...l.auditTrail,
@@ -377,10 +410,10 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 updatedAt: l.auditTrail.updatedAt ? new Date(l.auditTrail.updatedAt) : new Date(),
               }
             : undefined,
-        })) ?? [],
+        })) : [],
 
-        // NEW: initialize fixed income entries with date normalization
-        fixedIncomeEntries: (s.fixedIncomeEntries as any[] | undefined)?.map((fi) => ({
+        // Fixed income entries with safe date normalization
+        fixedIncomeEntries: Array.isArray(s.fixedIncomeEntries) ? s.fixedIncomeEntries.map((fi: any) => ({
           ...fi,
           startDate: fi.startDate ? new Date(fi.startDate) : new Date(),
           maturityDate: fi.maturityDate ? new Date(fi.maturityDate) : new Date(),
@@ -392,9 +425,9 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 updatedAt: fi.auditTrail.updatedAt ? new Date(fi.auditTrail.updatedAt) : new Date(),
               }
             : undefined,
-        })) ?? [],
+        })) : [],
 
-        fixedIncomeTransactions: (s.fixedIncomeTransactions as any[] | undefined)?.map((t) => ({
+        fixedIncomeTransactions: Array.isArray(s.fixedIncomeTransactions) ? s.fixedIncomeTransactions.map((t: any) => ({
           ...t,
           timestamp: t.timestamp ? new Date(t.timestamp) : new Date(),
           auditTrail: t.auditTrail
@@ -404,18 +437,37 @@ export const StorageProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 updatedAt: t.auditTrail.updatedAt ? new Date(t.auditTrail.updatedAt) : new Date(),
               }
             : undefined,
-        })) ?? [],
-
+        })) : [],
       };
-
 
       setLocal(withDefaults);
     } catch (e) {
-      Alert.alert('Storage Error', 'Failed to load local data file.');
+      console.error('[Storage] Load failed:', e);
+      // CRITICAL: Set safe fallback state instead of staying null
+      const fallbackState: AppModel = {
+        cashEntries: [],
+        accounts: [],
+        loans: [],
+        creditCards: [],
+        investments: [],
+        receivables: [],
+        cashCategories: [],
+        cashTransactions: [],
+        creditCardEntries: [],
+        creditCardTransactions: [],
+        loanEntries: [],
+        fixedIncomeEntries: [],
+        fixedIncomeTransactions: [],
+        onboardingCompleted: false,
+      };
+      setLocal(fallbackState);
+      
+      Alert.alert('Storage Error', 'Failed to load data. Using safe defaults.');
     } finally {
       setLoading(false);
     }
   };
+
 
   const save = async (updater: (draft: AppModel) => AppModel) => {
     if (!state) return;
