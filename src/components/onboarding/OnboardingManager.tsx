@@ -2,8 +2,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Typography, BorderRadius, Shadows, Spacing } from '../../utils/theme';
+import { useStorage } from '../../services/storage/StorageProvider';
 
 type OnboardingStep = 
   | 'welcome'
@@ -29,25 +29,21 @@ const OnboardingContext = createContext<OnboardingContextType>({
 
 export const useOnboarding = () => useContext(OnboardingContext);
 
-const ONBOARDING_STORAGE_KEY = 'pocketworkx_onboarding_completed';
-
 export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { state, save } = useStorage();
   const [currentStep, setCurrentStep] = useState<OnboardingStep | null>(null);
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
 
   useEffect(() => {
     checkOnboardingStatus();
-  }, []);
+  }, [state]);
 
-  const checkOnboardingStatus = async () => {
-    try {
-      const completed = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (!completed) {
-        setCurrentStep('welcome');
-        setIsOnboardingActive(true);
-      }
-    } catch (error) {
-      console.log('Onboarding check error:', error);
+  const checkOnboardingStatus = () => {
+    // Check if onboarding is completed from storage
+    const isCompleted = (state as any)?.onboardingCompleted;
+    if (!isCompleted && state !== null) {
+      setCurrentStep('welcome');
+      setIsOnboardingActive(true);
     }
   };
 
@@ -72,15 +68,20 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const skipTutorial = async () => {
-    await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-    setCurrentStep('completed');
-    setIsOnboardingActive(false);
+    await completeOnboarding();
   };
 
   const completeOnboarding = async () => {
-    await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-    setCurrentStep('completed');
-    setIsOnboardingActive(false);
+    try {
+      await save((draft: any) => ({
+        ...draft,
+        onboardingCompleted: true,
+      }));
+      setCurrentStep('completed');
+      setIsOnboardingActive(false);
+    } catch (error) {
+      console.log('Onboarding completion error:', error);
+    }
   };
 
   return (
