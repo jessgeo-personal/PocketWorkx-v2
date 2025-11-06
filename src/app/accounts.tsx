@@ -25,7 +25,6 @@ import { useStorage } from '../services/storage/StorageProvider';
 import { StatusBar } from 'expo-status-bar';
 import type { TransactionRecord, FilterCriteria, AccountTransaction } from '../types/transactions';
 import { DebitCategoryType, getDebitCategoryOptions } from '../types/categories';
-import AppFooter from '../components/AppFooter';
 import ComingSoonModal from '../components/modals/ComingSoonModal';
 
 
@@ -1271,7 +1270,6 @@ const searchParams = useLocalSearchParams<{ openModal?: string }>();
             </View>
           )}
         </View>
-        <AppFooter />
       </ScrollView>
 
       {renderAddModal()}

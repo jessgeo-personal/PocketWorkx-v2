@@ -17,7 +17,6 @@ import {
 } from '../types/finance';
 import { formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';
-import AppFooter from '../components/AppFooter';
 
 const ReceivablesScreen: React.FC = () => {
   const [receivables, setReceivables] = useState<Receivable[]>([
@@ -250,7 +249,6 @@ const ReceivablesScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Your Receivables</Text>
             {receivables.map(renderReceivableCard)}
           </View>
-          <AppFooter />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>

@@ -16,7 +16,6 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import ScreenLayout from '../components/ScreenLayout';
-import AppFooter from '../components/AppFooter';
 import { Colors } from '../utils/theme';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import type { FilterCriteria } from '../types/transactions';
@@ -1196,7 +1195,6 @@ const renderScheduleModal = () => {
           )}
         </View>
 
-        <AppFooter />
       </ScrollView>
 
       {renderAddLoanModal()}

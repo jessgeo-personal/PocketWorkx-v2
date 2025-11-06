@@ -19,7 +19,6 @@ import { Colors } from '../utils/theme';
 import { useStorage, type AppModel, type FixedIncomeEntry } from '../services/storage/StorageProvider';
 import TransactionsModal from '../components/modals/TransactionsModal';
 import type { FilterCriteria } from '../types/transactions';
-import AppFooter from '../components/AppFooter';
 
 type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'JPY' | 'AUD' | 'CAD' | 'SGD' | 'CHF';
 const PLACEHOLDER_COLOR = '#9CA3AF'; // Tailwind zinc-400-like; lighter than regular text
@@ -1932,7 +1931,6 @@ const FixedIncomeScreen: React.FC = () => {
             </View>
           )}
         </View>
-        <AppFooter />
       </ScrollView>
 
       {renderBankDepositModal()}

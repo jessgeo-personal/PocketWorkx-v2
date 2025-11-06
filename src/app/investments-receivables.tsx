@@ -13,7 +13,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import ScreenLayout from '../components/ScreenLayout';
-import AppFooter from '../components/AppFooter';
 
 
 const InvestmentsReceivablesScreen: React.FC = () => {
@@ -179,7 +178,6 @@ const InvestmentsReceivablesScreen: React.FC = () => {
           {renderQuickStats()}
           {renderQuickActions()}
           {renderRecentActivity()}
-          <AppFooter />
         </ScrollView>
       </SafeAreaView>
     </ScreenLayout>

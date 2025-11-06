@@ -20,7 +20,6 @@ import { Colors } from '../utils/theme';
 import { formatCompactCurrency } from '../utils/currency';
 import type { TransactionRecord, FilterCriteria } from '../types/transactions';
 import TransactionsModal from '../components/modals/TransactionsModal';
-import AppFooter from '../components/AppFooter';
 import WheelPicker from '@quidone/react-native-wheel-picker';
 import ComingSoonModal from '@/components/modals/ComingSoonModal';
 
@@ -1472,7 +1471,6 @@ const CreditCardsScreen: React.FC = () => {
             </View>
           )}
         </View>
-        <AppFooter />
       </ScrollView>
 
       {renderAddCardModal()}

@@ -17,7 +17,6 @@ import { Investment } from '../types/finance';
 import { formatCurrency, formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';
 import { Colors } from '../utils/theme';
-import AppFooter from '../components/AppFooter';
 
 //types
 
@@ -586,7 +585,6 @@ const InvestmentsScreen: React.FC = () => {
           {investments.map(renderInvestmentCard)}
         </View>
         {renderDebtModal()}
-        <AppFooter />
       </ScrollView>
     </ScreenLayout>
   );

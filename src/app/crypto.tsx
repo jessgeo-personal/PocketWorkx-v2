@@ -17,7 +17,6 @@ import {
 } from '../types/finance';
 import { formatCompactCurrency } from '../utils/currency';
 import ScreenLayout from '../components/ScreenLayout';  // ← Added
-import AppFooter from '../components/AppFooter';
 import ComingSoonModal from '../components/modals/ComingSoonModal';
 
 
@@ -281,7 +280,6 @@ const CryptoScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Your Crypto Assets</Text>
             {cryptoAssets.map(renderCryptoCard)}
           </View>
-          <AppFooter />
           <ComingSoonModal
             visible={isComingSoonModalVisible}
             onClose={() => setIsComingSoonModalVisible(false)}
