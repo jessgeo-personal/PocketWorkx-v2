@@ -1391,7 +1391,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.modal,
     justifyContent: 'flex-end',
-    zIndex: 5000, // REDUCED from 1000 to 5000 (lower than onboarding clouds)
+    zIndex: 1000, // REDUCED from 1000 to 5000 (lower than onboarding clouds)
   },
   quickActionsModalContent: {
     backgroundColor: Colors.background.primary,
@@ -1401,8 +1401,8 @@ const styles = StyleSheet.create({
     minHeight: '80%',
     paddingBottom: Spacing.xl,
     overflow: 'hidden',
-    zIndex: 5000, // REDUCED from 1000 to 5000 (lower than onboarding clouds)
-    elevation: 15, // REDUCED from 10 to 15 (Lower Android elevation)
+    zIndex: 1000, // REDUCED from 1000 to 5000 (lower than onboarding clouds)
+    elevation: 10, // REDUCED from 10 to 15 (Lower Android elevation)
   },
   quickActionsModalHeader: {
     backgroundColor: Colors.background.primary, // purple header matching button

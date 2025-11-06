@@ -249,11 +249,11 @@ const ConversationCloud: React.FC = () => {
         break;
       case 'slidingmenu_tutorial':
         // Position above Home button in sliding menu (top area of screen when menu is open)
-        setPos({ x: width / 2 - 150, y: height * 0.25 });
+        setPos({ x: width / 2 - 150, y: height * 0.10 });
         break;
       case 'quickactions_tutorial':
-        // Position above Quick Actions button to avoid covering it
-        setPos({ x: width / 2 - 150, y: height * 0.35 });
+        // UPDATED: Position BELOW Quick Actions button and point upward to it
+        setPos({ x: width / 2 - 150, y: height * 0.55 }); // Moved down from 0.35 to 0.45
         break;
       case 'addcash_tutorial':
         // Position for Add Cash button in Quick Actions modal (upper area)
@@ -332,8 +332,12 @@ const ConversationCloud: React.FC = () => {
         </View>
       </View>
       
-      {/* Pointer triangle */}
-      <View style={styles.cloudPointer} pointerEvents="none" />
+      {/* UPDATED: Conditional pointer triangle - upward for quickactions_tutorial */}
+      {currentStep === 'quickactions_tutorial' ? (
+        <View style={styles.cloudPointerUp} pointerEvents="none" />
+      ) : (
+        <View style={styles.cloudPointer} pointerEvents="none" />
+      )}
     </Animated.View>
   );
 };
@@ -354,9 +358,9 @@ const styles = StyleSheet.create({
 
   cloudWrap: { 
     position: 'absolute', 
-    zIndex: 999999, // INCREASED from 99999 to 999999
+    zIndex: 9999999999999, // INCREASED from 99999 to 999999
     maxWidth: 300,
-    elevation: 50, // INCREASED from 30 to 50 (Android highest elevation)
+    elevation: 100, // INCREASED from 30 to 50 (Android highest elevation)
   },
 
   cloudBubble: { 
@@ -366,11 +370,9 @@ const styles = StyleSheet.create({
     borderWidth: 2, 
     borderColor: '#8B5CF6', 
     ...Shadows.md,
-    zIndex: 999999, // INCREASED from 99999 to 999999
-    elevation: 55, // INCREASED from 35 to 55 (Higher elevation for Android)
+    zIndex: 9999999999, // INCREASED from 99999 to 999999
+    elevation: 105, // INCREASED from 35 to 55 (Higher elevation for Android)
   },
-
-
 
   cloudMessage: { fontSize: Typography.fontSize.base, color: Colors.text.primary, lineHeight: 22, marginBottom: Spacing.md },
   cloudFooter: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -378,5 +380,36 @@ const styles = StyleSheet.create({
   cloudCancelText: { fontSize: Typography.fontSize.sm, color: Colors.text.secondary },
   cloudContinueButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.sm, backgroundColor: '#8B5CF6' },
   cloudContinueText: { fontSize: Typography.fontSize.sm, color: Colors.white, fontWeight: Typography.fontWeight.semibold },
-  cloudPointer: { position: 'absolute', bottom: -8, left: '50%', marginLeft: -8, width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#8B5CF6' },
+  
+  // EXISTING: Downward pointing triangle (for most steps)
+  cloudPointer: { 
+    position: 'absolute', 
+    bottom: -8, 
+    left: '50%', 
+    marginLeft: -8, 
+    width: 0, 
+    height: 0, 
+    borderLeftWidth: 8, 
+    borderRightWidth: 8, 
+    borderTopWidth: 8, 
+    borderLeftColor: 'transparent', 
+    borderRightColor: 'transparent', 
+    borderTopColor: '#8B5CF6' 
+  },
+  
+  // NEW: Upward pointing triangle (for quickactions_tutorial)
+  cloudPointerUp: { 
+    position: 'absolute', 
+    top: -8, 
+    left: '50%', 
+    marginLeft: -8, 
+    width: 0, 
+    height: 0, 
+    borderLeftWidth: 8, 
+    borderRightWidth: 8, 
+    borderBottomWidth: 8, 
+    borderLeftColor: 'transparent', 
+    borderRightColor: 'transparent', 
+    borderBottomColor: '#8B5CF6' 
+  },
 });
