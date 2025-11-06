@@ -1753,9 +1753,9 @@ const styles = StyleSheet.create({
   cashModalCloudWrap: {
     position: 'absolute',
     left: 16,
-    right: 16,
+    right: 150,
     // Adjust to sit above form fields without covering inputs
-    top: 120,          // Increase to move DOWN, decrease to move UP
+    top: 340,          // Increase to move DOWN, decrease to move UP
     alignItems: 'center',
   },
   cashModalCloudBubble: {

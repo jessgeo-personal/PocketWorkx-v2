@@ -268,7 +268,7 @@ const ConversationCloud: React.FC = () => {
         break;
       case 'cash_completion':
         // Position above the Wallet card on cash.tsx
-        setPos({ x: width / 2 - 150, y: height * 0.25 });
+        setPos({ x: width / 2 - 150, y: height * 0.47 });
         break;
     }
   };
