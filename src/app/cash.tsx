@@ -1771,7 +1771,7 @@ const styles = StyleSheet.create({
     elevation: 50,
   },
   cashModalCloudMessage: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#1A1A1A',
     lineHeight: 22,
     marginBottom: 12,
