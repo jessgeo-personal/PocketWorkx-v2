@@ -1557,7 +1557,7 @@ const styles = StyleSheet.create({
     left: 24,
     right: 24,
     // Tweak top positioning as needed to sit just below the “Cash” section header & tiles
-    top: 140,
+    top: 250,
     alignItems: 'center',
   },
   addCashCloudBubble: {
@@ -1604,7 +1604,7 @@ const styles = StyleSheet.create({
   addCashCloudPointerUp: {
     position: 'absolute',
     top: -8,
-    left: '50%',
+    left: '25%',
     marginLeft: -8,
     width: 0,
     height: 0,
