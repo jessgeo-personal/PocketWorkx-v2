@@ -63,7 +63,8 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   
   useEffect(() => {
     // Start once storage is loaded
-    if (state === null) return;
+    if (!state) return; // ← ADD THIS GUARD
+    
     const isCompleted = (state as any)?.onboardingCompleted;
     if (!isCompleted) {
       setCurrentStep('welcome');
