@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { colors } from '../utils/theme';
+import { colors, Colors, Typography, BorderRadius, Shadows, Spacing } from '../utils/theme';
 import { useOnboarding } from './onboarding/OnboardingManager';
 
 interface SlidingMenuProps {
@@ -47,94 +47,6 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     console.log('[SlidingMenu] Should render cloud for slidingmenu_tutorial, currentStep:', currentStep);
   }
 
-  {/* Onboarding cloud over the menu sheet */}
-  {showSlidingMenuCloud && (
-    <View
-      style={{
-        position: 'absolute',
-        top: 140, // Positioned above Home button (adjust if needed)
-        left: 50,
-        maxWidth: 300,
-        zIndex: 999999,
-        elevation: 55,
-        alignItems: 'center',
-        pointerEvents: 'none', // wrapper never blocks touches
-      }}
-    >
-      <View
-        style={{
-          backgroundColor: '#FFFCEE', // Match OnboardingManager cloud background
-          padding: 16,
-          borderRadius: 20, // Match BorderRadius.xl
-          borderWidth: 2,
-          borderColor: '#8B5CF6',
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 6,
-          elevation: 55,
-        }}
-        pointerEvents="auto"
-      >
-        <Text
-          style={{
-            fontSize: 14, // Match Typography.fontSize.base
-            color: '#513127', // Match Colors.text.primary equivalent
-            lineHeight: 22,
-            marginBottom: 12,
-          }}
-        >
-          Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
-        </Text>
-        
-        {/* Footer with Cancel and Continue buttons */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <TouchableOpacity 
-            style={{ paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6 }}
-            onPress={() => {
-            console.log('[SlidingMenu] Cancel pressed, skipping tutorial');
-            skipTutorial();
-          }}
-          >
-            <Text style={{ fontSize: 12, color: '#666666' }}>Cancel</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={{ 
-              paddingVertical: 6, 
-              paddingHorizontal: 16, 
-              borderRadius: 6, 
-              backgroundColor: '#8B5CF6',
-              opacity: 0.4 // Disabled appearance
-            }}
-            disabled={true} // Disabled because it's gated
-          >
-            <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '600' }}>Continue</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      
-      {/* Pointer triangle pointing down to Home button */}
-      <View 
-        style={{
-          position: 'absolute',
-          bottom: -8,
-          left: '50%',
-          marginLeft: -8,
-          width: 0,
-          height: 0,
-          borderLeftWidth: 8,
-          borderRightWidth: 8,
-          borderTopWidth: 8,
-          borderLeftColor: 'transparent',
-          borderRightColor: 'transparent',
-          borderTopColor: '#8B5CF6',
-          pointerEvents: 'none',
-        }}
-      />
-    </View>
-  )}
-
-  
   const menuGroups: MenuGroup[] = [
     {
       title: 'Accounts',
@@ -154,12 +66,11 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     {
       title: 'Investments',
       items: [
-        { id: '6', title: 'Fixed Income', route: '/fixed-income', icon: 'savings', color: colors.primary }, // ADD THIS
+        { id: '6', title: 'Fixed Income', route: '/fixed-income', icon: 'savings', color: colors.primary },
         { id: '7', title: 'Receivables', route: '/receivables', icon: 'receipt', color: colors.secondary },
         { id: '8', title: 'Investments', route: '/investments', icon: 'trending-up', color: colors.primary },
       ],
     },
-
     {
       title: 'Analytics',
       items: [
@@ -211,55 +122,10 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     </View>
   );
 
-
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
       
-        {/* Onboarding cloud over the menu sheet */}
-        {showSlidingMenuCloud && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 88,            // tune if needed so it sits near the Home button
-              left: 16,
-              right: 16,
-              zIndex: 999999,     // MAX zIndex
-              elevation: 50,      // High Android elevation
-              alignItems: 'center',
-              pointerEvents: 'box-none',
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: '#FFFCEE',
-                borderRadius: 16,
-                padding: 16,
-                borderColor: '#8B5CF6',
-                borderWidth: 2,
-                maxWidth: 360,
-                shadowColor: '#000',
-                shadowOpacity: 0.12,
-                shadowRadius: 8,
-                elevation: 55, // above sheet
-              }}
-              pointerEvents="auto"
-            >
-              <Text
-                style={{
-                  color: '#513127',
-                  fontWeight: '700',
-                  fontSize: 16,
-                  textAlign: 'center',
-                }}
-              >
-                Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
-              </Text>
-            </View>
-          </View>
-        )}
-
-
       <Animated.View style={[styles.menuContainer, { transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.header}>
           <Image
@@ -271,13 +137,14 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
             <MaterialIcons name="close" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
+        
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* NEW: Horizontal Home button above 'Accounts' */}
+          {/* Home button above menu groups */}
           <TouchableOpacity
             style={styles.homeButton}
             activeOpacity={0.8}
             onPress={() => {
-              onHomeButtonPressed(); // NEW - advance slidingmenu_tutorial → quickactions_tutorial
+              onHomeButtonPressed(); // Advance slidingmenu_tutorial → quickactions_tutorial
               onClose();
               setTimeout(() => router.push('/home' as any), 100);
             }}
@@ -298,6 +165,40 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
           <View style={styles.handle} />
         </View>
       </Animated.View>
+
+      {/* Onboarding cloud positioned above Home button - UPDATED STYLING */}
+      {showSlidingMenuCloud && (
+        <View style={styles.cloudContainer}>
+          <View style={styles.cloudContent}>
+            <Text style={styles.cloudText}>
+              Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
+            </Text>
+            
+            {/* Footer with Cancel and Continue buttons */}
+            <View style={styles.cloudFooter}>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => {
+                  console.log('[SlidingMenu] Cancel pressed, skipping tutorial');
+                  skipTutorial();
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.continueButton, styles.continueButtonDisabled]}
+                disabled={true}
+              >
+                <Text style={styles.continueButtonText}>Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {/* Pointer triangle pointing down to Home button - UPDATED STYLING */}
+          <View style={styles.cloudPointer} />
+        </View>
+      )}
     </Modal>
   );
 };
@@ -407,7 +308,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: colors.surface, // subtle card look
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.surface,
@@ -425,7 +326,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.secondary, // purple accent
+    backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -435,7 +336,84 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-
+  
+  // UPDATED: Onboarding cloud styles - matching OnboardingManager design system
+  cloudContainer: {
+    position: 'absolute',
+    top: 88, // Positioned above Home button
+    left: 16,
+    right: 16,
+    zIndex: 999999,
+    elevation: 100,
+    alignItems: 'center',
+    pointerEvents: 'box-none',
+  },
+  cloudContent: {
+    backgroundColor: Colors?.background?.card || '#FFFCEE', // Use theme colors or fallback
+    padding: Spacing?.lg || 16,
+    borderRadius: BorderRadius?.xl || 16,
+    borderWidth: 2,
+    borderColor: '#8B5CF6', // Purple border matching theme
+    maxWidth: 300,
+    ...Shadows?.md || {
+      shadowColor: '#000',
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 100,
+    },
+  },
+  cloudText: {
+    color: Colors?.text?.primary || '#513127', // Use theme colors or fallback
+    fontSize: Typography?.fontSize?.base || 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: Spacing?.md || 12,
+    fontWeight: '500',
+  },
+  cloudFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    paddingVertical: Spacing?.sm || 8,
+    paddingHorizontal: Spacing?.md || 12,
+    borderRadius: BorderRadius?.sm || 8,
+  },
+  cancelButtonText: {
+    fontSize: Typography?.fontSize?.sm || 14,
+    color: Colors?.text?.secondary || '#666666',
+    fontWeight: '500',
+  },
+  continueButton: {
+    paddingVertical: Spacing?.sm || 8,
+    paddingHorizontal: Spacing?.lg || 16,
+    borderRadius: BorderRadius?.sm || 8,
+    backgroundColor: '#8B5CF6',
+  },
+  continueButtonDisabled: {
+    opacity: 0.4, // Disabled appearance
+  },
+  continueButtonText: {
+    fontSize: Typography?.fontSize?.sm || 14,
+    color: Colors?.white || '#FFFFFF',
+    fontWeight: Typography?.fontWeight?.semibold || '600',
+  },
+  cloudPointer: {
+    position: 'absolute',
+    bottom: -8,
+    left: '50%',
+    marginLeft: -8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#8B5CF6', // Matching border color
+  },
 });
 
 export default SlidingMenu;
