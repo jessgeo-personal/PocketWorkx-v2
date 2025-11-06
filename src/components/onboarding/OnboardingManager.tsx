@@ -6,22 +6,29 @@ import { useStorage } from '../../services/storage/StorageProvider';
 
 type OnboardingStep = 
   | 'welcome'
-  | 'menu_tutorial' 
-  | 'quickactions_tutorial'
-  | 'addcash_tutorial'
-  | 'cashmodal_tutorial'
+  | 'menu_tutorial'        // Point to menu button, disable Continue
+  | 'slidingmenu_tutorial' // Point to Home button in sliding menu, disable Continue
+  | 'quickactions_tutorial'// Point to Quick Actions button, disable Continue  
+  | 'addcash_tutorial'     // Point to Add Cash button in modal, disable Continue
+  | 'cashmodal_tutorial'   // Point to form in cash modal, disable Continue
+  | 'cash_completion'      // Show completion message with End Tutorial button
   | 'completed';
+
 
 interface OnboardingContextType {
   currentStep: OnboardingStep | null;
   nextStep: () => void;
   skipTutorial: () => void;
   isOnboardingActive: boolean;
+  onMenuButtonPressed: () => void;      // NEW
+  onHomeButtonPressed: () => void;      // NEW  
   onQuickActionsOpened: () => void;
   onAddCashChosen: () => void;
   onAddCashModalOpened: () => void;
-  startOnboarding: () => void; // NEW: for on-demand restart
+  onCashEntryAdded: () => void;         // NEW
+  startOnboarding: () => void;
 }
+
 
 const OnboardingContext = createContext<OnboardingContextType>({
   currentStep: null,
@@ -68,6 +75,9 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setCurrentStep('menu_tutorial');
         break;
       case 'menu_tutorial':
+        setCurrentStep('slidingmenu_tutorial');
+        break;
+      case 'slidingmenu_tutorial':
         setCurrentStep('quickactions_tutorial');
         break;
       case 'quickactions_tutorial':
@@ -77,14 +87,29 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setCurrentStep('cashmodal_tutorial');
         break;
       case 'cashmodal_tutorial':
+        setCurrentStep('cash_completion');
+        break;
+      case 'cash_completion':
         completeOnboarding();
         break;
     }
   };
 
+
   const skipTutorial = () => completeOnboarding();
 
-  // Event-driven notifiers (primary path)
+  // Event-driven notifiers (updated for new flow)
+  const onMenuButtonPressed = () => {
+    if (currentStep === 'menu_tutorial') {
+      setCurrentStep('slidingmenu_tutorial');
+    }
+  };
+
+  const onHomeButtonPressed = () => {
+    if (currentStep === 'slidingmenu_tutorial') {
+      setCurrentStep('quickactions_tutorial');
+    }
+  };
   const onQuickActionsOpened = () => {
     if (currentStep === 'quickactions_tutorial') {
       setCurrentStep('addcash_tutorial');
@@ -94,6 +119,12 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const onAddCashChosen = () => {
     if (currentStep === 'addcash_tutorial') {
       setCurrentStep('cashmodal_tutorial');
+    }
+  };
+
+  const onCashEntryAdded = () => {
+    if (currentStep === 'cashmodal_tutorial') {
+      setCurrentStep('cash_completion');
     }
   };
 
@@ -113,10 +144,13 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         nextStep, 
         skipTutorial, 
         isOnboardingActive,
+        onMenuButtonPressed,         // NEW
+        onHomeButtonPressed,         // NEW
         onQuickActionsOpened,
         onAddCashChosen,
         onAddCashModalOpened,
-        startOnboarding, // NEW
+        onCashEntryAdded,           // NEW
+        startOnboarding,
       }}
     >
       {children}
