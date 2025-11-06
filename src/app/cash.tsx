@@ -124,7 +124,7 @@ const CashScreen: React.FC = () => {
 
   // Hook into global storage
   const { state, loading, save } = useStorage();
-  const { currentStep, onAddCashModalOpened, nextStep } = useOnboarding();
+  const { currentStep, onAddCashModalOpened, onCashEntryAdded } = useOnboarding();
 
   // Notify onboarding when Add Cash modal opens
   useEffect(() => {
@@ -321,7 +321,7 @@ const CashScreen: React.FC = () => {
       setIsAddCashModalVisible(false);
       // Complete onboarding if user just added their first cash
       if (currentStep === 'cashmodal_tutorial') {
-        nextStep();
+        onCashEntryAdded(); // advance to cash_completion
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to add cash entry. Please try again.');

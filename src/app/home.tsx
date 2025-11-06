@@ -721,7 +721,7 @@ const HomeScreen: React.FC = () => {
                   style={[styles.modalActionButton, styles.modalActionButtonCash]}
                   onPress={() => {
                     setIsQuickActionsModalVisible(false);
-                        onAddCashChosen(); // notify onboarding: Add Cash chosen
+                    onAddCashChosen(); // advance addcash_tutorial → cashmodal_tutorial
                     router.push({ pathname: '/cash', params: { openModal: 'add' } });
                   }}
                   activeOpacity={0.9}

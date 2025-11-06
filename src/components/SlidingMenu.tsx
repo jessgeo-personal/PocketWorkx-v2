@@ -15,6 +15,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '../utils/theme';
+import { useOnboarding } from './onboarding/OnboardingManager';
 
 interface SlidingMenuProps {
   visible: boolean;
@@ -38,7 +39,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-
+  const { onHomeButtonPressed } = useOnboarding(); // NEW
+  
   const menuGroups: MenuGroup[] = [
     {
       title: 'Accounts',
@@ -135,6 +137,7 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
             style={styles.homeButton}
             activeOpacity={0.8}
             onPress={() => {
+              onHomeButtonPressed(); // NEW - advance slidingmenu_tutorial → quickactions_tutorial
               onClose();
               setTimeout(() => router.push('/home' as any), 100);
             }}
