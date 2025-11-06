@@ -40,6 +40,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const { onHomeButtonPressed } = useOnboarding(); // NEW
+  const { currentStep } = useOnboarding(); // Fetch onboarding state to check step
+
   
   const menuGroups: MenuGroup[] = [
     {
@@ -117,9 +119,46 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     </View>
   );
 
+  const showSlidingMenuCloud = currentStep === 'slidingmenu_tutorial';
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
+      
+      {/* ONBOARDING CLOUD overlay for step 2 */}
+      {showSlidingMenuCloud && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 100, // Adjust so it's above your Home button (tweak Y as needed visually)
+            left: '10%',
+            width: '80%',
+            zIndex: 10000,
+            alignItems: 'center'
+          }}
+          pointerEvents="box-none"
+        >
+          <View
+            style={{
+              backgroundColor: '#FFFCEE',
+              borderRadius: 16,
+              padding: 20,
+              borderColor: '#8B5CF6',
+              borderWidth: 2,
+              shadowColor: '#000',
+              shadowOpacity: 0.10,
+              shadowRadius: 6,
+              elevation: 8,
+              maxWidth: 320,
+            }}
+          >
+            <Text style={{ color: '#513127', fontWeight: '700', fontSize: 16, marginBottom: 8, textAlign: 'center' }}>
+              Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
+            </Text>
+          </View>
+        </View>
+      )}
+
       <Animated.View style={[styles.menuContainer, { transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.header}>
           <Image
