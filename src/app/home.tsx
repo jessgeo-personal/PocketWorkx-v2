@@ -17,7 +17,6 @@ import { Colors, Spacing, Typography, BorderRadius, Shadows } from '../utils/the
 import { formatCurrency } from '../utils/currency';
 import { computeTotals } from '../selectors/totals';
 import { useStorage } from '../services/storage/StorageProvider';
-import AppFooter from '../components/AppFooter';
 import ComingSoonModal from '../components/modals/ComingSoonModal';
 import { useOnboarding } from '../components/onboarding/OnboardingManager';
 
@@ -1002,7 +1001,6 @@ const HomeScreen: React.FC = () => {
         {renderPrimaryBalance()}
         {renderMetricsGrid()}
         {renderLatestTransactions()}
-        <AppFooter />
         <View style={styles.bottomSpacing} />
       </ScrollView>
       {renderHelpModal()}

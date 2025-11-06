@@ -26,7 +26,6 @@ import {
   getExpenseCategoryOptions 
 } from '../types/categories';
 import TransactionsModal from '../components/modals/TransactionsModal';
-import AppFooter from '../components/AppFooter';
 import { useOnboarding } from '../components/onboarding/OnboardingManager';
 
 
@@ -1320,7 +1319,6 @@ const CashScreen: React.FC = () => {
             </View>
           )}
         </View>
-        <AppFooter />
       </ScrollView>
       {renderAddCashModal()}
       {renderRecordExpenseModal()}
