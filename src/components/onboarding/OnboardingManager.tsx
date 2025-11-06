@@ -1,7 +1,6 @@
 // src/components/onboarding/OnboardingManager.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { Colors, Typography, BorderRadius, Shadows, Spacing } from '../../utils/theme';
 import { useStorage } from '../../services/storage/StorageProvider';
 
@@ -33,7 +32,6 @@ const OnboardingContext = createContext<OnboardingContextType>({
   onAddCashModalOpened: () => {},
 });
 
-
 export const useOnboarding = () => useContext(OnboardingContext);
 
 export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,16 +40,24 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
 
   useEffect(() => {
-    checkOnboardingStatus();
-  }, [state]);
-
-  const checkOnboardingStatus = () => {
-    // Check if onboarding is completed from storage
+    // Start once storage is loaded
+    if (state === null) return;
     const isCompleted = (state as any)?.onboardingCompleted;
-    if (!isCompleted && state !== null) {
+    if (!isCompleted) {
       setCurrentStep('welcome');
       setIsOnboardingActive(true);
     }
+  }, [state]);
+
+  const completeOnboarding = async () => {
+    try {
+      await save((draft: any) => ({
+        ...draft,
+        onboardingCompleted: true,
+      }));
+    } catch (_) {}
+    setCurrentStep('completed');
+    setIsOnboardingActive(false);
   };
 
   const nextStep = () => {
@@ -74,50 +80,28 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const skipTutorial = async () => {
-    await completeOnboarding();
-  };
+  const skipTutorial = () => completeOnboarding();
 
-  const completeOnboarding = async () => {
-    try {
-      await save((draft: any) => ({
-        ...draft,
-        onboardingCompleted: true,
-      }));
-      setCurrentStep('completed');
-      setIsOnboardingActive(false);
-    } catch (error) {
-      console.log('Onboarding completion error:', error);
-    }
-  };
-
-  // Event-driven progressors (primary flow)
-    const onQuickActionsOpened = () => {
-    // Only advance if we are currently instructing Quick Actions
+  // Event-driven notifiers (primary path)
+  const onQuickActionsOpened = () => {
     if (currentStep === 'quickactions_tutorial') {
-        setCurrentStep('addcash_tutorial');
+      setCurrentStep('addcash_tutorial');
     }
-    };
+  };
 
-    const onAddCashChosen = () => {
-    // User tapped Add Cash option inside QA
+  const onAddCashChosen = () => {
     if (currentStep === 'addcash_tutorial') {
-        setCurrentStep('cashmodal_tutorial');
+      setCurrentStep('cashmodal_tutorial');
     }
-    };
+  };
 
-    const onAddCashModalOpened = () => {
-    // The Add Cash modal is actually visible on cash screen
-    if (currentStep === 'cashmodal_tutorial') {
-        // Do NOT complete yet – user should press Add Cash after filling
-        // Completion happens when add is confirmed (you already call nextStep() in handler)
-        // Leave as is to keep the cloud visible until user presses Add Cash
-    }
-    };
+  const onAddCashModalOpened = () => {
+    // Keep cloud visible; completion occurs when user adds cash (cash screen calls nextStep)
+  };
 
   return (
     <OnboardingContext.Provider 
-    value={{ 
+      value={{ 
         currentStep, 
         nextStep, 
         skipTutorial, 
@@ -125,7 +109,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         onQuickActionsOpened,
         onAddCashChosen,
         onAddCashModalOpened,
-    }}
+      }}
     >
       {children}
       <OnboardingOverlay />
@@ -150,13 +134,11 @@ const OnboardingOverlay: React.FC = () => {
               Your secure personal finance app
             </Text>
           </View>
-          
           <View style={styles.welcomeBody}>
             <Text style={styles.welcomeMessage}>
               Click here to find your way around PocketWorkx and get started with tracking your finances.
             </Text>
           </View>
-
           <View style={styles.welcomeFooter}>
             <TouchableOpacity style={styles.cancelButton} onPress={skipTutorial}>
               <Text style={styles.cancelButtonText}>Skip Tutorial</Text>
@@ -180,45 +162,32 @@ const OnboardingOverlay: React.FC = () => {
 
 const ConversationCloud: React.FC = () => {
   const { currentStep, nextStep, skipTutorial } = useOnboarding();
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const fade = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (currentStep && currentStep !== 'welcome' && currentStep !== 'completed') {
-      calculatePosition();
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
+      positionForStep();
+      Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } else {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(fade, { toValue: 0, duration: 200, useNativeDriver: true }).start();
     }
   }, [currentStep]);
 
-  const calculatePosition = () => {
+  const positionForStep = () => {
     const { width, height } = Dimensions.get('window');
-    
     switch (currentStep) {
       case 'menu_tutorial':
-        // Position above bottom center menu button
-        setPosition({ x: width / 2 - 150, y: height - 200 });
+        setPos({ x: width / 2 - 150, y: height - 200 });
         break;
       case 'quickactions_tutorial':
-        // Position above Quick Actions button (in middle of screen)
-        setPosition({ x: width / 2 - 150, y: height / 2 - 100 });
+        setPos({ x: width / 2 - 150, y: height / 2 - 100 });
         break;
       case 'addcash_tutorial':
-        // Position pointing to Add Cash button (top-left in QA modal)
-        setPosition({ x: 20, y: height / 2 - 50 });
+        setPos({ x: 20, y: height / 2 - 50 });
         break;
       case 'cashmodal_tutorial':
-        // Position in center when cash modal is open
-        setPosition({ x: width / 2 - 150, y: height / 2 + 50 });
+        setPos({ x: width / 2 - 150, y: height / 2 + 50 });
         break;
     }
   };
@@ -238,168 +207,55 @@ const ConversationCloud: React.FC = () => {
     }
   };
 
-  if (!currentStep || currentStep === 'welcome' || currentStep === 'completed') {
-    return null;
-  }
+  const isGated = currentStep === 'quickactions_tutorial' 
+    || currentStep === 'addcash_tutorial' 
+    || currentStep === 'cashmodal_tutorial';
+
+  if (!currentStep || currentStep === 'welcome' || currentStep === 'completed') return null;
 
   return (
-    <Animated.View 
-      style={[
-        styles.conversationCloud,
-        { 
-          opacity: fadeAnim,
-          left: position.x,
-          top: position.y,
-        }
-      ]}
-      pointerEvents="box-none"
-    >
+    <Animated.View style={[styles.cloudWrap, { opacity: fade, left: pos.x, top: pos.y }]} pointerEvents="box-none">
       <View style={styles.cloudBubble}>
         <Text style={styles.cloudMessage}>{getMessage()}</Text>
-        
         <View style={styles.cloudFooter}>
           <TouchableOpacity style={styles.cloudCancelButton} onPress={skipTutorial}>
             <Text style={styles.cloudCancelText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.cloudContinueButton} onPress={nextStep}>
+          <TouchableOpacity 
+            style={[styles.cloudContinueButton, isGated && { opacity: 0.4 }]} 
+            onPress={!isGated ? nextStep : undefined}
+            disabled={isGated}
+          >
             <Text style={styles.cloudContinueText}>Continue</Text>
           </TouchableOpacity>
         </View>
       </View>
-      
-      {/* Pointer triangle */}
       <View style={styles.cloudPointer} />
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  welcomeCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.xl,
-    width: '85%',
-    maxWidth: 400,
-    ...Shadows.md,
-  },
-  welcomeHeader: {
-    padding: Spacing.xl,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
-  },
-  welcomeTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  welcomeSubtitle: {
-    fontSize: Typography.fontSize.base,
-    color: '#8B5CF6',
-    fontWeight: Typography.fontWeight.semibold,
-    textAlign: 'center',
-  },
-  welcomeBody: {
-    padding: Spacing.xl,
-  },
-  welcomeMessage: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  welcomeFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: Spacing.xl,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
-  },
-  cancelButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border.main,
-  },
-  cancelButtonText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  continueButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.md,
-    backgroundColor: '#8B5CF6',
-  },
-  continueButtonText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.white,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  conversationCloud: {
-    position: 'absolute',
-    zIndex: 9999,
-    maxWidth: 300,
-  },
-  cloudBubble: {
-    backgroundColor: Colors.background.card,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
-    ...Shadows.md,
-  },
-  cloudMessage: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-    lineHeight: 22,
-    marginBottom: Spacing.md,
-  },
-  cloudFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  cloudCancelButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.sm,
-  },
-  cloudCancelText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-  },
-  cloudContinueButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: '#8B5CF6',
-  },
-  cloudContinueText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.white,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  cloudPointer: {
-    position: 'absolute',
-    bottom: -8,
-    left: '50%',
-    marginLeft: -8,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderTopWidth: 8,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: '#8B5CF6',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  welcomeCard: { backgroundColor: Colors.background.card, borderRadius: BorderRadius.xl, width: '85%', maxWidth: 400, ...Shadows.md },
+  welcomeHeader: { padding: Spacing.xl, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: Colors.border.light },
+  welcomeTitle: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, color: Colors.text.primary, textAlign: 'center', marginBottom: Spacing.sm },
+  welcomeSubtitle: { fontSize: Typography.fontSize.base, color: '#8B5CF6', fontWeight: Typography.fontWeight.semibold, textAlign: 'center' },
+  welcomeBody: { padding: Spacing.xl },
+  welcomeMessage: { fontSize: Typography.fontSize.base, color: Colors.text.secondary, textAlign: 'center', lineHeight: 24 },
+  welcomeFooter: { flexDirection: 'row', justifyContent: 'space-between', padding: Spacing.xl, borderTopWidth: 1, borderTopColor: Colors.border.light },
+  cancelButton: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.border.main },
+  cancelButtonText: { fontSize: Typography.fontSize.base, color: Colors.text.secondary, fontWeight: Typography.fontWeight.medium },
+  continueButton: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderRadius: BorderRadius.md, backgroundColor: '#8B5CF6' },
+  continueButtonText: { fontSize: Typography.fontSize.base, color: Colors.white, fontWeight: Typography.fontWeight.semibold },
+
+  cloudWrap: { position: 'absolute', zIndex: 9999, maxWidth: 300 },
+  cloudBubble: { backgroundColor: Colors.background.card, padding: Spacing.lg, borderRadius: BorderRadius.xl, borderWidth: 2, borderColor: '#8B5CF6', ...Shadows.md },
+  cloudMessage: { fontSize: Typography.fontSize.base, color: Colors.text.primary, lineHeight: 22, marginBottom: Spacing.md },
+  cloudFooter: { flexDirection: 'row', justifyContent: 'space-between' },
+  cloudCancelButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.sm },
+  cloudCancelText: { fontSize: Typography.fontSize.sm, color: Colors.text.secondary },
+  cloudContinueButton: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.lg, borderRadius: BorderRadius.sm, backgroundColor: '#8B5CF6' },
+  cloudContinueText: { fontSize: Typography.fontSize.sm, color: Colors.white, fontWeight: Typography.fontWeight.semibold },
+  cloudPointer: { position: 'absolute', bottom: -8, left: '50%', marginLeft: -8, width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#8B5CF6' },
 });
