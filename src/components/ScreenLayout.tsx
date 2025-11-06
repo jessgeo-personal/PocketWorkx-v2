@@ -7,6 +7,8 @@ import { StatusBar } from 'expo-status-bar';
 
 import SlidingMenu from './SlidingMenu';
 import { Colors } from '../utils/theme';
+import { useOnboarding } from './onboarding/OnboardingManager';
+
 
 interface ScreenLayoutProps {
   children: React.ReactNode;
@@ -18,6 +20,7 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   showMenuButton = true 
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
+  const { onMenuButtonPressed } = useOnboarding(); // NEW
 
   return (
     <SafeAreaView style={styles.container}>
@@ -30,7 +33,11 @@ const ScreenLayout: React.FC<ScreenLayoutProps> = ({
       {showMenuButton && (
         <TouchableOpacity
           style={styles.menuButton}
-          onPress={() => setMenuVisible(true)}
+          onPress={() => {
+            console.log('[ScreenLayout] Menu button pressed, calling onMenuButtonPressed');
+            onMenuButtonPressed(); // NEW - advance onboarding step
+            setMenuVisible(true);
+          }}
           activeOpacity={0.8}
         >
           <MaterialIcons name="menu" size={24} color={Colors.white} />
