@@ -30,16 +30,22 @@ interface OnboardingContextType {
 }
 
 
+// src/components/onboarding/OnboardingManager.tsx
 const OnboardingContext = createContext<OnboardingContextType>({
   currentStep: null,
   nextStep: () => {},
   skipTutorial: () => {},
   isOnboardingActive: false,
+  // NEW defaults to satisfy interface
+  onMenuButtonPressed: () => {},
+  onHomeButtonPressed: () => {},
   onQuickActionsOpened: () => {},
   onAddCashChosen: () => {},
   onAddCashModalOpened: () => {},
+  onCashEntryAdded: () => {},
   startOnboarding: () => {},
 });
+
 
 export const useOnboarding = () => useContext(OnboardingContext);
 
@@ -220,27 +226,32 @@ const ConversationCloud: React.FC = () => {
     const { width, height } = Dimensions.get('window');
     switch (currentStep) {
       case 'menu_tutorial':
-      // Position well ABOVE the bottom-center menu button so it never blocks it
-      // Previously: setPos({ x: width / 2 - 150, y: height - 180 });
-      // Move it up ~40px
+        // Position above bottom center menu button (don't block it)
         setPos({ x: width / 2 - 150, y: height - 220 });
         break;
+      case 'slidingmenu_tutorial':
+        // Position above Home button in sliding menu (top area of screen when menu is open)
+        setPos({ x: width / 2 - 150, y: height * 0.25 });
+        break;
       case 'quickactions_tutorial':
-        // Position HIGHER ABOVE Quick Actions button to avoid covering it
-        // Move from 45% to 35% from top to ensure full visibility
-        setPos({ x: width / 2 - 150, y: height * 0.35 }); // Changed from 0.45 to 0.35
+        // Position above Quick Actions button to avoid covering it
+        setPos({ x: width / 2 - 150, y: height * 0.35 });
         break;
       case 'addcash_tutorial':
-        // Position for Add Cash button in Quick Actions modal
-        // Modal is bottom-sheet style, position in upper area  
-        setPos({ x: width / 2 - 150, y: height * 0.20 }); // Changed from 0.25 to 0.20 (higher)
+        // Position for Add Cash button in Quick Actions modal (upper area)
+        setPos({ x: width / 2 - 150, y: height * 0.20 });
         break;
       case 'cashmodal_tutorial':
-        // Position for Cash modal (center screen)
-        setPos({ x: width / 2 - 150, y: height * 0.10 }); // Changed from 0.15 to 0.10 (higher)
+        // Position for Cash modal form (center screen)
+        setPos({ x: width / 2 - 150, y: height * 0.10 });
         break;
-      }
+      case 'cash_completion':
+        // Position above the Wallet card on cash.tsx
+        setPos({ x: width / 2 - 150, y: height * 0.25 });
+        break;
+    }
   };
+
 
 
   
@@ -248,19 +259,29 @@ const ConversationCloud: React.FC = () => {
   const getMessage = () => {
     switch (currentStep) {
       case 'menu_tutorial':
-        return 'To jump to different sections of the app at anytime, click this Menu button';
+        return 'To jump to different sections of the app at anytime, click this Menu button to continue.';
+      case 'slidingmenu_tutorial':
+        return 'Jump to any section on the site from this Menu. Click the Home button to return to the main page.';
       case 'quickactions_tutorial':
         return 'Quick Actions is where you have access to all of your options. Start your journey here. Click QuickActions.';
       case 'addcash_tutorial':
         return 'Lets start here by adding cash in your pocket into the app. Click AddCash.';
       case 'cashmodal_tutorial':
-        return 'Count and add the amount in your wallet here, and click the \'Add Cash\' button.';
+        return 'Fill in the amount, choose Wallet and click Save. The cash should show up under Wallet on your screen.';
+      case 'cash_completion':
+        return 'Your Wallet reflects the cash you have in hand. Use RecordExpense to add any cash transactions you make.\n\nContinue to explore the app to track your bank accounts, credit cards, fixed deposits and more. Thanks for taking the tutorial!';
       default:
         return '';
     }
   };
 
-  const isGated = currentStep === 'addcash_tutorial' || currentStep === 'cashmodal_tutorial';
+
+  const isGated = currentStep === 'menu_tutorial' 
+    || currentStep === 'slidingmenu_tutorial'
+    || currentStep === 'quickactions_tutorial' 
+    || currentStep === 'addcash_tutorial' 
+    || currentStep === 'cashmodal_tutorial';
+
 
   if (!currentStep || currentStep === 'welcome' || currentStep === 'completed') return null;
 
