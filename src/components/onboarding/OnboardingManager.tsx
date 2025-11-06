@@ -221,7 +221,7 @@ const OnboardingOverlay: React.FC = () => {
     <>
       {renderWelcomeModal()}
       {/* Hide the Home-layer cloud when SlidingMenu is the active tutorial target */}
-      {currentStep !== 'slidingmenu_tutorial' && <ConversationCloud />}
+      {currentStep !== 'slidingmenu_tutorial' && currentStep !== 'addcash_tutorial' && <ConversationCloud />}
     </>
   );
 };
@@ -257,7 +257,7 @@ const ConversationCloud: React.FC = () => {
         break;
       case 'addcash_tutorial':
         // Position for Add Cash button in Quick Actions modal (upper area)
-        setPos({ x: width / 2 - 150, y: height * 0.20 });
+        setPos({ x: width / 2 - 150, y: height * 0.65 });
         break;
       case 'cashmodal_tutorial':
         // Position for Cash modal form (center screen)

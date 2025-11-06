@@ -52,7 +52,7 @@ const HomeScreen: React.FC = () => {
   const router = useRouter();
   // Hook into global storage
   const { state } = useStorage();
-  const { currentStep, onQuickActionsOpened, onAddCashChosen, startOnboarding } = useOnboarding();
+  const { currentStep, onQuickActionsOpened, onAddCashChosen, startOnboarding, skipTutorial } = useOnboarding();
 
   // Use centralized totals computation
   const {
@@ -980,6 +980,39 @@ const HomeScreen: React.FC = () => {
             </View>
             </View>
           </ScrollView>
+            {currentStep === 'addcash_tutorial' && (
+            <View pointerEvents="box-none" style={styles.addCashCloudOverlay}>
+              <View style={styles.addCashCloudWrap} pointerEvents="auto">
+                <View style={styles.addCashCloudBubble}>
+                  <Text style={styles.addCashCloudMessage}>
+                    Lets start here by adding cash in your pocket into the app. Click AddCash.
+                  </Text>
+                  <View style={styles.addCashCloudFooter}>
+                    <TouchableOpacity
+                      style={styles.addCashCloudCancelButton}
+                      onPress={() => {
+                        // Skip tutorial and close modal if desired
+                        skipTutorial();
+                        setIsQuickActionsModalVisible(false);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.addCashCloudCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.addCashCloudContinueButton, { opacity: 0.4 }]}
+                      disabled
+                    >
+                      <Text style={styles.addCashCloudContinueText}>Continue</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {/* Upward pointer because this cloud sits below the "Add Cash" tile */}
+                <View style={styles.addCashCloudPointerUp} pointerEvents="none" />
+              </View>
+            </View>
+          )}
+
         </View>
       </View>
     </Modal>
@@ -1508,7 +1541,80 @@ const styles = StyleSheet.create({
   },
   modalActionButtonImport: {
     backgroundColor: '#9C27B0', // Red color to match fixed income theme
-  }
+  },
+
+    addCashCloudOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999999,  // on top within modal
+    elevation: 100,  // high elevation within modal window (Android)
+  },
+  addCashCloudWrap: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    // Tweak top positioning as needed to sit just below the “Cash” section header & tiles
+    top: 140,
+    alignItems: 'center',
+  },
+  addCashCloudBubble: {
+    backgroundColor: Colors.background.card,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    ...Shadows.md,
+  },
+  addCashCloudMessage: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  addCashCloudFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addCashCloudCancelButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: 'transparent',
+  },
+  addCashCloudCancelText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+  },
+  addCashCloudContinueButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    backgroundColor: '#8B5CF6',
+  },
+  addCashCloudContinueText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  addCashCloudPointerUp: {
+    position: 'absolute',
+    top: -8,
+    left: '50%',
+    marginLeft: -8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#8B5CF6',
+  },
 
 });
 
