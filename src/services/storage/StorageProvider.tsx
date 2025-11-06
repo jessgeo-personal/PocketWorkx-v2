@@ -277,7 +277,11 @@ export type AppModel = Awaited<ReturnType<typeof getState>> & {
   // Fixed Income
   fixedIncomeEntries?: FixedIncomeEntry[];
   fixedIncomeTransactions?: FixedIncomeTransaction[];
+  
+  // Onboarding state
+  onboardingCompleted?: boolean;
 };
+
 
 
 

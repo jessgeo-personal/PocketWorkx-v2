@@ -31,7 +31,7 @@ type PocketWorkxState = {
     receiptPhoto?: string;
     notes?: string;
   }>;
-// NEW: credit cards domain
+  // NEW: credit cards domain
   creditCardEntries?: Array<{
     id: string;
     bank: string;
@@ -97,7 +97,7 @@ type PocketWorkxState = {
     linkedTransactions?: any[];
   }>;
 
-// NEW: loans domain persisted as raw JSON; StorageProvider normalizes to Date in memory
+  // NEW: loans domain persisted as raw JSON; StorageProvider normalizes to Date in memory
    loanEntries?: Array<{
     id: string;
     type: 'home' | 'car' | 'personal' | 'education' | 'other';
@@ -238,6 +238,7 @@ type PocketWorkxState = {
   // meta
   _version?: number;
   _updatedAt?: string; // ISO date
+  onboardingCompleted?: boolean;
 };
 
 // Use the new Directory and File classes
