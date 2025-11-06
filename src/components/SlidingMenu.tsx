@@ -39,9 +39,13 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  const { onHomeButtonPressed } = useOnboarding(); // NEW
-  const { currentStep } = useOnboarding(); // Fetch onboarding state to check step
+  const { currentStep, onHomeButtonPressed } = useOnboarding();
   const showSlidingMenuCloud = currentStep === 'slidingmenu_tutorial';
+
+  // DEBUG: Log when cloud should be visible
+  if (showSlidingMenuCloud) {
+    console.log('[SlidingMenu] Should render cloud for slidingmenu_tutorial, currentStep:', currentStep);
+  }
 
   {showSlidingMenuCloud && (
     <View
@@ -165,6 +169,50 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
       
+        {/* Onboarding cloud over the menu sheet */}
+        {showSlidingMenuCloud && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 88,            // tune if needed so it sits near the Home button
+              left: 16,
+              right: 16,
+              zIndex: 999999,     // MAX zIndex
+              elevation: 50,      // High Android elevation
+              alignItems: 'center',
+              pointerEvents: 'box-none',
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: '#FFFCEE',
+                borderRadius: 16,
+                padding: 16,
+                borderColor: '#8B5CF6',
+                borderWidth: 2,
+                maxWidth: 360,
+                shadowColor: '#000',
+                shadowOpacity: 0.12,
+                shadowRadius: 8,
+                elevation: 55, // above sheet
+              }}
+              pointerEvents="auto"
+            >
+              <Text
+                style={{
+                  color: '#513127',
+                  fontWeight: '700',
+                  fontSize: 16,
+                  textAlign: 'center',
+                }}
+              >
+                Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
+              </Text>
+            </View>
+          </View>
+        )}
+
+
       <Animated.View style={[styles.menuContainer, { transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.header}>
           <Image
