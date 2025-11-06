@@ -41,7 +41,48 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const { onHomeButtonPressed } = useOnboarding(); // NEW
   const { currentStep } = useOnboarding(); // Fetch onboarding state to check step
+  const showSlidingMenuCloud = currentStep === 'slidingmenu_tutorial';
 
+  {showSlidingMenuCloud && (
+    <View
+      style={{
+        position: 'absolute',
+        top: 92,
+        left: 16,
+        right: 16,
+        zIndex: 10000,
+        alignItems: 'center',
+        pointerEvents: 'box-none',
+      }}
+    >
+      <View
+        style={{
+          backgroundColor: '#FFFCEE',
+          borderRadius: 16,
+          padding: 16,
+          borderColor: '#8B5CF6',
+          borderWidth: 2,
+          maxWidth: 360,
+          shadowColor: '#000',
+          shadowOpacity: 0.1,
+          shadowRadius: 6,
+          elevation: 8,
+        }}
+        pointerEvents="auto"
+      >
+        <Text
+          style={{
+            color: '#513127',
+            fontWeight: '700',
+            fontSize: 16,
+            textAlign: 'center',
+          }}
+        >
+          Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
+        </Text>
+      </View>
+    </View>
+  )}
   
   const menuGroups: MenuGroup[] = [
     {
@@ -119,54 +160,11 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
     </View>
   );
 
-  const showSlidingMenuCloud = currentStep === 'slidingmenu_tutorial';
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
       
-      {/* ONBOARDING CLOUD overlay for step 2 */}
-      {showSlidingMenuCloud && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 92, // tune if needed
-            left: 16,
-            right: 16,
-            zIndex: 10000,
-            alignItems: 'center',
-            pointerEvents: 'box-none',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: '#FFFCEE',
-              borderRadius: 16,
-              padding: 16,
-              borderColor: '#8B5CF6',
-              borderWidth: 2,
-              maxWidth: 360,
-              shadowColor: '#000',
-              shadowOpacity: 0.1,
-              shadowRadius: 6,
-              elevation: 8,
-            }}
-            pointerEvents="auto"
-          >
-            <Text
-              style={{
-                color: '#513127',
-                fontWeight: '700',
-                fontSize: 16,
-                textAlign: 'center',
-              }}
-            >
-              Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
-            </Text>
-          </View>
-        </View>
-      )}
-
       <Animated.View style={[styles.menuContainer, { transform: [{ translateY: slideAnim }] }]}>
         <View style={styles.header}>
           <Image

@@ -11,14 +11,16 @@ const AppFooter: React.FC = () => {
   const { onMenuButtonPressed } = useOnboarding();
 
   const handleMenuPress = () => {
-    // 1) Advance step from 'menu_tutorial' → 'slidingmenu_tutorial'
+    // Step 1: request step advance synchronously
     onMenuButtonPressed();
 
-    // 2) Defer opening the modal to next tick so the cloud unmounts from Home layer first
+    // Step 2: open menu on the next frame to allow cloud to unmount/remount
     requestAnimationFrame(() => {
+      console.log('[Onboarding] Opening SlidingMenu after advancing to slidingmenu_tutorial');
       setMenuVisible(true);
     });
   };
+
 
   return (
     <>

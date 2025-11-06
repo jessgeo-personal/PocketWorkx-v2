@@ -54,6 +54,13 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentStep, setCurrentStep] = useState<OnboardingStep | null>(null);
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
 
+  // ADD THIS DIAGNOSTIC EFFECT HERE
+  useEffect(() => {
+    if (currentStep) {
+      console.log('[Onboarding] step →', currentStep);
+    }
+  }, [currentStep]);
+  
   useEffect(() => {
     // Start once storage is loaded
     if (state === null) return;
@@ -105,8 +112,15 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const skipTutorial = () => completeOnboarding();
 
   // Event-driven notifiers (updated for new flow)
+  // src/components/onboarding/OnboardingManager.tsx
   const onMenuButtonPressed = () => {
-      setCurrentStep(prev => (prev === 'menu_tutorial' ? 'slidingmenu_tutorial' : prev));
+    setCurrentStep(prev => {
+      if (prev === 'menu_tutorial') {
+        console.log('[Onboarding] menu button pressed → slidingmenu_tutorial');
+        return 'slidingmenu_tutorial';
+      }
+      return prev;
+    });
   };
 
   const onHomeButtonPressed = () => {
