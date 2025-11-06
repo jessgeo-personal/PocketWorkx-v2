@@ -186,9 +186,11 @@ const ConversationCloud: React.FC = () => {
     const { width, height } = Dimensions.get('window');
     switch (currentStep) {
       case 'menu_tutorial':
-        // Position above bottom center menu button (80px from bottom)
-        setPos({ x: width / 2 - 150, y: height - 180 });
-        break;
+      // Position well ABOVE the bottom-center menu button so it never blocks it
+      // Previously: setPos({ x: width / 2 - 150, y: height - 180 });
+      // Move it up ~40px
+      setPos({ x: width / 2 - 150, y: height - 220 });
+      break;
       case 'quickactions_tutorial':
         // Position HIGHER ABOVE Quick Actions button to avoid covering it
         // Move from 45% to 35% from top to ensure full visibility
