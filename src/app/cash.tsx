@@ -123,7 +123,7 @@ const CashScreen: React.FC = () => {
 
   // Hook into global storage
   const { state, loading, save } = useStorage();
-  const { currentStep, onAddCashModalOpened, onCashEntryAdded } = useOnboarding();
+  const { currentStep, onAddCashModalOpened, onCashEntryAdded, skipTutorial} = useOnboarding();
 
   // Notify onboarding when Add Cash modal opens
   useEffect(() => {
@@ -893,6 +893,40 @@ const CashScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           </View>
+
+                {/* BEGIN: cashmodal_tutorial in-modal cloud */}
+          {currentStep === 'cashmodal_tutorial' && (
+            <View pointerEvents="box-none" style={styles.cashModalCloudOverlay}>
+              <View style={styles.cashModalCloudWrap} pointerEvents="auto">
+                <View style={styles.cashModalCloudBubble}>
+                  <Text style={styles.cashModalCloudMessage}>
+                    Fill in the amount, choose Wallet and click Save. The cash should show up under Wallet on your screen.
+                  </Text>
+                  <View style={styles.cashModalCloudFooter}>
+                    <TouchableOpacity
+                      style={styles.cashModalCloudCancelButton}
+                      onPress={() => {
+                        skipTutorial();
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.cashModalCloudCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.cashModalCloudContinueButton, { opacity: 0.4 }]}
+                      disabled
+                    >
+                      <Text style={styles.cashModalCloudContinueText}>Continue</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {/* Pointer pointing DOWN toward the form */}
+                <View style={styles.cashModalCloudPointerDown} pointerEvents="none" />
+              </View>
+            </View>
+          )}
+          {/* END: cashmodal_tutorial in-modal cloud */}
+
         </View>
       </View>
     </Modal>
@@ -1709,6 +1743,79 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  cashModalCloudOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 999999,    // above modal content
+    elevation: 100,    // high within modal window (Android)
+  },
+  cashModalCloudWrap: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    // Adjust to sit above form fields without covering inputs
+    top: 120,          // Increase to move DOWN, decrease to move UP
+    alignItems: 'center',
+  },
+  cashModalCloudBubble: {
+    backgroundColor: '#FFFCEE', // or Colors.background.card
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 50,
+  },
+  cashModalCloudMessage: {
+    fontSize: 14,
+    color: '#1A1A1A',
+    lineHeight: 22,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  cashModalCloudFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cashModalCloudCancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+  },
+  cashModalCloudCancelText: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  cashModalCloudContinueButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#8B5CF6',
+  },
+  cashModalCloudContinueText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  cashModalCloudPointerDown: {
+    position: 'absolute',
+    bottom: -8,
+    left: '50%',
+    marginLeft: -8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#8B5CF6',
   },
 
 });

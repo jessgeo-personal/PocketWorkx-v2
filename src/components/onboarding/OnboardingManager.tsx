@@ -221,7 +221,10 @@ const OnboardingOverlay: React.FC = () => {
     <>
       {renderWelcomeModal()}
       {/* Hide the Home-layer cloud when SlidingMenu is the active tutorial target */}
-      {currentStep !== 'slidingmenu_tutorial' && currentStep !== 'addcash_tutorial' && <ConversationCloud />}
+      {currentStep !== 'slidingmenu_tutorial'
+        && currentStep !== 'addcash_tutorial'
+        && currentStep !== 'cashmodal_tutorial'
+        && <ConversationCloud />}
     </>
   );
 };
