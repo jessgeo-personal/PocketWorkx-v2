@@ -106,9 +106,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Event-driven notifiers (updated for new flow)
   const onMenuButtonPressed = () => {
-    if (currentStep === 'menu_tutorial') {
-      setCurrentStep('slidingmenu_tutorial');
-    }
+      setCurrentStep(prev => (prev === 'menu_tutorial' ? 'slidingmenu_tutorial' : prev));
   };
 
   const onHomeButtonPressed = () => {
@@ -203,7 +201,8 @@ const OnboardingOverlay: React.FC = () => {
   return (
     <>
       {renderWelcomeModal()}
-      <ConversationCloud />
+      {/* Hide the Home-layer cloud when SlidingMenu is the active tutorial target */}
+      {currentStep !== 'slidingmenu_tutorial' && <ConversationCloud />}
     </>
   );
 };

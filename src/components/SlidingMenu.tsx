@@ -130,29 +130,37 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ visible, onClose }) => {
         <View
           style={{
             position: 'absolute',
-            top: 100, // Adjust so it's above your Home button (tweak Y as needed visually)
-            left: '10%',
-            width: '80%',
+            top: 92, // tune if needed
+            left: 16,
+            right: 16,
             zIndex: 10000,
-            alignItems: 'center'
+            alignItems: 'center',
+            pointerEvents: 'box-none',
           }}
-          pointerEvents="box-none"
         >
           <View
             style={{
               backgroundColor: '#FFFCEE',
               borderRadius: 16,
-              padding: 20,
+              padding: 16,
               borderColor: '#8B5CF6',
               borderWidth: 2,
+              maxWidth: 360,
               shadowColor: '#000',
-              shadowOpacity: 0.10,
+              shadowOpacity: 0.1,
               shadowRadius: 6,
               elevation: 8,
-              maxWidth: 320,
             }}
+            pointerEvents="auto"
           >
-            <Text style={{ color: '#513127', fontWeight: '700', fontSize: 16, marginBottom: 8, textAlign: 'center' }}>
+            <Text
+              style={{
+                color: '#513127',
+                fontWeight: '700',
+                fontSize: 16,
+                textAlign: 'center',
+              }}
+            >
               Jump to any section on the site from this Menu.{"\n"}Click the Home button to return to the main page.
             </Text>
           </View>
