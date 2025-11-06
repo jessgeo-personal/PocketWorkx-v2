@@ -114,14 +114,19 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Event-driven notifiers (updated for new flow)
   // src/components/onboarding/OnboardingManager.tsx
   const onMenuButtonPressed = () => {
+    console.log('[OnboardingManager] onMenuButtonPressed called, currentStep:', currentStep);
+    
     setCurrentStep(prev => {
+      console.log('[OnboardingManager] setState prev:', prev);
       if (prev === 'menu_tutorial') {
-        console.log('[Onboarding] menu button pressed → slidingmenu_tutorial');
+        console.log('[OnboardingManager] Advancing menu_tutorial → slidingmenu_tutorial');
         return 'slidingmenu_tutorial';
       }
+      console.log('[OnboardingManager] Not advancing, staying at:', prev);
       return prev;
     });
   };
+
 
   const onHomeButtonPressed = () => {
     if (currentStep === 'slidingmenu_tutorial') {

@@ -10,16 +10,26 @@ const AppFooter: React.FC = () => {
   const [menuVisible, setMenuVisible] = React.useState(false);
   const { onMenuButtonPressed } = useOnboarding();
 
+    // DEBUG: Log that AppFooter is mounted
+  console.log('[AppFooter] Component rendered, menuVisible:', menuVisible);
+  
+  React.useEffect(() => {
+    console.log('[AppFooter] Component mounted');
+  }, []);
+
   const handleMenuPress = () => {
+    console.log('[AppFooter] Menu button pressed, calling onMenuButtonPressed');
+    
     // Step 1: request step advance synchronously
     onMenuButtonPressed();
 
-    // Step 2: open menu on the next frame to allow cloud to unmount/remount
+    // Step 2: open menu on the next frame
     requestAnimationFrame(() => {
-      console.log('[Onboarding] Opening SlidingMenu after advancing to slidingmenu_tutorial');
+      console.log('[AppFooter] Opening SlidingMenu after advancing to slidingmenu_tutorial');
       setMenuVisible(true);
     });
   };
+
 
 
   return (
@@ -29,8 +39,11 @@ const AppFooter: React.FC = () => {
         <TouchableOpacity
           accessibilityLabel="Open Menu"
           onPress={handleMenuPress}
+            onPressIn={() => console.log('[AppFooter] Button pressed IN')}
+            onPressOut={() => console.log('[AppFooter] Button pressed OUT')}
           activeOpacity={0.9}
-          style={styles.menuButton}
+          //style={styles.menuButton}
+          style={[styles.menuButton, { backgroundColor: 'red', zIndex: 999999, elevation: 999999 }]} // Make it RED to see it
         >
           <MaterialIcons name="menu" size={28} color="#333333" />
         </TouchableOpacity>
